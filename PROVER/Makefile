@@ -38,7 +38,7 @@ include ../Makefile.services
 
 # Build the programs
 
-EPROVER = eprover.o ../lib/CONTROL.a ../lib/HEURISTICS.a\
+EPROVER = eprover.o ../lib/CONTROL.a ../lib/PCL2.a ../lib/HEURISTICS.a\
             ../lib/LEARN.a\
             ../lib/CLAUSES.a ../lib/ORDERINGS.a ../lib/TERMS.a\
             ../lib/INOUT.a ../lib/BASICS.a
