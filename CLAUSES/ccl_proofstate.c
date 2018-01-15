@@ -280,6 +280,18 @@ void ProofStateLoadWatchlist(ProofState_p state,
    }
 }
 
+/*-----------------------------------------------------------------------
+//
+// Function: ProofStateLoadWatchlistDir()
+//
+//   Load the watchlists from watchlist directory.
+//
+// Global Variables: -
+//
+// Side Effects    : IO, memory ops, allocates watchlists stack.
+//
+/----------------------------------------------------------------------*/
+
 PStack_p ProofStateLoadWatchlistDir(
    ProofState_p state,
    char* watchlist_dir,
@@ -292,6 +304,7 @@ PStack_p ProofStateLoadWatchlistDir(
    ClauseSet_p watchlist;
    FormulaSet_p fset;
    DStr_p filename;
+   Clause_p handle;
    long proof_no = 0;
 
    watchlists = PStackAlloc();
@@ -350,6 +363,14 @@ PStack_p ProofStateLoadWatchlistDir(
       ClauseSetDefaultWeighClauses(watchlist);
       ClauseSetSortLiterals(watchlist, EqnSubsumeInverseCompareRef);
       ClauseSetDocInital(GlobalOut, OutputLevel, watchlist);
+
+      // set the origin proof number
+      for(handle = watchlist->anchor->succ; 
+          handle != watchlist->anchor; 
+          handle = handle->succ)
+      {
+         handle->watch_proof = proof_no;
+      }
       
       if (OutputLevel >= 1)
       {
@@ -401,13 +422,25 @@ void ProofStateInitWatchlist(ProofState_p state, OCB_p ocb)
    }
 }
 
+/*-----------------------------------------------------------------------
+//
+// Function: ProofStateInitWatchlistDir()
+//
+//   Initialize (preloaded) watchlists and watchlists progress.
+//
+// Global Variables: -
+//
+// Side Effects    : Changes state->watchlist, IO, memory ops,
+//                   frees watchlist.
+//
+/----------------------------------------------------------------------*/
+
 void ProofStateInitWatchlistDir(
    ProofState_p state, 
    OCB_p ocb, 
    PStack_p watchlists)
 {
    ClauseSet_p tmpwatch;
-   Clause_p clause, repr;
    IntOrP val1, val2;
    long proof_no;
 
@@ -424,7 +457,7 @@ void ProofStateInitWatchlistDir(
       return;
    }
       
-   // go through all the input watchlists
+   // go through all the input watchlists (backwards)
    proof_no = watchlists->current;
    while (!PStackEmpty(watchlists))
    {
@@ -433,34 +466,14 @@ void ProofStateInitWatchlistDir(
       tmpwatch = PStackPopP(watchlists);
       ClauseSetMarkMaximalTerms(ocb, tmpwatch);
 
-      // remember how many clauses are in this proof
+      // init proof progress status
+      assert(tmpwatch->members > 0);
       val1.i_val = 0; // 0 matched so far ...
       val2.i_val = tmpwatch->members; // ... out of "val2" total
       NumTreeStore(&state->watch_progress, proof_no, val1, val2);
 
-      // go throught the clauses from the input watchlist
-      while (!ClauseSetEmpty(tmpwatch))
-      {
-         // take a clause from the input watchlist
-         clause = ClauseSetExtractFirst(tmpwatch);
-         // is the clause already in the global watchlist?
-         repr = ClauseSetFindVariantClause(state->watchlist, clause);
-         if (repr)
-         {
-            // if yes, just free the clause because it's redundant
-            ClauseFree(clause);
-         }
-         else 
-         {
-            // otherwise put it into the global watchlist
-            ClauseSetIndexedInsertClause(state->watchlist, clause);
-            repr = clause;
-         }
-         // mark this clause as appearing in proof number "proof_no"
-         val1.i_val = 0;
-         val2.i_val = 0;
-         NumTreeStore(&repr->watch_proofs, proof_no, val1, val2);
-      }
+      // insert clauses into a global watchlist
+      ClauseSetIndexedInsertClauseSet(state->watchlist, tmpwatch);
       ClauseSetFree(tmpwatch);
    }
   

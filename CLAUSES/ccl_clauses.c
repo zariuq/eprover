@@ -250,8 +250,6 @@ Clause_p ClauseCellAlloc(void)
    handle->perm_ident = clause_perm_ident_counter++;
 #endif
 
-   handle->watch_proofs = NULL;
-
    return handle;
 }
 
@@ -290,8 +288,7 @@ Clause_p EmptyClauseAlloc(void)
    handle->set         = NULL;
    handle->pred        = NULL;
    handle->succ        = NULL;
-
-   handle->watch_proofs    = NULL;
+   handle->watch_proof = -1;
    handle->watch_relevance = 0.0;
 
    return handle;
@@ -687,10 +684,6 @@ void ClauseFree(Clause_p junk)
       PStackFree(junk->derivation);
    }
    ClauseCellFree(junk);
-   if(junk->watch_proofs) 
-   {
-      NumTreeFree(junk->watch_proofs);
-   }
 }
 
 

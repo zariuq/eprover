@@ -110,25 +110,16 @@ static void check_ac_status(ProofState_p state, ProofControl_p
 static double watch_progress_update(Clause_p watch_clause, 
                                     NumTree_p* watch_progress)
 {
-   NumTree_p node;
    NumTree_p proof;
-   PStack_p stack;
-   double relevance = 0.0;
 
-   // traverse the proofs in which the watch_clause appears
-   stack = NumTreeTraverseInit(watch_clause->watch_proofs);
-   while((node = NumTreeTraverseNext(stack)))
-   {
-      // watch_clause appears in proof number node->key ...
-      // ... so find the proof progress statistics ...
-      proof = NumTreeFind(watch_progress, node->key);
-      // ... and update it (val1 matched out of val2 total)
-      proof->val1.i_val++;
-      relevance = MAX(relevance, (double)proof->val1.i_val/proof->val2.i_val);
-   }
-   NumTreeTraverseExit(stack);
+   assert(watch_clause->watch_proof != -1);
 
-   return relevance;
+   // find the proof progress statistics ...
+   proof = NumTreeFind(watch_progress, watch_clause->watch_proof);
+   // ... and update it (val1 matched out of val2 total)
+   proof->val1.i_val++;
+   
+   return (double)proof->val1.i_val/proof->val2.i_val;
 }
 
 static void watch_progress_print(NumTree_p watch_progress)
