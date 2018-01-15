@@ -159,7 +159,7 @@ static long remove_subsumed(GlobalIndices_p indices,
 {
    Clause_p handle;
    long     res;
-   double   relevance;
+   double   progress;
    PStack_p stack = PStackAlloc();
 
    if (watch_progress) 
@@ -187,9 +187,9 @@ static long remove_subsumed(GlobalIndices_p indices,
          //ClausePrint(GlobalOut, subsumer->clause, true);
          //fprintf(GlobalOut, "\n");
 
-         relevance = watch_progress_update(handle, watch_progress);
+         progress = watch_progress_update(handle, watch_progress);
          subsumer->clause->watch_relevance = MAX(
-            subsumer->clause->watch_relevance, relevance);
+            subsumer->clause->watch_relevance, progress);
       }
       else
       {
