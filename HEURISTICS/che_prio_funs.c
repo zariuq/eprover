@@ -62,6 +62,8 @@ char* PrioFunNames[]=
    "ByCreationDate",
    "PreferWatchlist",
    "DeferWatchlist",
+   "PreferWatchlistRelevant",
+   "DeferWatchlistRelevant",
    NULL
 };
 
@@ -97,6 +99,8 @@ static ClausePrioFun prio_fun_array[]=
    PrioFunByCreationDate,
    PrioFunPreferWatchlist,
    PrioFunDeferWatchlist,
+   PrioFunPreferWatchlistRelevant,
+   PrioFunDeferWatchlistRelevant,
    NULL
 };
 
@@ -913,6 +917,16 @@ EvalPriority PrioFunPreferWatchlist(Clause_p clause)
    return PrioNormal;
 }
 
+EvalPriority PrioFunPreferWatchlistRelevant(Clause_p clause)
+{
+   assert(clause);
+
+   if(ClauseQueryProp(clause, CPSubsumesWatch))
+   {
+      return PrioWatchlistPrefer-(long)(1000*clause->watch_relevance);
+   }
+   return PrioWatchlistDefer;
+}
 
 /*-----------------------------------------------------------------------
 //
@@ -938,6 +952,16 @@ EvalPriority PrioFunDeferWatchlist(Clause_p clause)
    return PrioNormal;
 }
 
+EvalPriority PrioFunDeferWatchlistRelevant(Clause_p clause)
+{
+   assert(clause);
+
+   if(ClauseQueryProp(clause, CPSubsumesWatch))
+   {
+      return PrioWatchlistDefer+(long)(1000*clause->watch_relevance);
+   }
+   return PrioWatchlistPrefer;
+}
 
 
 

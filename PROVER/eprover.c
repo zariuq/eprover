@@ -33,10 +33,6 @@
 #include <e_version.h>
 #include <pcl_protocol.h>
 
-#include <stdio.h>
-#include <sys/types.h>
-#include <dirent.h>
-
 
 /*---------------------------------------------------------------------*/
 /*                  Data types                                         */
@@ -187,123 +183,6 @@ ProofState_p parse_spec(CLState_p state,
    *ax_no = parsed_ax_no;
 
    return proofstate;
-}
-
-/*-----------------------------------------------------------------------
-//
-// Function: LoadPCLsFromDir()
-//
-//   Parse a set of PCL protocols in a directory and return their PStack_p.
-//   This is mostly taken from epclextract.
-//
-// Global Variables: -
-//
-// Side Effects    : Changes state->axioms, IO, memory ops.
-//
-//----------------------------------------------------------------------*/
-
-PStack_p ProofStateInitWatchlistPCL(
-                             char* watchlist_dir,
-                             IOFormat parse_format)
-{
-   Scanner_p in;
-   PStack_p protocols = NULL;
-   PCLProt_p       prot = NULL;
-   bool            empty_clause = false;
-   long fofs,steps = 0;
-   DIR *dp;
-   struct dirent *ep;     
-   
-   if(watchlist_dir)
-   {
-      dp = opendir (watchlist_dir);
-      VERBOUT2(watchlist_dir);
-      if (dp != NULL)
-      {
-	 protocols = PStackAlloc();
-	 while ((ep = readdir (dp)) != NULL )
-	 {
-	    if((strcmp(ep->d_name,".") != 0) && (strcmp(ep->d_name,"..") != 0))
-	    {
-	    VERBOUT2(ep->d_name);
-	    prot = PCLProtAlloc();
-	    in = CreateScanner(StreamTypeFile, ep->d_name, true, NULL);
-
-/*	 in = CreateScanner(StreamTypeFile, state->argv[i],
-	 !pass_comments, NULL); */
-	    ScannerSetFormat(in, TPTPFormat);
-	    steps+=PCLProtParse(in, prot);
-	    fofs+= PCLProtStripFOF(prot);
-
-	    VERBOUT2("PCL input read\n");
-	    fflush(GlobalOut);
-	    CheckInpTok(in, NoToken);
-	    DestroyScanner(in);
-	    empty_clause = PCLProtMarkProofClauses(prot);
-	    PStackPushP(protocols, prot);
-	    }}
-	 (void) closedir (dp);
-      }
-      else
-	 perror ("Couldn't open the directory");
-   }
-   return protocols;
-}
-
-
-/*-----------------------------------------------------------------------
-//
-// Function: ProofStateInitWatchlistPCL()
-//
-//   Parse a set of PCL protocols in a directory and return their PStack_p.
-add the clauses into the watchlist.
-//   Set up the pointers between the watchlist clause and the
-//   protocol.
-//   This is mostly taken from epclextract.
-//
-// Global Variables: -
-//
-// Side Effects    : Changes state->axioms, IO, memory ops.
-//
-//----------------------------------------------------------------------*/
-
-void ProofStateInitWatchlistPCLLoad(ProofState_p state, OCB_p ocb, PStack_p protocols)
-{
-	       
-   if(protocols)
-   {
-   state->watchlist = ClauseSetAlloc();
-   GCRegisterClauseSet(state->gc_terms, state->watchlist);
-
-   for(	 PStackPointer j=0; j<PStackGetSP(protocols); j++)
-   {
-	 PCLProt_p prot = PStackElementP(protocols, j);
-/* insert into wl */
-	 PCLProtSerialize(prot);   
-	 for(	 PStackPointer i=0; i<PStackGetSP(prot->in_order); i++)
-	 {
-	    PCLStep_p step = PStackElementP(prot->in_order, i);
-	    ClauseSetInsert(state->watchlist, step->logic.clause);
-//	    ClauseSetIndexedInsertClause(state->watchlist, step->logic.clause);
-	 }	 
-	 /* we might need this  - used above */
-/*            ClauseSetIndexedInsertClause(state->watchlist, handle); */
-
-/* todo: set things up with pcl	 */
-         /* ClauseSetIndexedInsertClauseSet(state->watchlist, tmpset); */
-         /* ClauseSetSetTPTPType(state->watchlist, CPTypeWatchClause); */
-         /* ClauseSetFree(tmpset); */
-   }
-      
-   ClauseSetSetProp(state->watchlist, CPWatchOnly);
-   ClauseSetDefaultWeighClauses(state->watchlist);
-   ClauseSetMarkMaximalTerms(ocb, state->watchlist);
-   ClauseSetSortLiterals(state->watchlist, EqnSubsumeInverseCompareRef);
-//   GlobalIndicesInsertClauseSet(&(state->wlindices),state->watchlist);
-//   ClauseSetDocInital(GlobalOut, OutputLevel, state->watchlist);
-      // ClauseSetPrint(stdout, state->watchlist, true);
-}    
-   //printf("# watchlist: %p\n", state->watchlist);
 }
 
 /*-----------------------------------------------------------------------
@@ -480,7 +359,7 @@ int main(int argc, char* argv[])
    int              retval = NO_ERROR;
    CLState_p        state;
    ProofState_p     proofstate;
-   PStack_p protocols;
+   PStack_p watchlists;
    ProofControl_p   proofcontrol;
    Clause_p         success = NULL,
       filter_success;
@@ -591,7 +470,10 @@ int main(int argc, char* argv[])
    }
 
    raw_clause_no = proofstate->axioms->members;
-//   ProofStateLoadWatchlist(proofstate, watchlist_filename, parse_format);
+   //ProofStateLoadWatchlist(proofstate, watchlist_filename, parse_format);
+   watchlists = ProofStateLoadWatchlistDir(proofstate, 
+                                           watchlist_filename, 
+                                           parse_format);
 
    if(!no_preproc)
    {
@@ -628,15 +510,9 @@ int main(int argc, char* argv[])
    ProofStateInit(proofstate, proofcontrol);
    //printf("Alive (2)!\n");
 
-//   ProofStateInitWatchlist(proofstate, proofcontrol->ocb);
+   //ProofStateInitWatchlist(proofstate, proofcontrol->ocb);
+   ProofStateInitWatchlistDir(proofstate, proofcontrol->ocb, watchlists);
 
-   protocols = ProofStateInitWatchlistPCL(
-      // proofstate, proofcontrol->ocb,
-                           watchlist_filename, parse_format);
-   
-   ProofStateInitWatchlistPCLLoad(proofstate, proofcontrol->ocb, protocols);
-
-   
    VERBOUT2("Prover state initialized\n");
    preproc_time = GetTotalCPUTime();
    if(print_rusage)

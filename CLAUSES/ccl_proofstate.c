@@ -20,6 +20,9 @@
 
 #include "ccl_proofstate.h"
 
+#include <stdio.h>
+#include <sys/types.h>
+#include <dirent.h>
 
 
 /*---------------------------------------------------------------------*/
@@ -223,6 +226,8 @@ ProofState_p ProofStateAlloc(FunctionProperties free_symb_prop)
    handle->signature->distinct_props =
       handle->signature->distinct_props&(~free_symb_prop);
 
+   handle->watch_progress = NULL;
+
    return handle;
 }
 
@@ -275,7 +280,91 @@ void ProofStateLoadWatchlist(ProofState_p state,
    }
 }
 
+PStack_p ProofStateLoadWatchlistDir(
+   ProofState_p state,
+   char* watchlist_dir,
+   IOFormat parse_format)
+{
+   Scanner_p in;
+   DIR *dp;
+   struct dirent *ep;
+   PStack_p watchlists;
+   ClauseSet_p watchlist;
+   FormulaSet_p fset;
+   DStr_p filename;
+   long proof_no = 0;
 
+   watchlists = PStackAlloc();
+   if (!watchlist_dir)
+   {
+      return watchlists;
+   }
+
+   if (OutputLevel >= 1)
+   {
+      fprintf(GlobalOut, "# Loading watchlists from '%s':\n", 
+         watchlist_dir);
+   }
+
+   dp = opendir(watchlist_dir);
+   if (!dp)
+   {
+      return watchlists;
+   }
+
+   while ((ep = readdir(dp)) != NULL)
+   {
+      if (ep->d_type == DT_DIR)
+      {
+         continue;
+      }
+
+      filename = DStrAlloc();
+      DStrAppendStr(filename, watchlist_dir);
+      DStrAppendChar(filename, '/');
+      DStrAppendStr(filename, ep->d_name);
+      in = CreateScanner(StreamTypeFile, DStrView(filename), true, NULL);
+      ScannerSetFormat(in, parse_format);
+
+      watchlist = ClauseSetAlloc();
+      fset = FormulaSetAlloc();
+      FormulaAndClauseSetParse(in, fset, watchlist, state->terms, NULL, NULL);
+      CheckInpTok(in, NoToken);
+      DestroyScanner(in);
+
+      // move clauses from formulas to watchlist
+      while (!FormulaSetEmpty(fset))
+      {
+         WFormula_p fml = FormulaSetExtractFirst(fset);
+         if (fml->is_clause) 
+         {
+            ClauseSetInsert(watchlist, WFormClauseToClause(fml));
+         }
+         WFormulaFree(fml);
+      }
+      FormulaSetFree(fset);
+
+      // stuff taken from ProofStateLoadWatchlist (needed ???)
+      ClauseSetSetTPTPType(watchlist, CPTypeWatchClause);
+      ClauseSetSetProp(watchlist, CPWatchOnly);
+      ClauseSetDefaultWeighClauses(watchlist);
+      ClauseSetSortLiterals(watchlist, EqnSubsumeInverseCompareRef);
+      ClauseSetDocInital(GlobalOut, OutputLevel, watchlist);
+      
+      if (OutputLevel >= 1)
+      {
+         fprintf(GlobalOut, "#   watchlist %4ld: %8ld clauses from '%s'\n", 
+            proof_no, watchlist->members, DStrView(filename));
+      }
+
+      DStrFree(filename);
+      PStackPushP(watchlists, watchlist);
+      proof_no++;
+   }
+
+   closedir(dp);
+   return watchlists;
+}
 
 
 /*-----------------------------------------------------------------------
@@ -312,6 +401,80 @@ void ProofStateInitWatchlist(ProofState_p state, OCB_p ocb)
    }
 }
 
+void ProofStateInitWatchlistDir(
+   ProofState_p state, 
+   OCB_p ocb, 
+   PStack_p watchlists)
+{
+   ClauseSet_p tmpwatch;
+   Clause_p clause, repr;
+   IntOrP val1, val2;
+   long proof_no;
+
+   if (!watchlists || PStackEmpty(watchlists))
+   {
+      if (OutputLevel >= 1)
+      {
+         fprintf(GlobalOut, "# Watchlist not in use\n");
+      }
+      GCDeregisterClauseSet(state->gc_terms, state->watchlist);
+      ClauseSetFree(state->watchlist);
+      state->watchlist = NULL;
+      PStackFree(watchlists);
+      return;
+   }
+      
+   // go through all the input watchlists
+   proof_no = watchlists->current;
+   while (!PStackEmpty(watchlists))
+   {
+      proof_no--;
+      // take an input watchlist
+      tmpwatch = PStackPopP(watchlists);
+      ClauseSetMarkMaximalTerms(ocb, tmpwatch);
+
+      // remember how many clauses are in this proof
+      val1.i_val = 0; // 0 matched so far ...
+      val2.i_val = tmpwatch->members; // ... out of "val2" total
+      NumTreeStore(&state->watch_progress, proof_no, val1, val2);
+
+      // go throught the clauses from the input watchlist
+      while (!ClauseSetEmpty(tmpwatch))
+      {
+         // take a clause from the input watchlist
+         clause = ClauseSetExtractFirst(tmpwatch);
+         // is the clause already in the global watchlist?
+         repr = ClauseSetFindVariantClause(state->watchlist, clause);
+         if (repr)
+         {
+            // if yes, just free the clause because it's redundant
+            ClauseFree(clause);
+         }
+         else 
+         {
+            // otherwise put it into the global watchlist
+            ClauseSetIndexedInsertClause(state->watchlist, clause);
+            repr = clause;
+         }
+         // mark this clause as appearing in proof number "proof_no"
+         val1.i_val = 0;
+         val2.i_val = 0;
+         NumTreeStore(&repr->watch_proofs, proof_no, val1, val2);
+      }
+      ClauseSetFree(tmpwatch);
+   }
+  
+   if (OutputLevel >= 1)
+   {
+      fprintf(GlobalOut, "# Total watchlist clauses: %ld\n", 
+         state->watchlist->members);
+   }
+
+   GlobalIndicesInsertClauseSet(&(state->wlindices),state->watchlist);
+   PStackFree(watchlists);
+      
+   //ClauseSetPrint(stdout, state->watchlist, true);
+}
 
 
 /*-----------------------------------------------------------------------
