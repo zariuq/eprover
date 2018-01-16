@@ -179,6 +179,8 @@ Clause_p clause_copy_meta(Clause_p clause)
    handle->parent2     = NULL;
    handle->pred        = NULL;
    handle->succ        = NULL;
+   handle->watch_proof = clause->watch_proof;
+   handle->watch_relevance = clause->watch_relevance;
 
    return handle;
 }

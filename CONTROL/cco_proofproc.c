@@ -116,6 +116,12 @@ static double watch_progress_update(Clause_p watch_clause,
 
    // find the proof progress statistics ...
    proof = NumTreeFind(watch_progress, watch_clause->watch_proof);
+   if (!proof) 
+   {
+      Error("Unknown proof number (%ld) of a watchlist clause! Should not happen!", 
+         OTHER_ERROR, watch_clause->watch_proof);
+   }
+   
    // ... and update it (val1 matched out of val2 total)
    proof->val1.i_val++;
    
