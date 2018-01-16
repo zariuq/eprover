@@ -193,9 +193,12 @@ static long remove_subsumed(GlobalIndices_p indices,
          //ClausePrint(GlobalOut, subsumer->clause, true);
          //fprintf(GlobalOut, "\n");
 
-         progress = watch_progress_update(handle, watch_progress);
-         subsumer->clause->watch_relevance = MAX(
-            subsumer->clause->watch_relevance, progress);
+         if (*watch_progress) 
+         {
+            progress = watch_progress_update(handle, watch_progress);
+            subsumer->clause->watch_relevance = MAX(
+               subsumer->clause->watch_relevance, progress);
+         }
       }
       else
       {
@@ -477,10 +480,13 @@ void check_watchlist(GlobalIndices_p indices, ClauseSet_p watchlist,
          {
             fprintf(GlobalOut,"# Watchlist reduced by %ld clause%s\n",
                     removed,removed==1?"":"s");
-            watch_progress_print(*watch_progress);
-            fprintf(GlobalOut, "# Watchlist clause relevance %1.3f: ", clause->watch_relevance);
-            ClausePrint(GlobalOut, clause, true);
-            fprintf(GlobalOut, "\n");
+            if (*watch_progress)
+            {
+               watch_progress_print(*watch_progress);
+               fprintf(GlobalOut, "# Watchlist clause relevance %1.3f: ", clause->watch_relevance);
+               ClausePrint(GlobalOut, clause, true);
+               fprintf(GlobalOut, "\n");
+            }
          }
          // ClausePrint(GlobalOut, clause, true); printf("\n");
          DocClauseQuote(GlobalOut, OutputLevel, 6, clause,

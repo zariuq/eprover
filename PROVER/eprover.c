@@ -51,6 +51,7 @@ PERF_CTR_DEFINE(SatTimer);
 
 char              *outname = NULL;
 char              *watchlist_filename = NULL;
+char              *watchlist_dirname = NULL;
 HeuristicParms_p  h_parms;
 FVIndexParms_p    fvi_parms;
 bool              print_sat = false,
@@ -470,10 +471,10 @@ int main(int argc, char* argv[])
    }
 
    raw_clause_no = proofstate->axioms->members;
-   //ProofStateLoadWatchlist(proofstate, watchlist_filename, parse_format);
-   watchlists = ProofStateLoadWatchlistDir(proofstate, 
-                                           watchlist_filename, 
-                                           parse_format);
+   watchlists = ProofStateLoadWatchlist(proofstate, 
+                                        watchlist_filename, 
+                                        watchlist_dirname,
+                                        parse_format);
 
    if(!no_preproc)
    {
@@ -510,8 +511,7 @@ int main(int argc, char* argv[])
    ProofStateInit(proofstate, proofcontrol);
    //printf("Alive (2)!\n");
 
-   //ProofStateInitWatchlist(proofstate, proofcontrol->ocb);
-   ProofStateInitWatchlistDir(proofstate, proofcontrol->ocb, watchlists);
+   ProofStateInitWatchlist(proofstate, proofcontrol->ocb, watchlists);
 
    VERBOUT2("Prover state initialized\n");
    preproc_time = GetTotalCPUTime();
@@ -1461,6 +1461,9 @@ CLState_p process_options(int argc, char* argv[])
             {
                watchlist_filename = arg;
             }
+            break;
+      case OPT_WATCHLIST_DIR:
+            watchlist_dirname = arg;
             break;
       case OPT_WATCHLIST_NO_SIMPLIFY:
             h_parms->watchlist_simplify = false;

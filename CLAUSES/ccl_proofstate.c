@@ -247,9 +247,30 @@ ProofState_p ProofStateAlloc(FunctionProperties free_symb_prop)
 //
 /----------------------------------------------------------------------*/
 
-void ProofStateLoadWatchlist(ProofState_p state,
-                             char* watchlist_filename,
-                             IOFormat parse_format)
+PStack_p ProofStateLoadWatchlist(ProofState_p state,
+                                 char* watchlist_filename,
+                                 char* watchlist_dirname,
+                                 IOFormat parse_format)
+{
+   if (watchlist_filename && watchlist_dirname)
+   {
+      Error("Options --watchlist and --watchlist-dir can not be used together.",
+         USAGE_ERROR);
+   }
+
+   if (watchlist_dirname)
+   {
+      return ProofStateLoadWatchlistDir(state, watchlist_dirname, parse_format);
+   }
+
+   // handles both cases: watchlist_filename and !watchlist_filename
+   ProofStateLoadWatchlistFile(state, watchlist_filename, parse_format);
+   return NULL;
+}
+
+void ProofStateLoadWatchlistFile(ProofState_p state,
+                                 char* watchlist_filename,
+                                 IOFormat parse_format)
 {
    Scanner_p in;
 
@@ -257,6 +278,12 @@ void ProofStateLoadWatchlist(ProofState_p state,
 
    if(watchlist_filename)
    {
+      if (OutputLevel >= 1)
+      {
+         fprintf(GlobalOut, "# Loading file watchlist from '%s'\n", 
+            watchlist_filename);
+      }
+
       if(watchlist_filename!=UseInlinedWatchList)
       {
          in = CreateScanner(StreamTypeFile, watchlist_filename, true, NULL);
@@ -277,6 +304,10 @@ void ProofStateLoadWatchlist(ProofState_p state,
       GCDeregisterClauseSet(state->gc_terms, state->watchlist);
       ClauseSetFree(state->watchlist);
       state->watchlist = NULL;
+      if (OutputLevel >= 1)
+      {
+         fprintf(GlobalOut, "# Watchlist not in use\n");
+      }
    }
 }
 
@@ -292,10 +323,9 @@ void ProofStateLoadWatchlist(ProofState_p state,
 //
 /----------------------------------------------------------------------*/
 
-PStack_p ProofStateLoadWatchlistDir(
-   ProofState_p state,
-   char* watchlist_dir,
-   IOFormat parse_format)
+PStack_p ProofStateLoadWatchlistDir(ProofState_p state,
+                                    char* watchlist_dir,
+                                    IOFormat parse_format)
 {
    Scanner_p in;
    DIR *dp;
@@ -315,7 +345,7 @@ PStack_p ProofStateLoadWatchlistDir(
 
    if (OutputLevel >= 1)
    {
-      fprintf(GlobalOut, "# Loading watchlists from '%s':\n", 
+      fprintf(GlobalOut, "# Loading directory watchlist from '%s'\n", 
          watchlist_dir);
    }
 
@@ -400,7 +430,21 @@ PStack_p ProofStateLoadWatchlistDir(
 //
 /----------------------------------------------------------------------*/
 
-void ProofStateInitWatchlist(ProofState_p state, OCB_p ocb)
+void ProofStateInitWatchlist(ProofState_p state, 
+                             OCB_p ocb, 
+                             PStack_p watchlists)
+{
+   if (!watchlists) 
+   {
+      ProofStateInitWatchlistFile(state, ocb);
+   }
+   else
+   {
+      ProofStateInitWatchlistDir(state, ocb, watchlists);
+   }
+}
+
+void ProofStateInitWatchlistFile(ProofState_p state, OCB_p ocb)
 {
    ClauseSet_p tmpset;
    Clause_p handle;
@@ -418,6 +462,12 @@ void ProofStateInitWatchlist(ProofState_p state, OCB_p ocb)
       ClauseSetIndexedInsertClauseSet(state->watchlist, tmpset);
       ClauseSetFree(tmpset);
       GlobalIndicesInsertClauseSet(&(state->wlindices),state->watchlist);
+
+      if (OutputLevel >= 1)
+      {
+         fprintf(GlobalOut, "# Total file watchlist clauses: %ld\n", 
+            state->watchlist->members);
+      }
       // ClauseSetPrint(stdout, state->watchlist, true);
    }
 }
@@ -435,10 +485,9 @@ void ProofStateInitWatchlist(ProofState_p state, OCB_p ocb)
 //
 /----------------------------------------------------------------------*/
 
-void ProofStateInitWatchlistDir(
-   ProofState_p state, 
-   OCB_p ocb, 
-   PStack_p watchlists)
+void ProofStateInitWatchlistDir(ProofState_p state, 
+                                OCB_p ocb, 
+                                PStack_p watchlists)
 {
    ClauseSet_p tmpwatch;
    IntOrP val1, val2;
@@ -479,7 +528,7 @@ void ProofStateInitWatchlistDir(
   
    if (OutputLevel >= 1)
    {
-      fprintf(GlobalOut, "# Total watchlist clauses: %ld\n", 
+      fprintf(GlobalOut, "# Total directory watchlist clauses: %ld\n", 
          state->watchlist->members);
    }
 

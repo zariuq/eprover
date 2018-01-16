@@ -152,6 +152,7 @@ typedef enum
    OPT_SAT_NORMCONST,
    OPT_SAT_NORMALIZE,
    OPT_WATCHLIST,
+   OPT_WATCHLIST_DIR,
    OPT_STATIC_WATCHLIST,
    OPT_WATCHLIST_NO_SIMPLIFY,
    OPT_NO_INDEXED_SUBSUMPTION,
@@ -1151,6 +1152,13 @@ OptCell opts[] =
     " and the special clause type "
     "'watchlist' if you want to put watchlist clauses into the normal input"
     " stream. This is only supported for TPTP input formats."},
+
+   {OPT_WATCHLIST_DIR,
+    '\0', "watchlist-dir",
+    ReqArg, NULL,
+    "Read watchlists from a directory instead of a single file. Only "
+    "regular files inside the directory are considered (no recursive "
+    "search). Can not be used together with --watchlist."},
 
    {OPT_STATIC_WATCHLIST,
     '\0', "static-watchlist",
