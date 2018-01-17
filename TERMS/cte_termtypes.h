@@ -135,6 +135,7 @@ typedef struct termcell
    struct termcell* lson;          /* For storing shared term nodes in */
    struct termcell* rson;          /* a splay tree - see
                                       cte_termcellstore.[ch] */
+   long             freq;
 }TermCell, *Term_p, **TermRef;
 
 
@@ -394,6 +395,7 @@ static __inline__ Term_p TermDefaultCellAlloc(void)
    handle->rw_data.nf_date[1] = SysDateCreationTime();
    handle->lson = NULL;
    handle->rson = NULL;
+   handle->freq = 0;
 
    return handle;
 }
