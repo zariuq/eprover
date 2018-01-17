@@ -31,6 +31,7 @@
 #include <cte_simplesorts.h>
 #include <cco_scheduling.h>
 #include <e_version.h>
+#include <pcl_protocol.h>
 
 
 /*---------------------------------------------------------------------*/
@@ -50,6 +51,7 @@ PERF_CTR_DEFINE(SatTimer);
 
 char              *outname = NULL;
 char              *watchlist_filename = NULL;
+char              *watchlist_dirname = NULL;
 HeuristicParms_p  h_parms;
 FVIndexParms_p    fvi_parms;
 bool              print_sat = false,
@@ -183,7 +185,6 @@ ProofState_p parse_spec(CLState_p state,
 
    return proofstate;
 }
-
 
 /*-----------------------------------------------------------------------
 //
@@ -359,6 +360,7 @@ int main(int argc, char* argv[])
    int              retval = NO_ERROR;
    CLState_p        state;
    ProofState_p     proofstate;
+   PStack_p watchlists;
    ProofControl_p   proofcontrol;
    Clause_p         success = NULL,
       filter_success;
@@ -469,7 +471,10 @@ int main(int argc, char* argv[])
    }
 
    raw_clause_no = proofstate->axioms->members;
-   ProofStateLoadWatchlist(proofstate, watchlist_filename, parse_format);
+   watchlists = ProofStateLoadWatchlist(proofstate, 
+                                        watchlist_filename, 
+                                        watchlist_dirname,
+                                        parse_format);
 
    if(!no_preproc)
    {
@@ -502,9 +507,11 @@ int main(int argc, char* argv[])
                      "NoIndex");
    //printf("Alive (1)!\n");
 
+
    ProofStateInit(proofstate, proofcontrol);
    //printf("Alive (2)!\n");
-   ProofStateInitWatchlist(proofstate, proofcontrol->ocb);
+
+   ProofStateInitWatchlist(proofstate, proofcontrol->ocb, watchlists);
 
    VERBOUT2("Prover state initialized\n");
    preproc_time = GetTotalCPUTime();
@@ -1455,6 +1462,9 @@ CLState_p process_options(int argc, char* argv[])
                watchlist_filename = arg;
             }
             break;
+      case OPT_WATCHLIST_DIR:
+            watchlist_dirname = arg;
+            break;
       case OPT_WATCHLIST_NO_SIMPLIFY:
             h_parms->watchlist_simplify = false;
             break;
@@ -1522,8 +1532,7 @@ CLState_p process_options(int argc, char* argv[])
             else
             {
                Error("Option --fvindex-featuretypes requires "
-                     "'None', 'AC', 'SS', 'All', 'Bill', 'BillPlus',"
-                     " 'ACFold', 'ACStagger'.", USAGE_ERROR);
+                     "'None', 'AC', 'SS', or 'All'.", USAGE_ERROR);
             }
             break;
       case OPT_FVINDEX_MAXFEATURES:

@@ -20,6 +20,9 @@
 
 #include "ccl_proofstate.h"
 
+#include <stdio.h>
+#include <sys/types.h>
+#include <dirent.h>
 
 
 /*---------------------------------------------------------------------*/
@@ -223,6 +226,8 @@ ProofState_p ProofStateAlloc(FunctionProperties free_symb_prop)
    handle->signature->distinct_props =
       handle->signature->distinct_props&(~free_symb_prop);
 
+   handle->watch_progress = NULL;
+
    return handle;
 }
 
@@ -242,9 +247,30 @@ ProofState_p ProofStateAlloc(FunctionProperties free_symb_prop)
 //
 /----------------------------------------------------------------------*/
 
-void ProofStateLoadWatchlist(ProofState_p state,
-                             char* watchlist_filename,
-                             IOFormat parse_format)
+PStack_p ProofStateLoadWatchlist(ProofState_p state,
+                                 char* watchlist_filename,
+                                 char* watchlist_dirname,
+                                 IOFormat parse_format)
+{
+   if (watchlist_filename && watchlist_dirname)
+   {
+      Error("Options --watchlist and --watchlist-dir can not be used together.",
+         USAGE_ERROR);
+   }
+
+   if (watchlist_dirname)
+   {
+      return ProofStateLoadWatchlistDir(state, watchlist_dirname, parse_format);
+   }
+
+   // handles both cases: watchlist_filename and !watchlist_filename
+   ProofStateLoadWatchlistFile(state, watchlist_filename, parse_format);
+   return NULL;
+}
+
+void ProofStateLoadWatchlistFile(ProofState_p state,
+                                 char* watchlist_filename,
+                                 IOFormat parse_format)
 {
    Scanner_p in;
 
@@ -252,6 +278,12 @@ void ProofStateLoadWatchlist(ProofState_p state,
 
    if(watchlist_filename)
    {
+      if (OutputLevel >= 1)
+      {
+         fprintf(GlobalOut, "# Loading file watchlist from '%s'\n", 
+            watchlist_filename);
+      }
+
       if(watchlist_filename!=UseInlinedWatchList)
       {
          in = CreateScanner(StreamTypeFile, watchlist_filename, true, NULL);
@@ -272,10 +304,118 @@ void ProofStateLoadWatchlist(ProofState_p state,
       GCDeregisterClauseSet(state->gc_terms, state->watchlist);
       ClauseSetFree(state->watchlist);
       state->watchlist = NULL;
+      if (OutputLevel >= 1)
+      {
+         fprintf(GlobalOut, "# Watchlist not in use\n");
+      }
    }
 }
 
+/*-----------------------------------------------------------------------
+//
+// Function: ProofStateLoadWatchlistDir()
+//
+//   Load the watchlists from watchlist directory.
+//
+// Global Variables: -
+//
+// Side Effects    : IO, memory ops, allocates watchlists stack.
+//
+/----------------------------------------------------------------------*/
 
+PStack_p ProofStateLoadWatchlistDir(ProofState_p state,
+                                    char* watchlist_dir,
+                                    IOFormat parse_format)
+{
+   Scanner_p in;
+   DIR *dp;
+   struct dirent *ep;
+   PStack_p watchlists;
+   ClauseSet_p watchlist;
+   FormulaSet_p fset;
+   DStr_p filename;
+   Clause_p handle;
+   long proof_no = 0;
+
+   watchlists = PStackAlloc();
+   if (!watchlist_dir)
+   {
+      return watchlists;
+   }
+
+   if (OutputLevel >= 1)
+   {
+      fprintf(GlobalOut, "# Loading directory watchlist from '%s'\n", 
+         watchlist_dir);
+   }
+
+   dp = opendir(watchlist_dir);
+   if (!dp)
+   {
+      return watchlists;
+   }
+
+   while ((ep = readdir(dp)) != NULL)
+   {
+      if (ep->d_type == DT_DIR)
+      {
+         continue;
+      }
+
+      filename = DStrAlloc();
+      DStrAppendStr(filename, watchlist_dir);
+      DStrAppendChar(filename, '/');
+      DStrAppendStr(filename, ep->d_name);
+      in = CreateScanner(StreamTypeFile, DStrView(filename), true, NULL);
+      ScannerSetFormat(in, parse_format);
+
+      watchlist = ClauseSetAlloc();
+      fset = FormulaSetAlloc();
+      FormulaAndClauseSetParse(in, fset, watchlist, state->terms, NULL, NULL);
+      CheckInpTok(in, NoToken);
+      DestroyScanner(in);
+
+      // move clauses from formulas to watchlist
+      while (!FormulaSetEmpty(fset))
+      {
+         WFormula_p fml = FormulaSetExtractFirst(fset);
+         if (fml->is_clause) 
+         {
+            ClauseSetInsert(watchlist, WFormClauseToClause(fml));
+         }
+         WFormulaFree(fml);
+      }
+      FormulaSetFree(fset);
+
+      // stuff taken from ProofStateLoadWatchlist (needed ???)
+      ClauseSetSetTPTPType(watchlist, CPTypeWatchClause);
+      ClauseSetSetProp(watchlist, CPWatchOnly);
+      ClauseSetDefaultWeighClauses(watchlist);
+      ClauseSetSortLiterals(watchlist, EqnSubsumeInverseCompareRef);
+      ClauseSetDocInital(GlobalOut, OutputLevel, watchlist);
+
+      // set the origin proof number
+      for(handle = watchlist->anchor->succ; 
+          handle != watchlist->anchor; 
+          handle = handle->succ)
+      {
+         handle->watch_proof = proof_no;
+      }
+      
+      if (OutputLevel >= 1)
+      {
+         fprintf(GlobalOut, "#   watchlist %4ld: %8ld clauses from '%s'\n", 
+            proof_no, watchlist->members, DStrView(filename));
+      }
+
+      DStrFree(filename);
+      PStackPushP(watchlists, watchlist);
+      proof_no++;
+   }
+
+   closedir(dp);
+   return watchlists;
+}
 
 
 /*-----------------------------------------------------------------------
@@ -290,7 +430,21 @@ void ProofStateLoadWatchlist(ProofState_p state,
 //
 /----------------------------------------------------------------------*/
 
-void ProofStateInitWatchlist(ProofState_p state, OCB_p ocb)
+void ProofStateInitWatchlist(ProofState_p state, 
+                             OCB_p ocb, 
+                             PStack_p watchlists)
+{
+   if (!watchlists) 
+   {
+      ProofStateInitWatchlistFile(state, ocb);
+   }
+   else
+   {
+      ProofStateInitWatchlistDir(state, ocb, watchlists);
+   }
+}
+
+void ProofStateInitWatchlistFile(ProofState_p state, OCB_p ocb)
 {
    ClauseSet_p tmpset;
    Clause_p handle;
@@ -308,10 +462,81 @@ void ProofStateInitWatchlist(ProofState_p state, OCB_p ocb)
       ClauseSetIndexedInsertClauseSet(state->watchlist, tmpset);
       ClauseSetFree(tmpset);
       GlobalIndicesInsertClauseSet(&(state->wlindices),state->watchlist);
+
+      if (OutputLevel >= 1)
+      {
+         fprintf(GlobalOut, "# Total file watchlist clauses: %ld\n", 
+            state->watchlist->members);
+      }
       // ClauseSetPrint(stdout, state->watchlist, true);
    }
 }
 
+/*-----------------------------------------------------------------------
+//
+// Function: ProofStateInitWatchlistDir()
+//
+//   Initialize (preloaded) watchlists and watchlists progress.
+//
+// Global Variables: -
+//
+// Side Effects    : Changes state->watchlist, IO, memory ops,
+//                   frees watchlist.
+//
+/----------------------------------------------------------------------*/
+
+void ProofStateInitWatchlistDir(ProofState_p state, 
+                                OCB_p ocb, 
+                                PStack_p watchlists)
+{
+   ClauseSet_p tmpwatch;
+   IntOrP val1, val2;
+   long proof_no;
+
+   if (!watchlists || PStackEmpty(watchlists))
+   {
+      if (OutputLevel >= 1)
+      {
+         fprintf(GlobalOut, "# Watchlist not in use\n");
+      }
+      GCDeregisterClauseSet(state->gc_terms, state->watchlist);
+      ClauseSetFree(state->watchlist);
+      state->watchlist = NULL;
+      PStackFree(watchlists);
+      return;
+   }
+      
+   // go through all the input watchlists (backwards)
+   proof_no = watchlists->current;
+   while (!PStackEmpty(watchlists))
+   {
+      proof_no--;
+      // take an input watchlist
+      tmpwatch = PStackPopP(watchlists);
+      ClauseSetMarkMaximalTerms(ocb, tmpwatch);
+
+      // init proof progress status
+      assert(tmpwatch->members > 0);
+      val1.i_val = 0; // 0 matched so far ...
+      val2.i_val = tmpwatch->members; // ... out of "val2" total
+      NumTreeStore(&state->watch_progress, proof_no, val1, val2);
+
+      // insert clauses into a global watchlist
+      ClauseSetIndexedInsertClauseSet(state->watchlist, tmpwatch);
+      ClauseSetFree(tmpwatch);
+   }
+  
+   if (OutputLevel >= 1)
+   {
+      fprintf(GlobalOut, "# Total directory watchlist clauses: %ld\n", 
+         state->watchlist->members);
+   }
+
+   GlobalIndicesInsertClauseSet(&(state->wlindices),state->watchlist);
+   PStackFree(watchlists);
+      
+   //ClauseSetPrint(stdout, state->watchlist, true);
+}
 
 
 /*-----------------------------------------------------------------------
