@@ -99,6 +99,8 @@ typedef struct proofstatecell
       DerivationCompute() at the end of the proof search. */
    unsigned long gc_count;
    unsigned long gc_used_count;
+
+   NumTree_p watch_progress;
 }ProofStateCell, *ProofState_p;
 
 typedef enum
@@ -120,12 +122,25 @@ typedef enum
    SizeFree(junk, sizeof(ProofStateCell))
 
 ProofState_p ProofStateAlloc(FunctionProperties free_symb_prop);
-void         ProofStateLoadWatchlist(ProofState_p state,
-                                     char* watchlist_filename,
-                                     IOFormat parse_format);
 
+PStack_p ProofStateLoadWatchlist(ProofState_p state,
+                                 char* watchlist_filename,
+                                 char* watchlist_dirname,
+                                 IOFormat parse_format);
+void ProofStateLoadWatchlistFile(ProofState_p state,
+                                 char* watchlist_filename,
+                                 IOFormat parse_format);
+PStack_p ProofStateLoadWatchlistDir(ProofState_p state,
+                                    char* watchlist_dir,
+                                    IOFormat parse_format);
+void ProofStateInitWatchlist(ProofState_p state, 
+                             OCB_p ocb, 
+                             PStack_p watchlists);
+void ProofStateInitWatchlistFile(ProofState_p state, OCB_p ocb);
+void ProofStateInitWatchlistDir(ProofState_p state, 
+                                OCB_p ocb, 
+                                PStack_p watchlists);
 
-void         ProofStateInitWatchlist(ProofState_p state, OCB_p ocb);
 void         ProofStateResetClauseSets(ProofState_p state, bool term_gc);
 void         ProofStateFree(ProofState_p junk);
 //void         ProofStateGCMarkTerms(ProofState_p state);

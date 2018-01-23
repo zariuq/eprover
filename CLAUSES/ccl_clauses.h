@@ -157,6 +157,11 @@ typedef struct clause_cell
    struct clausesetcell* set;         /* Is the clause in a set? */
    struct clause_cell*   pred;        /* For clause sets = doubly  */
    struct clause_cell*   succ;        /* linked lists */
+
+   long         watch_proof;          /* Proof number this clause comes from
+                                         (only for watchlist clauses) */
+   double       watch_relevance;      /* Watchlist relevance (only for
+                                         generated clauses) */
 }ClauseCell, *Clause_p;
 
 

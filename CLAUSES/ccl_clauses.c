@@ -179,6 +179,8 @@ Clause_p clause_copy_meta(Clause_p clause)
    handle->parent2     = NULL;
    handle->pred        = NULL;
    handle->succ        = NULL;
+   handle->watch_proof = clause->watch_proof;
+   handle->watch_relevance = clause->watch_relevance;
 
    return handle;
 }
@@ -250,7 +252,6 @@ Clause_p ClauseCellAlloc(void)
    handle->perm_ident = clause_perm_ident_counter++;
 #endif
 
-
    return handle;
 }
 
@@ -289,6 +290,8 @@ Clause_p EmptyClauseAlloc(void)
    handle->set         = NULL;
    handle->pred        = NULL;
    handle->succ        = NULL;
+   handle->watch_proof = -1;
+   handle->watch_relevance = 0.0;
 
    return handle;
 }
