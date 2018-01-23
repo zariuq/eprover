@@ -167,6 +167,7 @@ static long remove_subsumed(GlobalIndices_p indices,
    long     res;
    double   progress;
    PStack_p stack = PStackAlloc();
+   long     best_proof_no = -1;
 
    if (watch_progress) 
    {
@@ -193,9 +194,13 @@ static long remove_subsumed(GlobalIndices_p indices,
          //ClausePrint(GlobalOut, subsumer->clause, true);
          //fprintf(GlobalOut, "\n");
 
-         if (*watch_progress) 
+         if (watch_progress) 
          {
             progress = watch_progress_update(handle, watch_progress);
+            if ((best_proof_no < 0) || (progress > subsumer->clause->watch_relevance))
+            {
+               best_proof_no = handle->watch_proof;
+            }
             subsumer->clause->watch_relevance = MAX(
                subsumer->clause->watch_relevance, progress);
          }
@@ -219,6 +224,12 @@ static long remove_subsumed(GlobalIndices_p indices,
    }
    PStackFree(stack);
 
+   if ((OutputLevel >= 1) && (best_proof_no >= 0))
+   {
+      fprintf(GlobalOut, "# Watchlist clause relevance: %1.3f: proof: %ld: ", subsumer->clause->watch_relevance, best_proof_no);
+      ClausePrint(GlobalOut, subsumer->clause, true);
+      fprintf(GlobalOut, "\n");
+   }
 
    return res;
 }
@@ -483,9 +494,6 @@ void check_watchlist(GlobalIndices_p indices, ClauseSet_p watchlist,
             if (*watch_progress)
             {
                watch_progress_print(*watch_progress);
-               fprintf(GlobalOut, "# Watchlist clause relevance %1.3f: ", clause->watch_relevance);
-               ClausePrint(GlobalOut, clause, true);
-               fprintf(GlobalOut, "\n");
             }
          }
          // ClausePrint(GlobalOut, clause, true); printf("\n");
