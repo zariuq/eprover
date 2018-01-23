@@ -34,6 +34,13 @@ PARTS    = $(CODE) DOC
 
 all: E
 
+deploy: SIMPLE_APPS PROVER
+	scp PROVER/eprover yan@grid01.ciirc.cvut.cz:~/atp/bin/eprover-current
+	scp SIMPLE_APPS/enigma-conj-maketrain.py yan@grid01.ciirc.cvut.cz:~/atp/bin/enigma-conj-maketrain-current.py
+	scp SIMPLE_APPS/enigma-conj-transtrain.py yan@grid01.ciirc.cvut.cz:~/atp/bin/enigma-conj-transtrain-current.py
+	scp SIMPLE_APPS/enigma-conj-features yan@grid01.ciirc.cvut.cz:~/atp/bin/enigma-conj-features-current
+	scp SIMPLE_APPS/enigma-svd-traintrans yan@grid01.ciirc.cvut.cz:~/atp/bin/enigma-svd-traintrans-current
+	scp SIMPLE_APPS/enigma-svd-makeinputs.py yan@grid01.ciirc.cvut.cz:~/atp/bin/enigma-svd-makeinputs-current.py
 
 # Generate dependencies
 
