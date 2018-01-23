@@ -62,6 +62,12 @@ char* WeightFunParseFunNames[]=
    "RelevanceLevelWeight2",
    "FunWeight",
    "SymOffsetWeight",
+   "ConjectureRelativeTermWeight",
+   "ConjectureTermTfIdfWeight",
+   "ConjectureLevDistanceWeight",
+   "ConjectureTreeDistanceWeight",
+   "ConjectureTermPrefixWeight",
+   "ConjectureStrucDistanceWeight",
    NULL
 };
 
@@ -98,6 +104,12 @@ static WeightFunParseFun parse_fun_array[]=
    RelevanceLevelWeightParse2,
    FunWeightParse,
    SymOffsetWeightParse,
+   ConjectureRelativeTermWeightParse,
+   ConjectureTermTfIdfWeightParse,
+   ConjectureLevDistanceWeightParse,
+   ConjectureTreeDistanceWeightParse,
+   ConjectureTermPrefixWeightParse,
+   ConjectureStrucDistanceWeightParse,
    (WeightFunParseFun)NULL
 };
 

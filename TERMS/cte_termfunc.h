@@ -31,6 +31,13 @@
 /*                    Data type declarations                           */
 /*---------------------------------------------------------------------*/
 
+typedef enum 
+{
+   NSNone = -1,
+   NSUnivar = 0,
+   NSAlpha = 1
+}VarNormStyle;
+
 
 
 
@@ -138,6 +145,12 @@ Term_p  TermCheckConsistency(Term_p term, DerefType deref);
 void    TermAssertSameSort(Sig_p sig, Term_p t1, Term_p t2);
 bool    TermIsUntyped(Term_p t);
 
+void    TermCellSetPropRec(Term_p term, TermProperties prop);
+Term_p TermCopyUnifyVars(VarBank_p vars, Term_p term);
+Term_p TermCopyRenameVars(NumTree_p* renaming, Term_p term);
+Term_p TermCopyNormalizeVarsAlpha(VarBank_p vars, Term_p term);
+Term_p TermCopyNormalizeVars(VarBank_p vars, Term_p term, 
+                             VarNormStyle var_norm);
 
 /*-----------------------------------------------------------------------
 //
