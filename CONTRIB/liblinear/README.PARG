@@ -1,0 +1,3 @@
+Makefile was extended to build `liblinear.a`.
+Use `make lib` to make it.
+You need `linear.h` and `liblinear.a` for static compiling into E.

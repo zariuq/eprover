@@ -39,6 +39,8 @@ Changes
 #include <che_treeweight.h>
 #include <che_prefixweight.h>
 #include <che_strucweight.h>
+#include <che_enigmaweight.h>
+#include <che_enigmaweightsvd.h>
 
 
 /*---------------------------------------------------------------------*/

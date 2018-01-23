@@ -16,7 +16,7 @@ include ../Makefile.vars
 
 # Project specific variables
 
-PROJECT = ex_commandline term2dag 
+PROJECT = ex_commandline term2dag enigma-conj-features enigma-svd-traintrans
 LIB     = $(PROJECT)
 all: $(LIB)
 
@@ -44,6 +44,22 @@ EX_COMMANDLINE = ex_commandline.o ../lib/INOUT.a ../lib/BASICS.a
 
 ex_commandline: $(EX_COMMANDLINE)
 	$(LD) -o ex_commandline $(EX_COMMANDLINE) $(LIBS)
+
+ENIGMACONJFEATURES = enigma-conj-features.o \
+            ../lib/PCL2.a ../lib/CLAUSES.a ../lib/ORDERINGS.a \
+            ../lib/TERMS.a ../lib/INOUT.a ../lib/BASICS.a ../lib/HEURISTICS.a
+
+enigma-conj-features: $(ENIGMACONJFEATURES)
+	$(LD) -o enigma-conj-features $(ENIGMACONJFEATURES) $(LIBS)
+
+ENIGMASVDTRAINTRANS = enigma-svd-traintrans.o \
+				../lib/HEURISTICS.a ../lib/INOUT.a ../lib/BASICS.a \
+            ../lib/CLAUSES.a ../lib/ORDERINGS.a ../lib/TERMS.a \
+				../CONTRIB/svdlibc/libsvd.a 
+
+enigma-svd-traintrans: $(ENIGMASVDTRAINTRANS)
+	$(LD) -o enigma-svd-traintrans $(ENIGMASVDTRAINTRANS) $(LIBS)
+
 
 include Makefile.dependencies
 

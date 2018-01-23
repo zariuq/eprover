@@ -80,7 +80,9 @@ NumTree_p NumTreeExtractRoot(NumTree_p *root);
 bool      NumTreeDeleteEntry(NumTree_p *root, long key);
 long      NumTreeNodes(NumTree_p root);
 NumTree_p NumTreeMaxNode(NumTree_p root);
+NumTree_p NumTreeMinNode(NumTree_p root);
 #define   NumTreeMaxKey(tree) (NumTreeMaxNode(tree)->key)
+#define   NumTreeMinKey(tree) (NumTreeMinNode(tree)->key)
 
 PStack_p NumTreeLimitedTraverseInit(NumTree_p root, long limit);
 
