@@ -176,6 +176,8 @@ int main(int argc, char* argv[])
    CLState_p args = process_options(argc, argv);
    OutputFormat = TSTPFormat;
    Sig_p sig = SigAlloc(SortTableAlloc());
+   // free numbers hack:
+   sig->distinct_props = sig->distinct_props&(~(FPIgnoreProps|FPIsInteger|FPIsRational|FPIsFloat));
    TB_p bank = TBAlloc(sig);
   
    DStr_p conj = get_conjecture_features_string(args->argv[0], bank); 
