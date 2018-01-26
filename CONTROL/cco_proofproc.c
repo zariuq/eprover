@@ -194,7 +194,7 @@ static long remove_subsumed(GlobalIndices_p indices,
          //ClausePrint(GlobalOut, subsumer->clause, true);
          //fprintf(GlobalOut, "\n");
 
-         if (watch_progress) 
+         if (*watch_progress) 
          {
             progress = watch_progress_update(handle, watch_progress);
             if ((best_proof_no < 0) || (progress > subsumer->clause->watch_relevance))
