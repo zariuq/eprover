@@ -41,6 +41,7 @@ Changes
 #include <che_strucweight.h>
 #include <che_enigmaweight.h>
 #include <che_enigmaweightsvd.h>
+#include <che_enigmaweightmulti.h>
 
 
 /*---------------------------------------------------------------------*/
