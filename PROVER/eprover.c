@@ -360,7 +360,6 @@ int main(int argc, char* argv[])
    int              retval = NO_ERROR;
    CLState_p        state;
    ProofState_p     proofstate;
-   PStack_p watchlists;
    ProofControl_p   proofcontrol;
    Clause_p         success = NULL,
       filter_success;
@@ -471,10 +470,10 @@ int main(int argc, char* argv[])
    }
 
    raw_clause_no = proofstate->axioms->members;
-   watchlists = ProofStateLoadWatchlist(proofstate, 
-                                        watchlist_filename, 
-                                        watchlist_dirname,
-                                        parse_format);
+   ProofStateLoadWatchlist(proofstate, 
+                           watchlist_filename, 
+                           watchlist_dirname,
+                           parse_format);
 
    if(!no_preproc)
    {
@@ -511,7 +510,7 @@ int main(int argc, char* argv[])
    ProofStateInit(proofstate, proofcontrol);
    //printf("Alive (2)!\n");
 
-   ProofStateInitWatchlist(proofstate, proofcontrol->ocb, watchlists);
+   ProofStateInitWatchlist(proofstate, proofcontrol->ocb);
 
    VERBOUT2("Prover state initialized\n");
    preproc_time = GetTotalCPUTime();
