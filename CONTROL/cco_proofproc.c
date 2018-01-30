@@ -107,6 +107,77 @@ static void check_ac_status(ProofState_p state, ProofControl_p
 //
 */
 
+static double watch_parents_relevance(Clause_p clause)
+{
+   PStackPointer i, sp;
+   DerivationCodes op;
+   Clause_p parent;
+   double relevance = 0.0;
+   int parents = 0;
+  
+   if (OutputLevel >= 2)
+   {
+      fprintf(GlobalOut, "# PARENTS OF ");
+      ClausePrint(GlobalOut, clause, true);
+      fprintf(GlobalOut, "\n");
+   }
+
+   if (!clause->derivation)
+   {
+      if (ClauseQueryProp(clause, CPInitial))
+      {
+         return 0.0;
+      }
+      Error("Clause has no derivation.  Are you running with -p option?", USAGE_ERROR);
+   }
+   
+   sp = PStackGetSP(clause->derivation);
+   i = 0;
+   while (i<sp)
+   {
+      op = PStackElementInt(clause->derivation, i);
+      i++;
+      
+      if(DCOpHasCnfArg1(op))
+      {
+         parent = PStackElementP(clause->derivation, i);
+         relevance += parent->watch_relevance;
+         parents++;
+    
+         if (OutputLevel >= 2)
+         {
+            fprintf(GlobalOut, "# -> ");
+            ClausePrint(GlobalOut, parent, true);
+            fprintf(GlobalOut, "\n");
+         }
+      }
+      if(DCOpHasArg1(op))
+      {
+         i++;
+      }
+
+      if(DCOpHasCnfArg2(op))
+      {
+         parent = PStackElementP(clause->derivation, i);
+         relevance += parent->watch_relevance;
+         parents++;
+
+         if (OutputLevel >= 2)
+         {
+            fprintf(GlobalOut, "# -> ");
+            ClausePrint(GlobalOut, parent, true);
+            fprintf(GlobalOut, "\n");
+         }
+      }
+      if(DCOpHasArg2(op))
+      {
+         i++;
+      }
+   }
+
+   return (parents>0) ? (relevance/parents) : 0.0;
+}
+
 static double watch_progress_update(Clause_p watch_clause, 
                                     NumTree_p* watch_progress)
 {
@@ -124,6 +195,21 @@ static double watch_progress_update(Clause_p watch_clause,
    
    // ... and update it (val1 matched out of val2 total)
    proof->val1.i_val++;
+   
+   return (double)proof->val1.i_val/proof->val2.i_val;
+}
+
+static double watch_progress_get(NumTree_p* watch_progress, long proof_no)
+{
+   NumTree_p proof;
+
+   // find the proof progress statistics ...
+   proof = NumTreeFind(watch_progress, proof_no);
+   if (!proof) 
+   {
+      Error("Unknown proof number (%ld) of a watchlist clause! Should not happen!", 
+         OTHER_ERROR, proof_no);
+   }
    
    return (double)proof->val1.i_val/proof->val2.i_val;
 }
@@ -167,12 +253,9 @@ static long remove_subsumed(GlobalIndices_p indices,
    long     res;
    double   progress;
    PStack_p stack = PStackAlloc();
-   long     best_proof_no = -1;
+   //long     best_proof_no = -1;
+   double best_progress = 0.0;
 
-   if (watch_progress) 
-   {
-      subsumer->clause->watch_relevance = 0.0;
-   }
    res = ClauseSetFindFVSubsumedClauses(set, subsumer, stack);
 
    while(!PStackEmpty(stack))
@@ -194,15 +277,21 @@ static long remove_subsumed(GlobalIndices_p indices,
          //ClausePrint(GlobalOut, subsumer->clause, true);
          //fprintf(GlobalOut, "\n");
 
-         if (*watch_progress) 
+         if (watch_progress && *watch_progress) 
          {
             progress = watch_progress_update(handle, watch_progress);
-            if ((best_proof_no < 0) || (progress > subsumer->clause->watch_relevance))
+            if (progress > best_progress)
             {
-               best_proof_no = handle->watch_proof;
+               subsumer->clause->watch_proof = handle->watch_proof;
+               best_progress = progress;
             }
-            subsumer->clause->watch_relevance = MAX(
-               subsumer->clause->watch_relevance, progress);
+            //if ((best_proof_no < 0) || (progress > subsumer->clause->watch_relevance))
+            //{
+            //   best_proof_no = handle->watch_proof;
+            //   subsumer->clause->watch_proof = handle->watch_proof;
+            //}
+            //subsumer->clause->watch_relevance = MAX(
+            //   subsumer->clause->watch_relevance, progress);
          }
       }
       else
@@ -224,15 +313,32 @@ static long remove_subsumed(GlobalIndices_p indices,
    }
    PStackFree(stack);
 
-   if (OutputLevel >= 1)
+   if (watch_progress && *watch_progress) 
    {
-      if (watch_progress && *watch_progress) 
+      double proof_progress = 0.0;
+      
+      if (subsumer->clause->watch_proof > 0)
       {
-         //fprintf(GlobalOut, "# Watchlist clause relevance: %1.3f: proof: %ld: ", subsumer->clause->watch_relevance, best_proof_no);
-         fprintf(GlobalOut, "# WATCHLIST RELEVANCE: relevance=%1.3f; proof=%ld; clause=", subsumer->clause->watch_relevance, best_proof_no);
+         proof_progress = watch_progress_get(watch_progress, subsumer->clause->watch_proof);
+      }
+      
+      double parents_relevance = watch_parents_relevance(subsumer->clause);
+      double decay_factor = 0.1;
+      double combined_relevance = proof_progress + (decay_factor*parents_relevance);
+
+      if (OutputLevel >= 2 || (OutputLevel == 1 && subsumer->clause->watch_proof > 0))
+      {
+         fprintf(GlobalOut, "# WATCHLIST RELEVANCE: relevance=%1.3f(=%1.3f+%1.3f*%1.3f); proof=%ld; clause=", 
+            combined_relevance,
+            proof_progress,
+            decay_factor,
+            parents_relevance,
+            subsumer->clause->watch_proof);
          ClausePrint(GlobalOut, subsumer->clause, true);
          fprintf(GlobalOut, "\n");
       }
+      
+      subsumer->clause->watch_relevance = combined_relevance;
    }
 
    return res;

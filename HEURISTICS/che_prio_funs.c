@@ -921,10 +921,10 @@ EvalPriority PrioFunPreferWatchlistRelevant(Clause_p clause)
 {
    assert(clause);
 
-   EvalPriority prio = PrioWatchlistPrefer-(long)(1000*clause->watch_relevance);
-   if (OutputLevel >= 1)
+   EvalPriority prio = (PrioWatchlistBase-(long)(1000*clause->watch_relevance))+(10*clause->weight);
+   if (OutputLevel >= 2)
    {
-      fprintf(GlobalOut, "# WATCHLIST PRIO: prio=%ld; clause=", prio);
+      fprintf(GlobalOut, "# WATCHLIST PRIO: prio=%ld; weight=%ld; clause=", prio, clause->weight);
       ClausePrint(GlobalOut, clause, true);
       fprintf(GlobalOut, "\n");
    }
@@ -967,11 +967,7 @@ EvalPriority PrioFunDeferWatchlistRelevant(Clause_p clause)
 {
    assert(clause);
 
-   if(ClauseQueryProp(clause, CPSubsumesWatch))
-   {
-      return PrioWatchlistDefer+(long)(1000*clause->watch_relevance);
-   }
-   return PrioWatchlistPrefer;
+   return PrioWatchlistBase+(long)(1000*clause->watch_relevance);
 }
 
 
