@@ -224,11 +224,15 @@ static long remove_subsumed(GlobalIndices_p indices,
    }
    PStackFree(stack);
 
-   if ((OutputLevel >= 1) && (best_proof_no >= 0))
+   if (OutputLevel >= 1)
    {
-      fprintf(GlobalOut, "# Watchlist clause relevance: %1.3f: proof: %ld: ", subsumer->clause->watch_relevance, best_proof_no);
-      ClausePrint(GlobalOut, subsumer->clause, true);
-      fprintf(GlobalOut, "\n");
+      if (watch_progress && *watch_progress) 
+      {
+         //fprintf(GlobalOut, "# Watchlist clause relevance: %1.3f: proof: %ld: ", subsumer->clause->watch_relevance, best_proof_no);
+         fprintf(GlobalOut, "# WATCHLIST RELEVANCE: relevance=%1.3f; proof=%ld; clause=", subsumer->clause->watch_relevance, best_proof_no);
+         ClausePrint(GlobalOut, subsumer->clause, true);
+         fprintf(GlobalOut, "\n");
+      }
    }
 
    return res;
@@ -1380,6 +1384,8 @@ void ProofStateInit(ProofState_p state, ProofControl_p control)
    tmphcb = GetHeuristic("Uniq", state, control, &(control->heuristic_parms));
    assert(tmphcb);
    ClauseSetReweight(tmphcb, state->axioms);
+
+   ProofStateInitWatchlist(state, control->ocb); // yan's wild guess
 
    traverse =
       EvalTreeTraverseInit(PDArrayElementP(state->axioms->eval_indices,0),0);
