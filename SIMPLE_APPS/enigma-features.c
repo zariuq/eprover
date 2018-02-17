@@ -80,34 +80,49 @@ void print_help(FILE* out);
 /*                         Internal Functions                          */
 /*---------------------------------------------------------------------*/
 
-static void term_features_string(DStr_p str, Term_p term, Sig_p sig, char* sym1, char* sym2)
-{
-   char* sym3;
 
+static char* top_symbol_string(Term_p term, Sig_p sig)
+{
    if (TermIsVar(term)) 
    {
-      sym3 = ENIGMA_VAR;
+      return ENIGMA_VAR;
    }
-   else if ((strncmp(SigFindName(sig,term->f_code),"esk",3) == 0)) 
+   else if ((strncmp(SigFindName(sig, term->f_code), "esk", 3) == 0)) 
    {
-      sym3 = ENIGMA_SKO;
+      return ENIGMA_SKO;
    }
    else 
    {
-      sym3 = SigFindName(sig, term->f_code);
+      return SigFindName(sig, term->f_code);
    }
+}
 
+static void term_features_string(DStr_p str, Term_p term, Sig_p sig, char* sym1, char* sym2)
+{
+   char* sym3 = top_symbol_string(term, sig);
+
+   // vertical features
    DStrAppendStr(str, sym1); DStrAppendChar(str, ':');
    DStrAppendStr(str, sym2); DStrAppendChar(str, ':');
    DStrAppendStr(str, sym3); DStrAppendChar(str, ' ');
    
-   if (TermIsVar(term)||(TermIsConst(term))) {
+   if (TermIsVar(term)||(TermIsConst(term))) 
+   {
       return;
    }
    for (int i=0; i<term->arity; i++)
    {
       term_features_string(str, term->args[i], sig, sym2, sym3);
    }
+
+   // horizontal features (functions only)
+   DStrAppendStr(str, sym3);
+   for (int i=0; i<term->arity; i++)
+   {
+      DStrAppendChar(str, '~');
+      DStrAppendStr(str, top_symbol_string(term->args[i], sig));
+   }
+   DStrAppendChar(str, ' ');
 }
 
 static void clause_features_string(DStr_p str, Clause_p clause, Sig_p sig)
@@ -117,17 +132,39 @@ static void clause_features_string(DStr_p str, Clause_p clause, Sig_p sig)
       char* sym1 = EqnIsPositive(lit)?ENIGMA_POS:ENIGMA_NEG;
       if (lit->rterm->f_code == SIG_TRUE_CODE)
       {
+         // verticals
          char* sym2 = SigFindName(sig, lit->lterm->f_code);
          for (int i=0; i<lit->lterm->arity; i++) // here we ignore prop. constants
          {
             term_features_string(str, lit->lterm->args[i], sig, sym1, sym2);
          }
+
+         // horizontals
+         if (lit->lterm->arity > 0) 
+         {
+            DStrAppendStr(str, sym2);
+            for (int i=0; i<lit->lterm->arity; i++)
+            {
+               DStrAppendChar(str, '~');
+               DStrAppendStr(str, top_symbol_string(lit->lterm->args[i], sig));
+            }
+            DStrAppendChar(str, ' ');
+         }
       }
       else
       {
+         // verticals
          char* sym2 = ENIGMA_EQ;
          term_features_string(str, lit->lterm, sig, sym1, sym2);
          term_features_string(str, lit->rterm, sig, sym1, sym2);
+
+         // horizontals
+         DStrAppendStr(str, sym2);
+         DStrAppendChar(str, '~');
+         DStrAppendStr(str, top_symbol_string(lit->lterm, sig));
+         DStrAppendChar(str, '~');
+         DStrAppendStr(str, top_symbol_string(lit->rterm, sig));
+         DStrAppendChar(str, ' ');
       }
    }
 }
@@ -140,7 +177,8 @@ static DStr_p get_conjecture_features_string(char* filename, TB_p bank)
    while (TestInpId(in, "cnf"))
    {
       Clause_p clause = ClauseParse(in, bank);
-      if (ClauseQueryTPTPType(clause) == CPTypeNegConjecture) {
+      if (ClauseQueryTPTPType(clause) == CPTypeNegConjecture) 
+      {
          clause_features_string(str, clause, bank->sig);
       }
       ClauseFree(clause);
