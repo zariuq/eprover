@@ -39,6 +39,13 @@ Changes
 /*                         Internal Functions                          */
 /*---------------------------------------------------------------------*/
 
+static int string_compare(const void* p1, const void* p2)
+{
+   const char* s1 = ((const IntOrP*)p1)->p_val;
+   const char* s2 = ((const IntOrP*)p2)->p_val;
+   return -strcmp(s1, s2);
+}
+
 static char* top_symbol_string(Term_p term, Sig_p sig)
 {
    if (TermIsVar(term)) 
@@ -110,13 +117,7 @@ static int features_term_collect(
    }
 
    // horizontals
-   DStr_p hstr = DStrAlloc();
-   DStrAppendStr(hstr, sym3);
-   for (int i=0; i<term->arity; i++)
-   {
-      DStrAppendChar(hstr, '~');
-      DStrAppendStr(hstr, top_symbol_string(term->args[i], enigmap->sig));
-   }
+   DStr_p hstr = FeaturesGetTermHorizontal(sym3, term, enigmap->sig);
    feature_increase(DStrView(hstr), counts, enigmap, &len);
    DStrFree(hstr);
 
@@ -126,6 +127,39 @@ static int features_term_collect(
 /*---------------------------------------------------------------------*/
 /*                         Exported Functions                          */
 /*---------------------------------------------------------------------*/
+
+DStr_p FeaturesGetTermHorizontal(char* top, Term_p term, Sig_p sig)
+{
+   DStr_p str = DStrAlloc();
+   PStack_p args = PStackAlloc();
+   for (int i=0; i<term->arity; i++)
+   {
+      PStackPushP(args, top_symbol_string(term->args[i], sig));
+   }
+   PStackSort(args, string_compare);
+   DStrAppendStr(str, top);
+   while (!PStackEmpty(args))
+   {  
+      DStrAppendChar(str, '.');
+      DStrAppendStr(str, PStackPopP(args));
+   }
+   PStackFree(args);
+   return str;
+}
+
+DStr_p FeaturesGetEqHorizontal(Term_p lterm, Term_p rterm, Sig_p sig)
+{
+   DStr_p str = DStrAlloc();
+   char* lstr = top_symbol_string(lterm, sig);
+   char* rstr = top_symbol_string(rterm, sig);
+   bool cond = (strcmp(lstr, rstr) < 0);
+   DStrAppendStr(str, ENIGMA_EQ);
+   DStrAppendChar(str, '.');
+   DStrAppendStr(str, cond ? lstr : rstr);
+   DStrAppendChar(str, '.');
+   DStrAppendStr(str, cond ? rstr : lstr);
+   return str;
+}
 
 Enigmap_p EnigmapAlloc(void)
 {
@@ -185,7 +219,7 @@ Enigmap_p EnigmapLoad(char* features_filename, Sig_p sig)
 int FeaturesClauseExtend(NumTree_p* counts, Clause_p clause, Enigmap_p enigmap)
 {
    int len = 0;
-   DStr_p hstr = DStrAlloc();
+   DStr_p hstr;
 
    for(Eqn_p lit = clause->literals; lit; lit = lit->next)
    {
@@ -202,14 +236,9 @@ int FeaturesClauseExtend(NumTree_p* counts, Clause_p clause, Enigmap_p enigmap)
          // horizontals
          if (lit->lterm->arity > 0) 
          {
-            DStrAppendStr(hstr, sym2);
-            for (int i=0; i<lit->lterm->arity; i++)
-            {
-               DStrAppendChar(hstr, '~');
-               DStrAppendStr(hstr, top_symbol_string(lit->lterm->args[i], enigmap->sig));
-            }
+            hstr = FeaturesGetTermHorizontal(sym2, lit->lterm, enigmap->sig);
             feature_increase(DStrView(hstr), counts, enigmap, &len);
-            DStrReset(hstr);
+            DStrFree(hstr);
          }
       }
       else
@@ -220,17 +249,12 @@ int FeaturesClauseExtend(NumTree_p* counts, Clause_p clause, Enigmap_p enigmap)
          len += features_term_collect(counts, lit->rterm, enigmap, sym1, sym2);
 
          // horizontals
-         DStrAppendStr(hstr, sym2);
-         DStrAppendChar(hstr, '~');
-         DStrAppendStr(hstr, top_symbol_string(lit->lterm, enigmap->sig));
-         DStrAppendChar(hstr, '~');
-         DStrAppendStr(hstr, top_symbol_string(lit->rterm, enigmap->sig));
+         hstr = FeaturesGetEqHorizontal(lit->lterm, lit->rterm, enigmap->sig);
          feature_increase(DStrView(hstr), counts, enigmap, &len);
-         DStrReset(hstr);
+         DStrFree(hstr);
       }
    }
 
-   DStrFree(hstr);
    return len;
 }
 
@@ -266,5 +290,4 @@ void FeaturesSvdTranslate(DMat matUt, double* sing,
 /*---------------------------------------------------------------------*/
 /*                        End of File                                  */
 /*---------------------------------------------------------------------*/
-
 

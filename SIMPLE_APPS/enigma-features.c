@@ -24,6 +24,7 @@ Changes
 -----------------------------------------------------------------------*/
 
 #include <stdio.h>
+#include <string.h>
 #include <cio_commandline.h>
 #include <cio_output.h>
 #include <cte_termbanks.h>
@@ -116,13 +117,10 @@ static void term_features_string(DStr_p str, Term_p term, Sig_p sig, char* sym1,
    }
 
    // horizontal features (functions only)
-   DStrAppendStr(str, sym3);
-   for (int i=0; i<term->arity; i++)
-   {
-      DStrAppendChar(str, '~');
-      DStrAppendStr(str, top_symbol_string(term->args[i], sig));
-   }
+   DStr_p hstr = FeaturesGetTermHorizontal(sym3, term, sig);
+   DStrAppendDStr(str, hstr);
    DStrAppendChar(str, ' ');
+   DStrFree(hstr);
 }
 
 static void clause_features_string(DStr_p str, Clause_p clause, Sig_p sig)
@@ -142,13 +140,10 @@ static void clause_features_string(DStr_p str, Clause_p clause, Sig_p sig)
          // horizontals
          if (lit->lterm->arity > 0) 
          {
-            DStrAppendStr(str, sym2);
-            for (int i=0; i<lit->lterm->arity; i++)
-            {
-               DStrAppendChar(str, '~');
-               DStrAppendStr(str, top_symbol_string(lit->lterm->args[i], sig));
-            }
+            DStr_p hstr = FeaturesGetTermHorizontal(sym2, lit->lterm, sig);
+            DStrAppendDStr(str, hstr);
             DStrAppendChar(str, ' ');
+            DStrFree(hstr);
          }
       }
       else
@@ -159,12 +154,10 @@ static void clause_features_string(DStr_p str, Clause_p clause, Sig_p sig)
          term_features_string(str, lit->rterm, sig, sym1, sym2);
 
          // horizontals
-         DStrAppendStr(str, sym2);
-         DStrAppendChar(str, '~');
-         DStrAppendStr(str, top_symbol_string(lit->lterm, sig));
-         DStrAppendChar(str, '~');
-         DStrAppendStr(str, top_symbol_string(lit->rterm, sig));
+         DStr_p hstr = FeaturesGetEqHorizontal(lit->lterm, lit->rterm, sig);
+         DStrAppendDStr(str, hstr);
          DStrAppendChar(str, ' ');
+         DStrFree(hstr);
       }
    }
 }

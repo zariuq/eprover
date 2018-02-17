@@ -63,6 +63,9 @@ void EnigmapFree(Enigmap_p junk);
 
 Enigmap_p EnigmapLoad(char* features_filename, Sig_p sig);
 
+DStr_p FeaturesGetTermHorizontal(char* top, Term_p term, Sig_p sig);
+DStr_p FeaturesGetEqHorizontal(Term_p lterm, Term_p rterm, Sig_p sig);
+
 int FeaturesClauseExtend(NumTree_p* counts, Clause_p clause, Enigmap_p enigmap);
 NumTree_p FeaturesClauseCollect(Clause_p clause, Enigmap_p enigmap, int* len);
 
