@@ -45,7 +45,8 @@ static void extweight_init(EnigmaWeightParam_p data)
    }
 
    data->linear_model = load_model(data->model_filename);
-   if (!data->linear_model) {
+   if (!data->linear_model) 
+   {
       Error("ENIGMA: Failed loading liblinear model: %s", FILE_ERROR,
          data->model_filename);
    }
@@ -59,8 +60,10 @@ static void extweight_init(EnigmaWeightParam_p data)
    anchor = data->proofstate->axioms->anchor;
    for (clause=anchor->succ; clause!=anchor; clause=clause->succ)
    {
-      if(ClauseQueryTPTPType(clause)==CPTypeNegConjecture) {
+      if(ClauseQueryTPTPType(clause)==CPTypeNegConjecture) 
+      {
          len += FeaturesClauseExtend(&features, clause, data->enigmap);
+         FeaturesAddClauseStatic(&features, clause, data->enigmap, &len);
       }
    }
 
