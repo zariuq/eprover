@@ -123,7 +123,7 @@ static void term_features_string(DStr_p str, Term_p term, Sig_p sig, char* sym1,
    DStrFree(hstr);
 }
 
-static void clause_features_string(DStr_p str, Clause_p clause, Sig_p sig)
+static void clause_features_string(DStr_p str, Clause_p clause, Sig_p sig, long* vec)
 {
    for(Eqn_p lit = clause->literals; lit; lit = lit->next)
    {
@@ -160,10 +160,55 @@ static void clause_features_string(DStr_p str, Clause_p clause, Sig_p sig)
          DStrFree(hstr);
       }
    }
+
+   if (vec)
+   {
+      PStack_p mod_stack = PStackAlloc();
+      ClauseAddSymbolFeatures(clause, mod_stack, vec);
+      PStackFree(mod_stack);
+   }
+}
+
+static void clause_static_features_string(DStr_p str, long* vec, Sig_p sig)
+{
+   static char fstr[1024];
+
+   snprintf(fstr, 1024, "!LEN/%ld ", vec[0]); DStrAppendStr(str, fstr);
+   snprintf(fstr, 1024, "!POS/%ld ", vec[1]); DStrAppendStr(str, fstr);
+   snprintf(fstr, 1024, "!NEG/%ld ", vec[2]); DStrAppendStr(str, fstr);
+   
+   for (long f=sig->internal_symbols+1; f<=sig->f_count; f++)
+   {
+      char* fname = SigFindName(sig, f);
+      if ((strlen(fname)>3) && (strncmp(fname, "esk", 3) == 0))
+      {
+         continue;
+      }
+      if (vec[3+4*f+0] > 0) 
+      {
+         snprintf(fstr, 1024, "#+%s/%ld ", fname, vec[3+4*f+0]); DStrAppendStr(str, fstr);
+         snprintf(fstr, 1024, "%%+%s/%ld ", fname, vec[3+4*f+1]); DStrAppendStr(str, fstr);
+      }
+      if (vec[3+4*f+2] > 0) 
+      {
+         snprintf(fstr, 1024, "#-%s/%ld ", fname, vec[3+4*f+2]); DStrAppendStr(str, fstr);
+         snprintf(fstr, 1024, "%%-%s/%ld ", fname, vec[3+4*f+3]); DStrAppendStr(str, fstr);
+      }
+   }
 }
 
 static DStr_p get_conjecture_features_string(char* filename, TB_p bank)
 {
+   static long* vec = NULL;
+   static size_t size = 0;
+   if (!vec)
+   {
+      size = (3+4*64)*sizeof(long); // start with memory for 64 symbols
+      vec = RegMemAlloc(size);
+   }
+   vec = RegMemProvide(vec, &size, (3+4*(bank->sig->f_count+1))*sizeof(long));
+   for (int i=0; i<3+4*(bank->sig->f_count+1); i++) { vec[i] = 0L; }
+
    DStr_p str = DStrAlloc();
    Scanner_p in = CreateScanner(StreamTypeFile, filename, true, NULL);
    ScannerSetFormat(in, TSTPFormat);
@@ -172,12 +217,17 @@ static DStr_p get_conjecture_features_string(char* filename, TB_p bank)
       Clause_p clause = ClauseParse(in, bank);
       if (ClauseQueryTPTPType(clause) == CPTypeNegConjecture) 
       {
-         clause_features_string(str, clause, bank->sig);
+         vec[0] += (long)ClauseWeight(clause,1,1,1,1,1,false);
+         vec[1] += clause->pos_lit_no;
+         vec[2] += clause->neg_lit_no;
+         clause_features_string(str, clause, bank->sig, &vec[3]);
       }
       ClauseFree(clause);
    }
    CheckInpTok(in, NoToken);
    DestroyScanner(in);
+
+   clause_static_features_string(str, vec, bank->sig);
    DStrDeleteLastChar(str);
    return str;
 }
@@ -187,10 +237,27 @@ static void dump_features_strings(FILE* out, char* filename, TB_p bank, char* pr
    DStr_p str = DStrAlloc();
    Scanner_p in = CreateScanner(StreamTypeFile, filename, true, NULL);
    ScannerSetFormat(in, TSTPFormat);
+
+   static long* vec = NULL;
+   static size_t size = 0;
+   if (!vec)
+   {
+      size = (3+4*64)*sizeof(long); // start with memory for 64 symbols
+      vec = RegMemAlloc(size);
+   }
+   
    while (TestInpId(in, "cnf"))
    {
       Clause_p clause = ClauseParse(in, bank);
-      clause_features_string(str, clause, bank->sig);
+      vec = RegMemProvide(vec, &size, (3+4*(bank->sig->f_count+1))*sizeof(long));
+      for (int i=0; i<3+4*(bank->sig->f_count+1); i++) { vec[i] = 0L; }
+      
+      vec[0] = (long)ClauseWeight(clause,1,1,1,1,1,false);
+      vec[1] = clause->pos_lit_no;
+      vec[2] = clause->neg_lit_no;
+      clause_features_string(str, clause, bank->sig, &vec[3]);
+      clause_static_features_string(str, vec, bank->sig);
+
       DStrDeleteLastChar(str);
       if (prefix)
       {
