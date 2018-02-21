@@ -137,6 +137,7 @@ Term_p TermAllocNewSkolem(Sig_p sig, PStack_p variables, SortType sort)
    if(sort != STBool)
    {
       handle->f_code = SigGetNewSkolemCode(sig, arity);
+	  TermCellSetProp(handle, TPIsSkolem);
    }
    else
    {

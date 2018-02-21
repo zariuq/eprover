@@ -1165,7 +1165,12 @@ Term_p TBTermParseReal(Scanner_p in, TB_p bank, bool check_symb_prop)
                Error(DStrView(errpos), SYNTAX_ERROR);
                DStrFree(errpos);
             }
-            handle = tb_termtop_insert(bank, handle);
+			//Check if it's a skolem symbol (produced by E).
+			if(strncmp(bank->sig->f_info[handle->f_code].name, "esk", 3) == 0)
+			{
+				TermCellSetProp(handle, TPIsSkolem);
+			}
+			handle = tb_termtop_insert(bank, handle);
          }
          DStrFree(id);
       }

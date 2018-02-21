@@ -30,6 +30,7 @@
 /*---------------------------------------------------------------------*/
 
 char* UseInlinedWatchList = WATCHLIST_INLINE_STRING;
+bool WLNormalizeSkolemSymbols = false;
 
 /*---------------------------------------------------------------------*/
 /*                      Forward Declarations                           */
@@ -385,7 +386,13 @@ void ProofStateLoadWatchlist(ProofState_p state,
    ClauseSetSetTPTPType(state->watchlist, CPTypeWatchClause);
    ClauseSetSetProp(state->watchlist, CPWatchOnly);
    ClauseSetDefaultWeighClauses(state->watchlist);
-   ClauseSetSortLiterals(state->watchlist, EqnSubsumeInverseCompareRef);
+   if(WLNormalizeSkolemSymbols)
+   {
+	ClauseSetSortLiterals(state->watchlist, EqnSubsumeInverseCompareRefWL);
+   }
+   {
+	ClauseSetSortLiterals(state->watchlist, EqnSubsumeInverseCompareRef);
+   }
    ClauseSetDocInital(GlobalOut, OutputLevel, state->watchlist);
 }
 

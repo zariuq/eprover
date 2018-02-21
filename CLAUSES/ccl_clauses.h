@@ -259,10 +259,17 @@ Clause_p ClauseCanonize(Clause_p clause);
 #define  ClauseSubsumeOrderSortLits(clause)     \
    ClauseSortLiterals((clause),                                         \
                       (ComparisonFunctionType)EqnSubsumeInverseRefinedCompareRef)
+#define  ClauseSubsumeOrderSortLitsWL(clause)     \
+   ClauseSortLiterals((clause),                                         \
+                      (ComparisonFunctionType)EqnSubsumeInverseRefinedCompareRefWL)
+
 bool     ClauseIsSorted(Clause_p clause, ComparisonFunctionType cmp_fun);
 #define  ClauseIsSubsumeOrdered(clause)         \
    ClauseIsSorted((clause),                                     \
                   (ComparisonFunctionType)EqnSubsumeInverseCompareRef)
+#define  ClauseIsSubsumeOrderedWL(clause)         \
+   ClauseIsSorted((clause),                                     \
+                  (ComparisonFunctionType)EqnSubsumeInverseCompareRefWL)
 
 long     ClauseStructWeightCompare(Clause_p c1, Clause_p c2);
 long     ClauseStructWeightLexCompare(Clause_p c1, Clause_p c2);

@@ -155,6 +155,7 @@ typedef enum
    OPT_WATCHLIST_DIR,
    OPT_STATIC_WATCHLIST,
    OPT_WATCHLIST_NO_SIMPLIFY,
+   OPT_WATCHLIST_NORMALIZE_SKOLEM_SYMOBLS,
    OPT_NO_INDEXED_SUBSUMPTION,
    OPT_FVINDEX_STYLE,
    OPT_FVINDEX_FEATURETYPES,
@@ -1174,6 +1175,11 @@ OptCell opts[] =
     "By default, the watchlist is brought into normal form with respect "
     "to the current processed clause set and certain simplifications. "
     "This option disables simplification for the watchlist."},
+
+   {OPT_WATCHLIST_NORMALIZE_SKOLEM_SYMOBLS,
+	'\0', "wl-normalize-skolem",
+	NoArg, NULL,
+	"Treat skolem symbols of equal arity as the same in watchlist subsumption."},
 
    {OPT_NO_INDEXED_SUBSUMPTION,
     '\0', "conventional-subsumption",

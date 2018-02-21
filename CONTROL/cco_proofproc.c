@@ -255,8 +255,9 @@ static long remove_subsumed(GlobalIndices_p indices,
    PStack_p stack = PStackAlloc();
    //long     best_proof_no = -1;
    double best_progress = 0.0;
+   bool eq_skl = watch_progress && WLNormalizeSkolemSymbols;
 
-   res = ClauseSetFindFVSubsumedClauses(set, subsumer, stack);
+   res = ClauseSetFindFVSubsumedClauses(set, subsumer, stack, eq_skl);
 
    while(!PStackEmpty(stack))
    {
@@ -577,7 +578,14 @@ void check_watchlist(GlobalIndices_p indices, ClauseSet_p watchlist,
    long removed;
 
    // printf("# check_watchlist(%p)...\n", indices);
-   ClauseSubsumeOrderSortLits(clause);
+   if(WLNormalizeSkolemSymbols)
+   {
+	  ClauseSubsumeOrderSortLitsWL(clause);
+   }
+   else 
+   {
+	  ClauseSubsumeOrderSortLits(clause);
+   }
    // assert(ClauseIsSubsumeOrdered(clause));
 
    clause->weight = ClauseStandardWeight(clause);
