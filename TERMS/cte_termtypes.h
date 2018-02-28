@@ -82,10 +82,8 @@ typedef enum
                                    paramodulation */
    TPPosPolarity      = 1<<18,  /* In the term encoding of a formula,
                                    this occurs with positive polarity. */
-   TPNegPolarity      = 1<<19,  /* In the term encoding of a formula,
+   TPNegPolarity      = 1<<19  /* In the term encoding of a formula,
                                    this occurs with negative polarity. */
-   TPIsSkolem         = 1<<20,  /* Term is Skolem Symbol,
-								   for use in WL subsumption. */
 }TermProperties;
 
 
@@ -326,7 +324,7 @@ static __inline__ Term_p TermTopCopyWithoutArgs(restrict Term_p source)
    Term_p handle = TermDefaultCellAlloc();
 
    /* All other properties are tied to the specific term! */
-   handle->properties = (source->properties&(TPPredPos|TPIsSkolem));
+   handle->properties = (source->properties&TPPredPos);
    TermCellDelProp(handle, TPOutputFlag); /* As it gets a new id below */
 
    handle->f_code = source->f_code;

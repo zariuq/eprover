@@ -161,7 +161,7 @@ Clause_p unit_clause_set_subsumes_clause(ClauseSet_p set,
 //
 /----------------------------------------------------------------------*/
 
-static bool eqn_topsubsumes_termpair(Eqn_p eqn, Term_p t1, Term_p t2, bool eq_skl)
+static bool eqn_topsubsumes_termpair(Eqn_p eqn, Term_p t1, Term_p t2, Sig_p* sig)
 {
    Subst_p subst = SubstAlloc();
    bool    res = false;
@@ -170,16 +170,16 @@ static bool eqn_topsubsumes_termpair(Eqn_p eqn, Term_p t1, Term_p t2, bool eq_sk
    assert(t1);
    assert(t2);
 
-   if(SubstComputeMatchWL(eqn->lterm, t1, subst, eq_skl))
+   if(SubstComputeMatchWL(eqn->lterm, t1, subst, sig))
    {
-      if(SubstComputeMatchWL(eqn->rterm, t2, subst, eq_skl))
+      if(SubstComputeMatchWL(eqn->rterm, t2, subst, sig))
       {
          res = true;
       }
    }
-   else if(SubstComputeMatchWL(eqn->lterm, t2, subst, eq_skl))
+   else if(SubstComputeMatchWL(eqn->lterm, t2, subst, sig))
    {
-      if(SubstComputeMatchWL(eqn->rterm, t1, subst, eq_skl))
+      if(SubstComputeMatchWL(eqn->rterm, t1, subst, sig))
       {
          res = true;
 
@@ -203,7 +203,7 @@ static bool eqn_topsubsumes_termpair(Eqn_p eqn, Term_p t1, Term_p t2, bool eq_sk
 //
 /----------------------------------------------------------------------*/
 
-static bool eqn_subsumes_termpair(Eqn_p eqn, Term_p t1, Term_p t2, bool eq_skl)
+static bool eqn_subsumes_termpair(Eqn_p eqn, Term_p t1, Term_p t2, Sig_p* sig)
 {
    Term_p   tmp1, tmp2 = NULL;
    int      i;
@@ -217,9 +217,9 @@ static bool eqn_subsumes_termpair(Eqn_p eqn, Term_p t1, Term_p t2, bool eq_skl)
    //while(!(res = eqn_topsubsumes_termpair(eqn, t1, t2)))
    //{
    //   if(t1->f_code != t2->f_code || !t1->arity)
-   while(!(res = eqn_topsubsumes_termpair(eqn, t1, t2, eq_skl)))
-   { // If eq_skl is set and t1 & t2 are skolem symbols, only demand arity is equal.   
-	  esk = eq_skl && TermCellQueryProp(t1, TPIsSkolem) && TermCellQueryProp(t2, TPIsSkolem);
+   while(!(res = eqn_topsubsumes_termpair(eqn, t1, t2, sig)))
+   { // If sig is set from WL and t1 & t2 are skolem symbols, only demand arity is equal.   
+	  esk = sig && SigQueryFuncProp((*sig), t1->f_code, FPIsSkolem) && SigQueryFuncProp((*sig), t2->f_code, FPIsSkolem);
 	  if((esk && (t1->arity != t2->arity)) || (!esk && (t1->f_code != t2->f_code || !t1->arity)))
       {
          break;
@@ -232,8 +232,8 @@ static bool eqn_subsumes_termpair(Eqn_p eqn, Term_p t1, Term_p t2, bool eq_skl)
       for(i=0; i<t1->arity; i++)
       {
          //if(t1->args[i] != t2->args[i])
-         esk = eq_skl && TermCellQueryProp(t1->args[i], TPIsSkolem) 
-			          && TermCellQueryProp(t2->args[i], TPIsSkolem);
+         esk = sig && SigQueryFuncProp((*sig), t1->args[i]->f_code, FPIsSkolem) 
+			       && SigQueryFuncProp((*sig), t2->args[i]->f_code, FPIsSkolem);
 		 if((esk && (t1->args[i]->arity != t2->args[i]->arity)) || 
 				            (!esk && (t1->args[i] != t2->args[i])))
 		  {
@@ -308,7 +308,7 @@ static Eqn_p find_spec_literal_old(Eqn_p lit, Eqn_p list)
 #endif
 
 /* New version using ordering */
-static Eqn_p find_spec_literal(Eqn_p lit, Eqn_p list, bool eq_skl)
+static Eqn_p find_spec_literal(Eqn_p lit, Eqn_p list, Sig_p* sig)
 {
    Subst_p subst = SubstAlloc();
    int cmpres;
@@ -319,7 +319,7 @@ static Eqn_p find_spec_literal(Eqn_p lit, Eqn_p list, bool eq_skl)
    for(;list;list = list->next)
    {
       //cmpres = EqnSubsumeQOrderCompare(lit, list);
-      if(eq_skl)
+      if(sig)
 	  {
 		  cmpres = EqnSubsumeQOrderCompareWL(lit, list);
 	  }
@@ -346,8 +346,8 @@ static Eqn_p find_spec_literal(Eqn_p lit, Eqn_p list, bool eq_skl)
       {
          continue;
       }
-      if(SubstComputeMatchWL(lit->lterm, list->lterm, subst, eq_skl)&&
-         SubstComputeMatchWL(lit->rterm, list->rterm, subst, eq_skl))
+      if(SubstComputeMatchWL(lit->lterm, list->lterm, subst, sig)&&
+         SubstComputeMatchWL(lit->rterm, list->rterm, subst, sig))
       {
          break;
       }
@@ -356,8 +356,8 @@ static Eqn_p find_spec_literal(Eqn_p lit, Eqn_p list, bool eq_skl)
       {
          continue;
       }
-      if(SubstComputeMatchWL(lit->lterm, list->rterm, subst, eq_skl)&&
-         SubstComputeMatchWL(lit->rterm, list->lterm, subst, eq_skl))
+      if(SubstComputeMatchWL(lit->lterm, list->rterm, subst, sig)&&
+         SubstComputeMatchWL(lit->rterm, list->lterm, subst, sig))
       {
          break;
       }
@@ -384,14 +384,14 @@ static Eqn_p find_spec_literal(Eqn_p lit, Eqn_p list, bool eq_skl)
 /----------------------------------------------------------------------*/
 
 static bool check_subsumption_possibility(Clause_p subsumer, Clause_p
-                                          sub_candidate, bool eq_skl)
+                                          sub_candidate, Sig_p* sig)
 {
    bool    res = true;
    Eqn_p   sub_eqn;
 
    for(sub_eqn = subsumer->literals; sub_eqn; sub_eqn = sub_eqn->next)
    {
-      if(!find_spec_literal(sub_eqn, sub_candidate->literals, eq_skl))
+      if(!find_spec_literal(sub_eqn, sub_candidate->literals, sig))
       {
          res = false;
          break;
@@ -408,7 +408,7 @@ static bool check_subsumption_possibility(Clause_p subsumer, Clause_p
    while(!PStackEmpty(lit_stack))
    {
       sub_eqn = PStackPopP(lit_stack);
-      if(!find_spec_literal(sub_eqn, sub_candidate->literals, eq_skl))
+      if(!find_spec_literal(sub_eqn, sub_candidate->literals, sig))
       {
          res = false;
          break;
@@ -519,7 +519,7 @@ bool eqn_list_rec_subsume_old(Eqn_p subsum_list, Eqn_p sub_cand_list,
 
 static
 bool eqn_list_rec_subsume(Eqn_p subsum_list, Eqn_p sub_cand_list,
-                          Subst_p subst, long* pick_list, bool eq_skl)
+                          Subst_p subst, long* pick_list, Sig_p* sig)
 {
    Eqn_p         eqn;
    PStackPointer state;
@@ -539,7 +539,7 @@ bool eqn_list_rec_subsume(Eqn_p subsum_list, Eqn_p sub_cand_list,
          continue;
       }
 	  
-	  if(eq_skl)
+	  if(sig)
 	  {
 		cmpres = EqnSubsumeQOrderCompareWL(eqn,subsum_list);
 	  }
@@ -572,11 +572,11 @@ bool eqn_list_rec_subsume(Eqn_p subsum_list, Eqn_p sub_cand_list,
       pick_list[lcount]++;
       state = PStackGetSP(subst);
 
-      if(SubstComputeMatchWL(subsum_list->lterm, eqn->lterm, subst, eq_skl)&&
-         SubstComputeMatchWL(subsum_list->rterm, eqn->rterm, subst, eq_skl))
+      if(SubstComputeMatchWL(subsum_list->lterm, eqn->lterm, subst, sig)&&
+         SubstComputeMatchWL(subsum_list->rterm, eqn->rterm, subst, sig))
       {
          if(eqn_list_rec_subsume(subsum_list->next, sub_cand_list,
-                                 subst, pick_list, eq_skl))
+                                 subst, pick_list, sig))
          {
             return true;
          }
@@ -588,11 +588,11 @@ bool eqn_list_rec_subsume(Eqn_p subsum_list, Eqn_p sub_cand_list,
          pick_list[lcount]--;
          continue;
       }
-      if(SubstComputeMatchWL(subsum_list->lterm, eqn->rterm, subst, eq_skl)&&
-         SubstComputeMatchWL(subsum_list->rterm, eqn->lterm, subst, eq_skl))
+      if(SubstComputeMatchWL(subsum_list->lterm, eqn->rterm, subst, sig)&&
+         SubstComputeMatchWL(subsum_list->rterm, eqn->lterm, subst, sig))
       {
          if(eqn_list_rec_subsume(subsum_list->next, sub_cand_list,
-                                 subst, pick_list, eq_skl))
+                                 subst, pick_list, sig))
          {
             return true;
          }
@@ -618,7 +618,7 @@ bool eqn_list_rec_subsume(Eqn_p subsum_list, Eqn_p sub_cand_list,
 /----------------------------------------------------------------------*/
 
 static bool clause_subsumes_clauseWL(Clause_p subsumer, Clause_p
-                                   sub_candidate, bool eq_skl)
+                                   sub_candidate, Sig_p* sig)
 {
    Subst_p subst;
    bool    res;
@@ -640,7 +640,7 @@ static bool clause_subsumes_clauseWL(Clause_p subsumer, Clause_p
    /*    printf("\n"); */
    /* } */
    
-   if(eq_skl)
+   if(sig)
    {
 	assert(ClauseIsSubsumeOrderedWL(subsumer));
 	assert(ClauseIsSubsumeOrderedWL(sub_candidate));
@@ -659,7 +659,7 @@ static bool clause_subsumes_clauseWL(Clause_p subsumer, Clause_p
    if(ClauseLiteralNumber(subsumer)==1)
    {
       PERF_CTR_EXIT(SubsumeTimer);
-      return UnitClauseSubsumesClause(subsumer, sub_candidate, eq_skl);
+      return UnitClauseSubsumesClause(subsumer, sub_candidate, sig);
    }
    //printf("# sub_candidate %p: ", sub_candidate->set);ClausePrint(stdout, sub_candidate, true);
    //printf("\n# subsumer     %p: ", subsumer->set);ClausePrint(stdout, subsumer, true);
@@ -683,7 +683,7 @@ static bool clause_subsumes_clauseWL(Clause_p subsumer, Clause_p
    }
    if(((sub_candidate->pos_lit_no >=3) ||
        (sub_candidate->neg_lit_no >=3))&&
-      !check_subsumption_possibility(subsumer, sub_candidate, eq_skl))
+      !check_subsumption_possibility(subsumer, sub_candidate, sig))
    {
       PERF_CTR_EXIT(SubsumeTimer);
       return false;
@@ -695,7 +695,7 @@ static bool clause_subsumes_clauseWL(Clause_p subsumer, Clause_p
 
    res = eqn_list_rec_subsume(subsumer->literals,
                               sub_candidate->literals, subst,
-                              pick_list, eq_skl);
+                              pick_list, sig);
    IntArrayFree(pick_list, ClauseLiteralNumber(sub_candidate));
 
    SubstDelete(subst);
@@ -712,7 +712,7 @@ static bool clause_subsumes_clauseWL(Clause_p subsumer, Clause_p
 static bool clause_subsumes_clause(Clause_p subsumer, Clause_p
                                    sub_candidate)
 {
-	return clause_subsumes_clauseWL(subsumer, sub_candidate, false);
+	return clause_subsumes_clauseWL(subsumer, sub_candidate, NULL);
 }
  
 
@@ -856,7 +856,7 @@ Clause_p clause_set_subsumes_clause_indexed(FVIndex_p index,
 
 static
 void clause_tree_find_subsumed_clauses(PTree_p tree, Clause_p subsumer,
-                                       PStack_p res, bool eq_skl)
+                                       PStack_p res, Sig_p* sig)
 {
    Clause_p clause;
 
@@ -867,7 +867,7 @@ void clause_tree_find_subsumed_clauses(PTree_p tree, Clause_p subsumer,
       return;
    }
    clause = tree->key;
-   if(clause_subsumes_clauseWL(subsumer, clause, eq_skl))
+   if(clause_subsumes_clauseWL(subsumer, clause, sig))
    {
       /* DocClauseQuote(GlobalOut, OutputLevel, 6, clause,
          "subsumed", subsumer);*/
@@ -875,8 +875,8 @@ void clause_tree_find_subsumed_clauses(PTree_p tree, Clause_p subsumer,
       // Not a SOS clause!
       PStackPushP(res, clause);
    }
-   clause_tree_find_subsumed_clauses(tree->lson, subsumer, res, eq_skl);
-   clause_tree_find_subsumed_clauses(tree->rson, subsumer, res, eq_skl);
+   clause_tree_find_subsumed_clauses(tree->lson, subsumer, res, sig);
+   clause_tree_find_subsumed_clauses(tree->rson, subsumer, res, sig);
 }
 
 /*-----------------------------------------------------------------------
@@ -941,7 +941,7 @@ static
 void clauseset_find_subsumed_clauses(ClauseSet_p set,
                                      Clause_p subsumer,
                                      PStack_p res,
-									 bool eq_skl)
+									 Sig_p* sig)
 {
    Clause_p handle;
 
@@ -949,8 +949,11 @@ void clauseset_find_subsumed_clauses(ClauseSet_p set,
        handle!= set->anchor;
        handle = handle->succ)
    {
-      if(clause_subsumes_clauseWL(subsumer, handle, eq_skl))
+	  //printf("# CSC S "); ClausePrint(GlobalOut, subsumer, true); printf("\n");
+	  //printf("# CSC C "); ClausePrint(GlobalOut, handle, true); printf("\n");
+      if(clause_subsumes_clauseWL(subsumer, handle, sig))
       {
+		 //printf("# CSC YES "); printf("\n");
          /* DocClauseQuote(GlobalOut, OutputLevel, 6, handle,
             "subsumed", subsumer); */
          PStackPushP(res, handle);
@@ -1010,11 +1013,11 @@ void clauseset_find_subsumed_clauses_indexed(FVIndex_p index,
                                              FreqVector_p vec,
                                              long feature,
                                              PStack_p res,
-											 bool eq_skl)
+											 Sig_p* sig)
 {
    if(feature == vec->size)
    {
-      clause_tree_find_subsumed_clauses(index->u1.clauses, vec->clause, res, eq_skl);
+      clause_tree_find_subsumed_clauses(index->u1.clauses, vec->clause, res, sig);
    }
    else if(index->u1.successors)
    {
@@ -1029,7 +1032,7 @@ void clauseset_find_subsumed_clauses_indexed(FVIndex_p index,
          if(next->clause_count)
          {
             clauseset_find_subsumed_clauses_indexed(next, vec,
-                                                    feature+1, res, eq_skl);
+                                                    feature+1, res, sig);
          }
       }
       IntMapIterFree(iter);
@@ -1184,7 +1187,7 @@ Clause_p clauseset_find_variant_clause_indexed(FVIndex_p index,
 //
 /----------------------------------------------------------------------*/
 
-bool LiteralSubsumesClause(Eqn_p literal, Clause_p clause, bool eq_skl)
+bool LiteralSubsumesClause(Eqn_p literal, Clause_p clause, Sig_p* sig)
 {
    Eqn_p handle;
 
@@ -1195,7 +1198,7 @@ bool LiteralSubsumesClause(Eqn_p literal, Clause_p clause, bool eq_skl)
       {
          if(EqnIsPositive(handle) &&
             eqn_subsumes_termpair(literal, handle->lterm,
-                                  handle->rterm, eq_skl))
+                                  handle->rterm, sig))
          {
             return true;
          }
@@ -1204,7 +1207,7 @@ bool LiteralSubsumesClause(Eqn_p literal, Clause_p clause, bool eq_skl)
       {
          if(EqnIsNegative(handle) &&
             eqn_topsubsumes_termpair(literal, handle->lterm,
-                                     handle->rterm, eq_skl))
+                                     handle->rterm, sig))
          {
             return false;
          }
@@ -1227,14 +1230,14 @@ bool LiteralSubsumesClause(Eqn_p literal, Clause_p clause, bool eq_skl)
 //
 /----------------------------------------------------------------------*/
 
-bool UnitClauseSubsumesClause(Clause_p unit, Clause_p clause, bool eq_skl)
+bool UnitClauseSubsumesClause(Clause_p unit, Clause_p clause, Sig_p* sig)
 {
    bool res;
 
    assert(ClauseLiteralNumber(unit) == 1);
 
    UnitClauseClauseSubsumptionCalls++;
-   res = LiteralSubsumesClause(unit->literals, clause, eq_skl);
+   res = LiteralSubsumesClause(unit->literals, clause, sig);
    //if(res)
    //{
    //   ClauseSetProp(unit, ClauseQueryProp(clause,CPIsSOS));
@@ -1557,7 +1560,7 @@ Clause_p ClauseSetFindSubsumedClause(ClauseSet_p set, Clause_p
 long ClauseSetFindFVSubsumedClauses(ClauseSet_p set,
                                     FVPackedClause_p subsumer,
                                     PStack_p res,
-									bool eq_skl)
+									Sig_p* sig)
 {
    long old_sp = PStackGetSP(res);
 
@@ -1567,11 +1570,11 @@ long ClauseSetFindFVSubsumedClauses(ClauseSet_p set,
    if(set->fvindex)
    {
       clauseset_find_subsumed_clauses_indexed(set->fvindex->index,
-                                              subsumer, 0, res, eq_skl);
+                                              subsumer, 0, res, sig);
    }
    else
    {
-      clauseset_find_subsumed_clauses(set, subsumer->clause, res, eq_skl);
+      clauseset_find_subsumed_clauses(set, subsumer->clause, res, sig);
    }
    PERF_CTR_EXIT(SetSubsumeTimer);
    return PStackGetSP(res)-old_sp;
@@ -1630,8 +1633,7 @@ Clause_p ClauseSetFindFirstFVSubsumedClause(ClauseSet_p set,
 
 long ClauseSetFindSubsumedClauses(ClauseSet_p set,
                                   Clause_p subsumer,
-                                  PStack_p res,
-								  bool eq_skl)
+                                  PStack_p res)
 {
    long found = 0;
    FVPackedClause_p pclause;
@@ -1640,7 +1642,7 @@ long ClauseSetFindSubsumedClauses(ClauseSet_p set,
 
    pclause = FVIndexPackClause(subsumer, set->fvindex);
 
-   found = ClauseSetFindFVSubsumedClauses(set, pclause, res, eq_skl);
+   found = ClauseSetFindFVSubsumedClauses(set, pclause, res, NULL);
 
    FVUnpackClause(pclause);
    ENSURE_NULL(pclause);

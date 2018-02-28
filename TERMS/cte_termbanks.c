@@ -1165,10 +1165,11 @@ Term_p TBTermParseReal(Scanner_p in, TB_p bank, bool check_symb_prop)
                Error(DStrView(errpos), SYNTAX_ERROR);
                DStrFree(errpos);
             }
-			//Check if it's a skolem symbol (produced by E).
+			//Check if it's a skolem symbol (produced by E). Could be id_type?
 			if(strncmp(bank->sig->f_info[handle->f_code].name, "esk", 3) == 0)
 			{
-				TermCellSetProp(handle, TPIsSkolem);
+				//printf("# XSK w "); TermPrint(GlobalOut, handle, bank->sig, DEREF_NEVER); printf("\n");
+				SigSetFuncProp(bank->sig, handle->f_code, FPIsSkolem);
 			}
 			handle = tb_termtop_insert(bank, handle);
          }

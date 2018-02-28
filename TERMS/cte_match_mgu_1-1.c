@@ -110,7 +110,7 @@ static bool occur_check(restrict Term_p term, restrict Term_p var)
 //
 /----------------------------------------------------------------------*/
 
-bool SubstComputeMatchWL(Term_p matcher, Term_p to_match, Subst_p subst, bool eq_skl)
+bool SubstComputeMatchWL(Term_p matcher, Term_p to_match, Subst_p subst, Sig_p* sig)
 {
    long matcher_weight  = TermStandardWeight(matcher);
    long to_match_weight = TermStandardWeight(to_match);
@@ -170,9 +170,9 @@ bool SubstComputeMatchWL(Term_p matcher, Term_p to_match, Subst_p subst, bool eq
       {
 		 // For skolem analogies, use this instead of comparing f_codes.   
          //if(matcher->f_code != to_match->f_code)
-         esk = eq_skl && TermCellQueryProp(matcher, TPIsSkolem) 
-		              && TermCellQueryProp(to_match, TPIsSkolem);
-         if((esk && (matcher->arity != to_match->arity)) || 
+		 esk = sig && SigQueryFuncProp((*sig), matcher->f_code, FPIsSkolem) 
+				   && SigQueryFuncProp((*sig), to_match->f_code, FPIsSkolem);
+		 if((esk && (matcher->arity != to_match->arity)) || 
 			           (!esk && (matcher->f_code != to_match->f_code)))
 		 {
             res = false;
@@ -199,8 +199,9 @@ bool SubstComputeMatchWL(Term_p matcher, Term_p to_match, Subst_p subst, bool eq
 }
 
 // Wrapper to not redefine many function calls unrelated to watchlist.
+// Perhaps better handled via macros?
 bool SubstComputeMatch(Term_p matcher, Term_p to_match, Subst_p subst) {
-	return SubstComputeMatchWL(matcher, to_match, subst, false);
+	return SubstComputeMatchWL(matcher, to_match, subst, NULL);
 }
 
 

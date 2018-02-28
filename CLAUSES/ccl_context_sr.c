@@ -131,7 +131,7 @@ long ClauseSetFindContextSRClauses(ClauseSet_p set, Clause_p clause,
       handle = PStackPopP(lit_stack);
       ClauseFlipLiteralSign(clause, handle);
       ClauseSubsumeOrderSortLits(clause);
-      ClauseSetFindSubsumedClauses(set, clause, res, false);
+      ClauseSetFindSubsumedClauses(set, clause, res);
       ClauseFlipLiteralSign(clause, handle);
    }
    PStackFree(lit_stack);

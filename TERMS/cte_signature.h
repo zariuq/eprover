@@ -58,9 +58,10 @@ typedef enum
                            * defintion off if not in use! */
    FPClSplitDef   = 4096, /* Predicate is a clause split defined
                            * symbol. */
-   FPPseudoPred   = 8192  /* Pseudo-predicate used for side effects
+   FPPseudoPred   = 8192,  /* Pseudo-predicate used for side effects
                            * only, does not conceptually contribute to
                            * truth of clause */
+   FPIsSkolem     = 16384  /* Skolem Symbol/Function. Used in WL subsumption */ 
 }FunctionProperties;
 
 

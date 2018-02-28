@@ -247,7 +247,8 @@ static long remove_subsumed(GlobalIndices_p indices,
                             FVPackedClause_p subsumer,
                             ClauseSet_p set,
                             ClauseSet_p archive,
-                            NumTree_p* watch_progress)
+                            NumTree_p* watch_progress,
+							Sig_p* sig)
 {
    Clause_p handle;
    long     res;
@@ -255,15 +256,22 @@ static long remove_subsumed(GlobalIndices_p indices,
    PStack_p stack = PStackAlloc();
    //long     best_proof_no = -1;
    double best_progress = 0.0;
-   bool eq_skl = watch_progress && WLNormalizeSkolemSymbols;
-
-   res = ClauseSetFindFVSubsumedClauses(set, subsumer, stack, eq_skl);
-
+   
+   if(WLNormalizeSkolemSymbols)
+   {
+	   res = ClauseSetFindFVSubsumedClauses(set, subsumer, stack, sig);
+   }
+   else
+   {
+	   res = ClauseSetFindFVSubsumedClauses(set, subsumer, stack, NULL);
+   }
+   
    while(!PStackEmpty(stack))
    {
       handle = PStackPopP(stack);
-      // printf("# XXX Removing (remove_subumed()) %p from %p = %p\n", handle, set, handle->set);
-      if(ClauseQueryProp(handle, CPWatchOnly))
+      //printf("# XXX Removing (remove_subumed()) %p from %p = %p\n", handle, set, handle->set);
+      printf("# XWL "); ClausePrint(GlobalOut, handle, true); printf("\n"); 
+	  if(ClauseQueryProp(handle, CPWatchOnly))
       {
          assert(watch_progress);
 
@@ -454,30 +462,30 @@ static long eliminate_backward_subsumed_clauses(ProofState_p state,
          {
             res += remove_subsumed(&(state->gindices), pclause,
                                    state->processed_pos_rules,
-                                   state->archive, NULL);
+                                   state->archive, NULL, NULL);
             res += remove_subsumed(&(state->gindices), pclause,
                                    state->processed_pos_eqns,
-                                   state->archive, NULL);
+                                   state->archive, NULL, NULL);
          }
          res += remove_subsumed(&(state->gindices), pclause,
                                 state->processed_non_units,
-                                state->archive, NULL);
+                                state->archive, NULL, NULL);
       }
       else
       {
          res += remove_subsumed(&(state->gindices), pclause,
                                 state->processed_neg_units,
-                                state->archive, NULL);
+                                state->archive, NULL, NULL);
          res += remove_subsumed(&(state->gindices), pclause,
                                 state->processed_non_units,
-                                state->archive, NULL);
+                                state->archive, NULL, NULL);
       }
    }
    else
    {
       res += remove_subsumed(&(state->gindices), pclause,
                              state->processed_non_units,
-                             state->archive, NULL);
+                             state->archive, NULL, NULL);
    }
    state->backward_subsumed_count+=res;
    return res;
@@ -572,14 +580,14 @@ static long eliminate_context_sr_clauses(ProofState_p state,
 
 void check_watchlist(GlobalIndices_p indices, ClauseSet_p watchlist,
                      Clause_p clause, ClauseSet_p archive,
-                     bool static_watchlist, NumTree_p* watch_progress)
+                     bool static_watchlist, NumTree_p* watch_progress, Sig_p* sig)
 {
    FVPackedClause_p pclause = FVIndexPackClause(clause, watchlist->fvindex);
    long removed;
 
    // printf("# check_watchlist(%p)...\n", indices);
    if(WLNormalizeSkolemSymbols)
-   {
+   { // Don't know how to pass Sig to the qsort
 	  ClauseSubsumeOrderSortLitsWL(clause);
    }
    else 
@@ -602,7 +610,7 @@ void check_watchlist(GlobalIndices_p indices, ClauseSet_p watchlist,
    }
    else
    {
-      if((removed = remove_subsumed(indices, pclause, watchlist, archive, watch_progress)))
+      if((removed = remove_subsumed(indices, pclause, watchlist, archive, watch_progress, sig)))
       {
          ClauseSetProp(clause, CPSubsumesWatch);
          if(OutputLevel >= 1)
@@ -614,7 +622,7 @@ void check_watchlist(GlobalIndices_p indices, ClauseSet_p watchlist,
                watch_progress_print(*watch_progress);
             }
          }
-         // ClausePrint(GlobalOut, clause, true); printf("\n");
+         printf("# XCL "); ClausePrint(GlobalOut, clause, true); printf("\n");
          DocClauseQuote(GlobalOut, OutputLevel, 6, clause,
                         "extract_subsumed_watched", NULL);   }
    }
@@ -835,7 +843,7 @@ static Clause_p insert_new_clauses(ProofState_p state, ProofControl_p control)
          check_watchlist(&(state->wlindices), state->watchlist,
                          handle, state->archive,
                          control->heuristic_parms.watchlist_is_static,
-                         &(state->watch_progress));
+                         &(state->watch_progress), &(state->signature));
       }
       if(ClauseIsEmpty(handle))
       {
@@ -1515,7 +1523,7 @@ void ProofStateInit(ProofState_p state, ProofControl_p control)
          check_watchlist(&(state->wlindices), state->watchlist,
                          new, state->archive,
                          control->heuristic_parms.watchlist_is_static,
-                         &(state->watch_progress));
+                         &(state->watch_progress), &(state->signature));
       }
       HCBClauseEvaluate(control->hcb, new);
       DocClauseQuoteDefault(6, new, "eval");
@@ -1652,7 +1660,7 @@ Clause_p ProcessClause(ProofState_p state, ProofControl_p control,
       check_watchlist(&(state->wlindices), state->watchlist,
                       pclause->clause, state->archive,
                       control->heuristic_parms.watchlist_is_static,
-                      &(state->watch_progress));
+                      &(state->watch_progress), &(state->signature));
    }
 
    /* Now on to backward simplification. */

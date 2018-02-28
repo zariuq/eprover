@@ -1436,9 +1436,10 @@ int EqnSubsumeQOrderCompareWL(const void* lit1, const void* lit2)
    }
    if(!EqnIsEquLit(l1))
    {
-	  if(TermCellQueryProp(l1->lterm, TPIsSkolem) && TermCellQueryProp(l2->lterm, TPIsSkolem))
+	  if(SigQueryFuncProp(l1->bank->sig, l1->lterm->f_code, FPIsSkolem) 
+			  && SigQueryFuncProp(l2->bank->sig, l2->lterm->f_code, FPIsSkolem))
 	  {
-		CMP(l1->lterm->arity, l2->lterm->arity);
+	  	CMP(l1->lterm->arity, l2->lterm->arity);
 	  }
 	  else
 	  {
