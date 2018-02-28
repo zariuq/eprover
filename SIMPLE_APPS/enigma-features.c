@@ -41,6 +41,7 @@ typedef enum
    OPT_NOOPT=0,
    OPT_HELP,
    OPT_VERBOSE,
+   OPT_FREE_NUMBERS,
    OPT_OUTPUT
 }OptionCodes;
 
@@ -62,6 +63,12 @@ OptCell opts[] =
         'o', "output-file",
         ReqArg, NULL,
         "Redirect output into the named file."},
+   {OPT_FREE_NUMBERS,
+    '\0', "free-numbers",
+     NoArg, NULL,
+     "Treat numbers (strings of decimal digits) as normal free function "
+    "symbols in the input. By default, number now are supposed to denote"
+    " domain constants and to be implicitly different from each other."},
     {OPT_NOOPT,
         '\0', NULL,
         NoArg, NULL,
@@ -69,6 +76,7 @@ OptCell opts[] =
 };
 
 char *outname = NULL;
+FunctionProperties free_symb_prop = FPIgnoreProps;
 
 /*---------------------------------------------------------------------*/
 /*                      Forward Declarations                           */
@@ -215,6 +223,7 @@ static DStr_p get_conjecture_features_string(char* filename, TB_p bank)
    while (TestInpId(in, "cnf"))
    {
       Clause_p clause = ClauseParse(in, bank);
+      vec = RegMemProvide(vec, &size, (3+4*(bank->sig->f_count+1))*sizeof(long));
       if (ClauseQueryTPTPType(clause) == CPTypeNegConjecture) 
       {
          vec[0] += (long)ClauseWeight(clause,1,1,1,1,1,false);
@@ -279,11 +288,11 @@ int main(int argc, char* argv[])
 {
    InitIO(argv[0]);
    CLState_p args = process_options(argc, argv);
+   //SetMemoryLimit(2L*1024*MEGA);
    OutputFormat = TSTPFormat;
-   Sig_p sig = SigAlloc(SortTableAlloc());
-   // free numbers hack:
-   sig->distinct_props = sig->distinct_props&(~(FPIgnoreProps|FPIsInteger|FPIsRational|FPIsFloat));
-   TB_p bank = TBAlloc(sig);
+   if (outname) { OpenGlobalOut(outname); }
+   ProofState_p state = ProofStateAlloc(free_symb_prop);
+   TB_p bank = state->terms;
   
    DStr_p dstr = NULL;
    char* conj = "";
@@ -303,8 +312,9 @@ int main(int argc, char* argv[])
    }
 
    if (dstr) { DStrFree(dstr); }
-   TBFree(bank);
-   SigFree(sig);
+   //TBFree(bank);
+   //SigFree(sig);
+   ProofStateFree(state);
    CLStateFree(args);
    ExitIO();
 
@@ -348,6 +358,9 @@ CLState_p process_options(int argc, char* argv[])
       case OPT_OUTPUT:
              outname = arg;
              break;
+      case OPT_FREE_NUMBERS:
+            free_symb_prop = free_symb_prop|FPIsInteger|FPIsRational|FPIsFloat;
+            break;
       default:
           assert(false);
           break;
