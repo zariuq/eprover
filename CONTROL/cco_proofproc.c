@@ -248,7 +248,7 @@ static long remove_subsumed(GlobalIndices_p indices,
                             ClauseSet_p set,
                             ClauseSet_p archive,
                             NumTree_p* watch_progress,
-							Sig_p* sig)
+							Sig_p sig)
 {
    Clause_p handle;
    long     res;
@@ -580,7 +580,7 @@ static long eliminate_context_sr_clauses(ProofState_p state,
 
 void check_watchlist(GlobalIndices_p indices, ClauseSet_p watchlist,
                      Clause_p clause, ClauseSet_p archive,
-                     bool static_watchlist, NumTree_p* watch_progress, Sig_p* sig)
+                     bool static_watchlist, NumTree_p* watch_progress, Sig_p sig)
 {
    FVPackedClause_p pclause = FVIndexPackClause(clause, watchlist->fvindex);
    long removed;
@@ -843,7 +843,7 @@ static Clause_p insert_new_clauses(ProofState_p state, ProofControl_p control)
          check_watchlist(&(state->wlindices), state->watchlist,
                          handle, state->archive,
                          control->heuristic_parms.watchlist_is_static,
-                         &(state->watch_progress), &(state->signature));
+                         &(state->watch_progress), state->signature);
       }
       if(ClauseIsEmpty(handle))
       {
@@ -1523,7 +1523,7 @@ void ProofStateInit(ProofState_p state, ProofControl_p control)
          check_watchlist(&(state->wlindices), state->watchlist,
                          new, state->archive,
                          control->heuristic_parms.watchlist_is_static,
-                         &(state->watch_progress), &(state->signature));
+                         &(state->watch_progress), state->signature);
       }
       HCBClauseEvaluate(control->hcb, new);
       DocClauseQuoteDefault(6, new, "eval");
@@ -1660,7 +1660,7 @@ Clause_p ProcessClause(ProofState_p state, ProofControl_p control,
       check_watchlist(&(state->wlindices), state->watchlist,
                       pclause->clause, state->archive,
                       control->heuristic_parms.watchlist_is_static,
-                      &(state->watch_progress), &(state->signature));
+                      &(state->watch_progress), state->signature);
    }
 
    /* Now on to backward simplification. */

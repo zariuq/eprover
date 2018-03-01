@@ -49,7 +49,7 @@ extern long UnifSuccesses;
 PERF_CTR_DECL(MguTimer);
 
 
-bool SubstComputeMatchWL(Term_p matcher, Term_p to_match, Subst_p subst, Sig_p* sig);
+bool SubstComputeMatchWL(Term_p matcher, Term_p to_match, Subst_p subst, Sig_p sig);
 bool SubstComputeMatch(Term_p matcher, Term_p to_match, Subst_p subst);
 bool SubstComputeMgu(Term_p t1, Term_p t2, Subst_p subst);
 
