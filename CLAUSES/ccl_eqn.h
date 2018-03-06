@@ -361,6 +361,8 @@ int     LiteralCompareFun(Eqn_p lit1, Eqn_p lit2);
                                 (depth_array), (limit))
 
 void    EqnAddSymbolFeatures(Eqn_p eq, PStack_p mod_stack, long *feature_array);
+void	EqnAddSymbolFeaturesWL(Eqn_p eq, PStack_p mod_stack, long *feature_array, long skind);
+//long *skolem_array, PStack_p skolem_stack);
 
 
 #define EqnComputeFunctionRanks(eqn, rank_array, count)                 \

@@ -30,7 +30,7 @@
 /*---------------------------------------------------------------------*/
 
 char* UseInlinedWatchList = WATCHLIST_INLINE_STRING;
-bool WLNormalizeSkolemSymbols = false;
+//bool WLNormalizeSkolemSymbols = false;
 
 /*---------------------------------------------------------------------*/
 /*                      Forward Declarations                           */

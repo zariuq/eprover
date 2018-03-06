@@ -2770,6 +2770,15 @@ void EqnAddSymbolFeatures(Eqn_p eq, PStack_p mod_stack, long *feature_array)
    TermAddSymbolFeatures(eq->rterm, mod_stack, 0, feature_array, offset);
 }
 
+void EqnAddSymbolFeaturesWL(Eqn_p eq, PStack_p mod_stack, long *feature_array, long skind)
+{ //long *skolem_array, PStack_p skolem_stack)
+   long offset = EqnIsNegative(eq)?2:0;
+
+   TermAddSymbolFeaturesWL(eq->lterm, mod_stack, 0, feature_array, skind, offset, eq->bank->sig);
+   TermAddSymbolFeaturesWL(eq->rterm, mod_stack, 0, feature_array, skind, offset, eq->bank->sig);
+}
+
+
 
 /*-----------------------------------------------------------------------
 //
