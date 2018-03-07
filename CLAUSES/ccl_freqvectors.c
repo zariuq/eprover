@@ -670,9 +670,7 @@ void FVCollectFree(FVCollect_p junk)
 FreqVector_p FVCollectFreqVectorCompute(Clause_p clause, FVCollect_p cspec)
 {
    static size_t  full_vec_len = 0;
-   //static size_t  skolem_vec_len = 0;
    static long*   full_vec     = NULL;
-   //static long*   skolem_vec   = NULL;
 
    FreqVector_p vec = FreqVectorAlloc(cspec->res_vec_len);
 
@@ -693,37 +691,9 @@ FreqVector_p FVCollectFreqVectorCompute(Clause_p clause, FVCollect_p cspec)
 	  // + 10 for Skolems
 
 	  if(WLNormalizeSkolemSymbols)
-	  { // Get feature vector and skolem symbol feature vector entries
-		//PStack_p skolem_stack = PStackAlloc();
-		//skolem_vec = RegMemProvide(skolem_vec, &skolem_vec_len, sizeof(long)*(11+1)*4);
+	  { // Increase full_vec size to accommodate skolem indices 
 		full_vec = RegMemProvide(full_vec, &full_vec_len, sizeof(long)*(max_fun+11+1)*4);
 		ClauseAddSymbolFeaturesWL(clause, mod_stack, full_vec, (max_fun+1)*4);//skolem_vec, skolem_stack);
-		/* 
-		// Put skolem entries into normal feature vector
-		long skindex;
-		//int f_code;
-		//int arity;
-		//while(!PStackEmpty(skolem_stack))
-		for(int i = 0; i < 11; ++i)
-		{
-			skindex = 4*i;
-			findex = 4*(max_fun+1+i);
-			if(skolem_vec[skindex] > 0)
-			{
-				full_vec[findex]+=500;
-				full_vec[findex+1] = skolem_vec[skindex+1]; 
-			}
-			if(skolem_vec[skindex+2] > 0)
-			{
-				full_vec[findex+2]+=500;
-				full_vec[findex+3] = skolem_vec[skindex+3]; 
-			}
-			PStackPushInt(mod_stack, findex);
-			PStackPushInt(mod_stack, findex+2);
-		
-		}
-		*/
-		//PStackFree(skolem_stack);
 	  }
 	  else
 	  {

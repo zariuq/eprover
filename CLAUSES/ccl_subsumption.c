@@ -894,7 +894,8 @@ void clause_tree_find_subsumed_clauses(PTree_p tree, Clause_p subsumer,
 
 static
 Clause_p clause_tree_find_first_subsumed_clause(PTree_p tree,
-                                            Clause_p subsumer)
+                                            Clause_p subsumer,
+											Sig_p sig)
 {
    Clause_p clause;
 
@@ -905,7 +906,7 @@ Clause_p clause_tree_find_first_subsumed_clause(PTree_p tree,
       return NULL;
    }
    clause = tree->key;
-   if(clause_subsumes_clause(subsumer, clause))
+   if(clause_subsumes_clauseWL(subsumer, clause, sig))
    {
       /* DocClauseQuote(GlobalOut, OutputLevel, 6, clause,
          "subsumed", subsumer);*/
@@ -913,10 +914,10 @@ Clause_p clause_tree_find_first_subsumed_clause(PTree_p tree,
       // Not a SOS clause!
       return clause;
    }
-   clause = clause_tree_find_first_subsumed_clause(tree->lson, subsumer);
+   clause = clause_tree_find_first_subsumed_clause(tree->lson, subsumer, sig);
    if(!clause)
    {
-      clause = clause_tree_find_first_subsumed_clause(tree->rson, subsumer);
+      clause = clause_tree_find_first_subsumed_clause(tree->rson, subsumer, sig);
    }
    return clause;
 }
@@ -977,7 +978,8 @@ void clauseset_find_subsumed_clauses(ClauseSet_p set,
 
 static
 Clause_p clauseset_find_first_subsumed_clause(ClauseSet_p set,
-                                              Clause_p subsumer)
+                                              Clause_p subsumer,
+											  Sig_p sig)
 {
    Clause_p handle;
 
@@ -985,7 +987,7 @@ Clause_p clauseset_find_first_subsumed_clause(ClauseSet_p set,
        handle!= set->anchor;
        handle = handle->succ)
    {
-      if(clause_subsumes_clause(subsumer, handle))
+      if(clause_subsumes_clauseWL(subsumer, handle, sig))
       {
          return handle;
       }
@@ -1056,13 +1058,14 @@ void clauseset_find_subsumed_clauses_indexed(FVIndex_p index,
 static
 Clause_p clauseset_find_first_subsumed_clause_indexed(FVIndex_p index,
                                                       FreqVector_p vec,
-                                                      long feature)
+                                                      long feature,
+													  Sig_p sig)
 {
    Clause_p res = NULL;
 
    if(feature == vec->size)
    {
-      res = clause_tree_find_first_subsumed_clause(index->u1.clauses, vec->clause);
+      res = clause_tree_find_first_subsumed_clause(index->u1.clauses, vec->clause, sig);
    }
    else if(index->u1.successors)
    {
@@ -1078,7 +1081,8 @@ Clause_p clauseset_find_first_subsumed_clause_indexed(FVIndex_p index,
          {
             res = clauseset_find_first_subsumed_clause_indexed(next,
                                                                vec,
-                                                               feature+1);
+                                                               feature+1,
+															   sig);
          }
       }
       IntMapIterFree(iter);
@@ -1596,7 +1600,8 @@ long ClauseSetFindFVSubsumedClauses(ClauseSet_p set,
 /----------------------------------------------------------------------*/
 
 Clause_p ClauseSetFindFirstFVSubsumedClause(ClauseSet_p set,
-                                            FVPackedClause_p subsumer)
+                                            FVPackedClause_p subsumer,
+											Sig_p sig)
 {
    Clause_p res;
 
@@ -1606,11 +1611,11 @@ Clause_p ClauseSetFindFirstFVSubsumedClause(ClauseSet_p set,
    if(set->fvindex)
    {
       res = clauseset_find_first_subsumed_clause_indexed(set->fvindex->index,
-                                                   subsumer, 0);
+                                                   subsumer, 0, sig);
    }
    else
    {
-      res = clauseset_find_first_subsumed_clause(set, subsumer->clause);
+      res = clauseset_find_first_subsumed_clause(set, subsumer->clause, sig);
    }
    PERF_CTR_EXIT(SetSubsumeTimer);
    return res;
@@ -1665,7 +1670,8 @@ long ClauseSetFindSubsumedClauses(ClauseSet_p set,
 /----------------------------------------------------------------------*/
 
 Clause_p ClauseSetFindFirstSubsumedClause(ClauseSet_p set,
-                                          Clause_p subsumer)
+                                          Clause_p subsumer,
+										  Sig_p sig)
 {
    Clause_p res;
    FVPackedClause_p pclause;
@@ -1674,7 +1680,7 @@ Clause_p ClauseSetFindFirstSubsumedClause(ClauseSet_p set,
 
    pclause = FVIndexPackClause(subsumer, set->fvindex);
 
-   res = ClauseSetFindFirstFVSubsumedClause(set, pclause);
+   res = ClauseSetFindFirstFVSubsumedClause(set, pclause, sig);
 
    FVUnpackClause(pclause);
    ENSURE_NULL(pclause);

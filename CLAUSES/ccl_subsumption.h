@@ -75,14 +75,16 @@ long     ClauseSetFindFVSubsumedClauses(ClauseSet_p set,
 										Sig_p sig);
 
 Clause_p ClauseSetFindFirstFVSubsumedClause(ClauseSet_p set,
-                                            FVPackedClause_p subsumer);
+                                            FVPackedClause_p subsumer,
+											Sig_p sig);
 
 long     ClauseSetFindSubsumedClauses(ClauseSet_p set,
                                       Clause_p subsumer,
                                       PStack_p res);
 
 Clause_p ClauseSetFindFirstSubsumedClause(ClauseSet_p set,
-                                          Clause_p subsumer);
+                                          Clause_p subsumer,
+										  Sig_p sig);
 
 Clause_p ClauseSetFindFVVariantClause(ClauseSet_p set,
                                       FVPackedClause_p clause);

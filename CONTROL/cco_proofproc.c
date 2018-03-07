@@ -270,7 +270,7 @@ static long remove_subsumed(GlobalIndices_p indices,
    {
       handle = PStackPopP(stack);
       //printf("# XXX Removing (remove_subumed()) %p from %p = %p\n", handle, set, handle->set);
-      printf("# XWL "); ClausePrint(GlobalOut, handle, true); printf("\n"); 
+      //printf("# XWL "); ClausePrint(GlobalOut, handle, true); printf("\n"); 
 	  if(ClauseQueryProp(handle, CPWatchOnly))
       {
          assert(watch_progress);
@@ -602,7 +602,7 @@ void check_watchlist(GlobalIndices_p indices, ClauseSet_p watchlist,
    {
       Clause_p subsumed;
 
-      subsumed = ClauseSetFindFirstSubsumedClause(watchlist, clause);
+      subsumed = ClauseSetFindFirstSubsumedClause(watchlist, clause, sig);
       if(subsumed)
       {
          ClauseSetProp(clause, CPSubsumesWatch);
@@ -622,7 +622,7 @@ void check_watchlist(GlobalIndices_p indices, ClauseSet_p watchlist,
                watch_progress_print(*watch_progress);
             }
          }
-         printf("# XCL "); ClausePrint(GlobalOut, clause, true); printf("\n");
+         //printf("# XCL "); ClausePrint(GlobalOut, clause, true); printf("\n");
          DocClauseQuote(GlobalOut, OutputLevel, 6, clause,
                         "extract_subsumed_watched", NULL);   }
    }
