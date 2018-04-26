@@ -41,7 +41,9 @@ include ../Makefile.services
 EPROVER = eprover.o ../lib/CONTROL.a ../lib/PCL2.a ../lib/HEURISTICS.a\
             ../lib/LEARN.a\
             ../lib/CLAUSES.a ../lib/ORDERINGS.a ../lib/TERMS.a\
-            ../lib/INOUT.a ../lib/BASICS.a
+            ../lib/INOUT.a ../lib/BASICS.a \
+				../CONTRIB/liblinear/liblinear.a \
+				../CONTRIB/svdlibc/libsvd.a 
 
 eprover: $(EPROVER)
 	$(LD) -o eprover $(EPROVER) $(LIBS)

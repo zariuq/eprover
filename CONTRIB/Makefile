@@ -18,12 +18,14 @@ include ../Makefile.vars
 
 PICOSAT = picosat-965
 
-all: picosat
+all: picosat liblinear libsvd
 
 # Remove all automatically generated files
 
-clean: $(PICOSAT)/Makefile
+clean: $(PICOSAT)/makefile
 	cd $(PICOSAT); $(MAKE) clean
+	make -C liblinear clean
+	make -C svdlibc clean
 
 # Services (provided by the master Makefile)
 
@@ -37,3 +39,14 @@ $(PICOSAT)/makefile:
 
 picosat: $(PICOSAT)/makefile
 	cd $(PICOSAT); $(MAKE); $(MAKE)
+
+liblinear: liblinear/liblinear.a
+
+liblinear/liblinear.a:
+	make -C liblinear lib
+
+libsvd: svdlibc/libsdv.a
+
+svdlibc/libsdv.a:
+	make -C svdlibc
+

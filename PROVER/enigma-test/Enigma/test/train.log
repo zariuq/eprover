@@ -1,0 +1,23 @@
+iter  1 act 3.736e+00 pre 3.609e+00 delta 3.989e-01 f 1.000e+01 |g| 9.220e+01 CG   2
+cg reaches trust region boundary
+iter  2 act 1.005e+00 pre 1.005e+00 delta 4.766e-01 f 6.264e+00 |g| 1.014e+01 CG   3
+iter  3 act 2.697e-01 pre 2.697e-01 delta 4.766e-01 f 5.258e+00 |g| 2.199e+00 CG   6
+
+ Performance counter stats for 'train -s 2 ./Enigma/test/train.in ./Enigma/test/model.lin':
+
+          1.518001      task-clock:up (msec)      #    0.855 CPUs utilized          
+               148      page-faults:up            #    0.097 M/sec                  
+         3,123,766      instructions:up                                             
+
+       0.001774726 seconds time elapsed
+
+Accuracy = 90% (9/10)
+
+ Performance counter stats for 'predict ./Enigma/test/train.in ./Enigma/test/model.lin ./Enigma/test/train.out':
+
+          1.410561      task-clock:up (msec)      #    0.839 CPUs utilized          
+               144      page-faults:up            #    0.102 M/sec                  
+         2,795,192      instructions:up                                             
+
+       0.001681364 seconds time elapsed
+

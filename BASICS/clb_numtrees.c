@@ -535,6 +535,30 @@ NumTree_p NumTreeMaxNode(NumTree_p root)
    return root;
 }
 
+/*-----------------------------------------------------------------------
+//
+// Function: NumTreeMinNode()
+//
+//   Return the node with the smallest key in the tree (or NULL if tree
+//   is empty). Non-destructive/non-reorganizing.
+//
+// Global Variables: -
+//
+// Side Effects    : -
+//
+/----------------------------------------------------------------------*/
+
+NumTree_p NumTreeMinNode(NumTree_p root)
+{
+   if(root)
+   {
+      while(root->lson)
+      {
+         root = root->lson;
+      }
+   }
+   return root;
+}
 
 /*-----------------------------------------------------------------------
 //
