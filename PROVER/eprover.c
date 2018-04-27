@@ -510,7 +510,6 @@ int main(int argc, char* argv[])
 
    ProofStateInit(proofstate, proofcontrol);
    //printf("Alive (2)!\n");
-
    ProofStateInitWatchlist(proofstate, proofcontrol->ocb, watchlists);
 
    VERBOUT2("Prover state initialized\n");
