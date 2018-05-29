@@ -367,7 +367,7 @@ CLState_p process_options(int argc, char* argv[])
       }
    }
 
-   if (state->argc != 1 && state->argc != 3)
+   if (state->argc < 1 || state->argc > 3)
    {
       print_help(stdout);
       exit(NO_ERROR);
