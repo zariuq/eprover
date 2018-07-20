@@ -230,6 +230,21 @@ static void watch_progress_print(NumTree_p watch_progress)
    NumTreeTraverseExit(stack);
 }
 
+// Copy one NumTree_p into another. 
+// For the purpose of saving a snapshot of the proof state of each given clause.
+static void watch_progress_copy(NumTree_p* watch_proof_state, NumTree_p watch_progress)
+{
+   NumTree_p proof;
+   PStack_p stack;
+
+   stack = NumTreeTraverseInit(watch_progress);
+   while((proof = NumTreeTraverseNext(stack)))
+   {
+      NumTreeStore(watch_proof_state, proof->key, proof->val1, proof->val2);
+   }
+   NumTreeTraverseExit(stack);
+}
+
 /*-----------------------------------------------------------------------
 //
 // Function: remove_subsumed()
@@ -1600,6 +1615,9 @@ Clause_p ProcessClause(ProofState_p state, ProofControl_p control,
    assert(clause);
 
    state->processed_count++;
+   
+   // Have to copy the state twice.
+   //watch_progress_copy(&(clause->watch_proof_state), state->watch_progress);
 
    ClauseSetExtractEntry(clause);
    ClauseSetProp(clause, CPIsProcessed);
@@ -1610,6 +1628,9 @@ Clause_p ProcessClause(ProofState_p state, ProofControl_p control,
 
    if(ProofObjectRecordsGCSelection)
    {
+	  // Copy proof state at given clause selection into the clause.
+	  // Notably this is different from the proof-state immediately after clause selection. 
+	  watch_progress_copy(&(clause->watch_proof_state), state->watch_progress);
       arch_copy = ClauseArchive(state->archive, clause);
    }
 
@@ -1626,6 +1647,8 @@ Clause_p ProcessClause(ProofState_p state, ProofControl_p control,
       return NULL;
    }
 
+   
+   
    if(ClauseIsSemFalse(pclause->clause))
    {
       state->answer_count ++;

@@ -162,6 +162,7 @@ typedef struct clause_cell
                                          (only for watchlist clauses) */
    double       watch_relevance;      /* Watchlist relevance (only for
                                          generated clauses) */
+   NumTree_p    watch_proof_state;    /* Watchlist proof state on selection */
 }ClauseCell, *Clause_p;
 
 
