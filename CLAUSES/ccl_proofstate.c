@@ -655,7 +655,7 @@ void ProofStateTrain(ProofState_p state, bool print_pos, bool print_neg)
    if(print_pos)
    {
       fprintf(GlobalOut, "# Training: Positive examples begin\n");
-      if(true)
+      if(ProofObjectRecordsProofVector)
 		PStackClausePrintWithState(GlobalOut, pos_examples, "# trainpos #proofvector ");	  
 	  else
 		PStackClausePrint(GlobalOut, pos_examples, "# trainpos");
@@ -664,7 +664,7 @@ void ProofStateTrain(ProofState_p state, bool print_pos, bool print_neg)
    if(print_neg)
    {
       fprintf(GlobalOut, "# Training: Negative examples begin\n");
-      if(true)
+      if(ProofObjectRecordsProofVector)
 		PStackClausePrintWithState(GlobalOut, neg_examples, "#trainneg #proofvector ");	  
 	  else
 		PStackClausePrint(GlobalOut, neg_examples, "#trainneg");

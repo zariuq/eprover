@@ -56,6 +56,7 @@ typedef enum
    OPT_FORCE_DERIV,
    OPT_RECORD_GIVEN_CLAUSES,
    OPT_TRAINING,
+   OPT_RECORD_PROOF_VECTOR,
    OPT_PCL_COMPRESSED,
    OPT_PCL_COMPACT,
    OPT_PCL_SHELL_LEVEL,
@@ -282,6 +283,13 @@ OptCell opts[] =
     " Implies --record-gcs. The argument is a binary or of the desired "
     "processig. Bit zero prints positive exampels. Bit 1 prints negative "
     "examples. Additional selectors will be added later."},
+
+   {OPT_RECORD_PROOF_VECTOR,
+	'\0', "record-proof-vector",
+    NoArg, NULL,
+    "Record proof-state vector from watchlists for each given clause."
+	"Use with --watchlist-dir. No watchlist strategies are needed."
+    "Will be printed with training examples (if the option is set)."},	
 
    {OPT_PCL_COMPRESSED,
     '\0', "pcl-terms-compressed",

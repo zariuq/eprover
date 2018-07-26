@@ -893,6 +893,10 @@ CLState_p process_options(int argc, char* argv[])
             ProofObjectRecordsGCSelection = true;
             proc_training_data = CLStateGetIntArg(handle, arg);
             break;
+	  case OPT_RECORD_PROOF_VECTOR:
+            BuildProofObject = MAX(1, BuildProofObject);
+            ProofObjectRecordsGCSelection = true;
+			ProofObjectRecordsProofVector = true;
       case OPT_PCL_COMPRESSED:
             pcl_full_terms = false;
             break;

@@ -1629,9 +1629,12 @@ Clause_p ProcessClause(ProofState_p state, ProofControl_p control,
    if(ProofObjectRecordsGCSelection)
    {
 	  // Copy proof state at given clause selection into the clause.
-	  // Notably this is different from the proof-state immediately after clause selection. 
-	  watch_progress_copy(&(clause->watch_proof_state), state->watch_progress);
-      arch_copy = ClauseArchive(state->archive, clause);
+	  // Notably this is different from the proof-state immediately after clause selection.
+	  if (ProofObjectRecordsProofVector)
+	  { 
+		watch_progress_copy(&(clause->watch_proof_state), state->watch_progress);
+	  }
+	  arch_copy = ClauseArchive(state->archive, clause);
    }
 
    if(!(pclause = ForwardContractClause(state, control,
