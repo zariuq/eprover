@@ -30,7 +30,8 @@
 /*---------------------------------------------------------------------*/
 
 char* UseInlinedWatchList = WATCHLIST_INLINE_STRING;
-//bool WLNormalizeSkolemSymbols = false;
+bool WLInheritRelevance = false;
+double decay_factor = 0.1;
 
 /*---------------------------------------------------------------------*/
 /*                      Forward Declarations                           */
@@ -655,7 +656,7 @@ void ProofStateTrain(ProofState_p state, bool print_pos, bool print_neg)
    if(print_pos)
    {
       fprintf(GlobalOut, "# Training: Positive examples begin\n");
-      if(ProofObjectRecordsProofVector)
+      if(ProofObjectRecordsProofVector && state->watchlist)
 		PStackClausePrintWithState(GlobalOut, pos_examples, "# trainpos #proofvector ");	  
 	  else
 		PStackClausePrint(GlobalOut, pos_examples, "# trainpos");
@@ -664,7 +665,7 @@ void ProofStateTrain(ProofState_p state, bool print_pos, bool print_neg)
    if(print_neg)
    {
       fprintf(GlobalOut, "# Training: Negative examples begin\n");
-      if(ProofObjectRecordsProofVector)
+      if(ProofObjectRecordsProofVector && state->watchlist)
 		PStackClausePrintWithState(GlobalOut, neg_examples, "#trainneg #proofvector ");	  
 	  else
 		PStackClausePrint(GlobalOut, neg_examples, "#trainneg");

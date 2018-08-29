@@ -1473,6 +1473,10 @@ CLState_p process_options(int argc, char* argv[])
 	  case OPT_WATCHLIST_NORMALIZE_SKOLEM_SYMOBLS:
 			WLNormalizeSkolemSymbols = true;
 			break;
+	  case OPT_WATCHLIST_INHERIT_RELEVANCE:
+			WLInheritRelevance = true;
+			decay_factor = CLStateGetFloatArg(handle, arg);
+			break;
       case OPT_NO_INDEXED_SUBSUMPTION:
             fvi_parms->cspec.features = FVINoFeatures;
             break;

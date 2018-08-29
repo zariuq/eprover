@@ -175,7 +175,8 @@ void ProofStatePropDocQuote(FILE* out, int level,
 #define WATCHLIST_INLINE_QSTRING "'" WATCHLIST_INLINE_STRING "'"
 extern char* UseInlinedWatchList;
 
-//extern bool WLNormalizeSkolemSymbols;
+extern bool WLInheritRelevance;
+extern double decay_factor; 
 
 #endif
 

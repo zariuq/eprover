@@ -917,12 +917,14 @@ EvalPriority PrioFunPreferWatchlist(Clause_p clause)
    return PrioNormal;
 }
 
+// Calculate watchlist priorities based on relevance of given clause to a watchlist
 EvalPriority PrioFunPreferWatchlistRelevant(Clause_p clause)
 {
    assert(clause);
 
    double wl = clause->watch_relevance;
 
+   // informal grid search to determine when relevance is "too low to matter"
    /*   if (wl<0.002) { wl = 0; }; */
    /*   if ((wl< 0.05) && ((wl/clause->weight) < 0.003))  { wl = 0; }; */
    if ((wl< 0.03) && ((wl/clause->weight) < 0.009))  { wl = 0; };

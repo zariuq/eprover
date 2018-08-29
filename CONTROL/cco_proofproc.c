@@ -345,24 +345,38 @@ static long remove_subsumed(GlobalIndices_p indices,
       {
          proof_progress = watch_progress_get(watch_progress, subsumer->clause->watch_proof);
       }
-      
-      double parents_relevance = watch_parents_relevance(subsumer->clause);
-      double decay_factor = 0.1;
-      double combined_relevance = proof_progress + (decay_factor*parents_relevance);
+     
+	  if (WLInheritRelevance)
+	  { 
+		  double parents_relevance = watch_parents_relevance(subsumer->clause);
+		  //double decay_factor = 0.1; // transformed into an option
+		  double combined_relevance = proof_progress + (decay_factor*parents_relevance);
 
-      if (OutputLevel >= 2 || (OutputLevel == 1 && subsumer->clause->watch_proof > 0))
-      {
-         fprintf(GlobalOut, "# WATCHLIST RELEVANCE: relevance=%1.3f(=%1.3f+%1.3f*%1.3f); proof=%ld; clause=", 
-            combined_relevance,
-            proof_progress,
-            decay_factor,
-            parents_relevance,
-            subsumer->clause->watch_proof);
-         ClausePrint(GlobalOut, subsumer->clause, true);
-         fprintf(GlobalOut, "\n");
-      }
-      
-      subsumer->clause->watch_relevance = combined_relevance;
+		  if (OutputLevel >= 2 || (OutputLevel == 1 && subsumer->clause->watch_proof > 0))
+		  {
+			 fprintf(GlobalOut, "# WATCHLIST RELEVANCE: relevance=%1.3f(=%1.3f+%1.3f*%1.3f); proof=%ld; clause=", 
+				combined_relevance,
+				proof_progress,
+				decay_factor,
+				parents_relevance,
+				subsumer->clause->watch_proof);
+			 ClausePrint(GlobalOut, subsumer->clause, true);
+			 fprintf(GlobalOut, "\n");
+		  }
+		  subsumer->clause->watch_relevance = combined_relevance;
+	  }
+	  else
+	  {
+		  if (OutputLevel >= 2 || (OutputLevel == 1 && subsumer->clause->watch_proof > 0))
+		  {
+			 fprintf(GlobalOut, "# WATCHLIST RELEVANCE: relevance=%1.3f; proof=%ld; clause=", 
+				proof_progress,
+				subsumer->clause->watch_proof);
+			 ClausePrint(GlobalOut, subsumer->clause, true);
+			 fprintf(GlobalOut, "\n");
+		  }
+		  subsumer->clause->watch_relevance = proof_progress;
+	  }
    }
 
    return res;

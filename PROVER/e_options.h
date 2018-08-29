@@ -155,6 +155,7 @@ typedef enum
    OPT_WATCHLIST,
    OPT_WATCHLIST_DIR,
    OPT_STATIC_WATCHLIST,
+   OPT_WATCHLIST_INHERIT_RELEVANCE,
    OPT_WATCHLIST_NO_SIMPLIFY,
    OPT_WATCHLIST_NORMALIZE_SKOLEM_SYMOBLS,
    OPT_NO_INDEXED_SUBSUMPTION,
@@ -1176,6 +1177,16 @@ OptCell opts[] =
     "not be removed from the watchlist (and hence the prover will not "
     "terminate if all watchlist clauses have been subsumed. This may be "
     "more useful for heuristic guidance."},
+
+   {OPT_WATCHLIST_INHERIT_RELEVANCE,
+    '\0', "watchlist-inherit-relevance",
+    OptArg, "0.1",
+    "By default clauses matching a watchlist do not inherit relevance " 
+	"from their parents. This option sets clause relevance to "
+	"\"relevance + decday_factor * parents_relevance\" when using "
+	"PreferWatchlistRelevant. This option is set with "
+	"--watchlist-inherit-relevance=decay_factor, "
+	"and the default value of decay_factor is 0.1. "},
 
    {OPT_WATCHLIST_NO_SIMPLIFY,
     '\0', "no-watchlist-simplification",
