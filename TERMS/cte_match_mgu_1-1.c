@@ -101,13 +101,16 @@ static bool occur_check(restrict Term_p term, restrict Term_p var)
 //   term structures (a variable may be bound to itself or a superterm
 //   containing it).
 //
+//	 Skolem symbols from the watchlist can be treated the same, 
+//	 modulo arity.
+//
 // Global Variables: -
 //
 // Side Effects    : Instantiates terms
 //
 /----------------------------------------------------------------------*/
 
-bool SubstComputeMatch(Term_p matcher, Term_p to_match, Subst_p subst)
+bool SubstComputeMatchWL(Term_p matcher, Term_p to_match, Subst_p subst, Sig_p sig)
 {
    long matcher_weight  = TermStandardWeight(matcher);
    long to_match_weight = TermStandardWeight(to_match);
@@ -121,6 +124,7 @@ bool SubstComputeMatch(Term_p matcher, Term_p to_match, Subst_p subst)
    }
 
    bool res = true;
+   bool esk = false;
    PStackPointer backtrack = PStackGetSP(subst); /* For backtracking */
    PLocalStackInit(jobs);
 
@@ -164,8 +168,13 @@ bool SubstComputeMatch(Term_p matcher, Term_p to_match, Subst_p subst)
       }
       else
       {
-         if(matcher->f_code != to_match->f_code)
-         {
+		 // For skolem analogies, use this instead of comparing f_codes.   
+         //if(matcher->f_code != to_match->f_code)
+		 esk = sig && SigQueryFuncProp(sig, matcher->f_code, FPIsSkolem) 
+				   && SigQueryFuncProp(sig, to_match->f_code, FPIsSkolem);
+		 if((esk && (matcher->arity != to_match->arity)) || 
+			           (!esk && (matcher->f_code != to_match->f_code)))
+		 {
             res = false;
             break;
          }
@@ -188,6 +197,13 @@ bool SubstComputeMatch(Term_p matcher, Term_p to_match, Subst_p subst)
    }
    return res;
 }
+
+// Wrapper to not redefine many function calls unrelated to watchlist.
+// Perhaps better handled via macros?
+bool SubstComputeMatch(Term_p matcher, Term_p to_match, Subst_p subst) {
+	return SubstComputeMatchWL(matcher, to_match, subst, NULL);
+}
+
 
 
 /*-----------------------------------------------------------------------
