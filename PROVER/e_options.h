@@ -288,8 +288,8 @@ OptCell opts[] =
    {OPT_RECORD_PROOF_VECTOR,
 	'\0', "record-proof-vector",
     NoArg, NULL,
-    "Record proof-state vector from watchlists for each given clause."
-	"Use with --watchlist-dir. No watchlist strategies are needed."
+    "Record proof-state vector from watchlists for each given clause. "
+	"Use with --watchlist-dir. No watchlist strategies are needed. "
     "Will be printed with training examples (if the option is set)."},	
 
    {OPT_PCL_COMPRESSED,
