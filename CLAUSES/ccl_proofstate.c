@@ -30,6 +30,8 @@
 /*---------------------------------------------------------------------*/
 
 char* UseInlinedWatchList = WATCHLIST_INLINE_STRING;
+bool WLInheritRelevance = false;
+double decay_factor = 0.1;
 
 /*---------------------------------------------------------------------*/
 /*                      Forward Declarations                           */
@@ -116,9 +118,97 @@ static void clause_set_pick_training_examples(ClauseSet_p set,
    }
 }
 
+static void watchlist_load_file(ProofState_p state,
+                                char* watchlist_filename,
+                                ClauseSet_p watchlist,
+                                IOFormat parse_format)
+{
+   Scanner_p in;
+   in = CreateScanner(StreamTypeFile, watchlist_filename, true, NULL);
+   ScannerSetFormat(in, parse_format);
+   ClauseSetParseList(in, watchlist, state->terms);
+   CheckInpTok(in, NoToken);
+   DestroyScanner(in);
+}
 
+/*-----------------------------------------------------------------------
+//
+// Function: ProofStateLoadWatchlistDir()
+//
+//   Load the watchlists from watchlist directory.
+//
+// Global Variables: -
+//
+// Side Effects    : IO, memory ops, extends state->watchlist.
+//
+/----------------------------------------------------------------------*/
 
+static void watchlist_load_dir(ProofState_p state,
+                               char* watchlist_dir,
+                               IOFormat parse_format)
+{
+   DIR *dp;
+   struct dirent *ep;
+   ClauseSet_p tmpset;
+   DStr_p filename;
+   Clause_p handle;
+   IntOrP val1, val2;
+   long proof_no = 0;
 
+   if (!watchlist_dir)
+   {
+      return;
+   }
+
+   dp = opendir(watchlist_dir);
+   if (!dp)
+   {  
+      Error("Can't access watchlist dir '%s'", OTHER_ERROR, watchlist_dir);
+      return;
+   }
+
+   while ((ep = readdir(dp)) != NULL)
+   {
+      if (ep->d_type == DT_DIR)
+      {
+         continue;
+      }
+
+      filename = DStrAlloc();
+      DStrAppendStr(filename, watchlist_dir);
+      DStrAppendChar(filename, '/');
+      DStrAppendStr(filename, ep->d_name);
+
+      tmpset = ClauseSetAlloc();
+      watchlist_load_file(state, DStrView(filename), tmpset, parse_format);
+      proof_no++;
+
+      // set origin proof number
+      for(handle = tmpset->anchor->succ; 
+          handle != tmpset->anchor; 
+          handle = handle->succ)
+      {
+         handle->watch_proof = proof_no;
+      }
+
+      // initialize watchlist proof progress
+      val1.i_val = 0; // 0 matched so far ...
+      val2.i_val = tmpset->members; // ... out of "val2" total
+      NumTreeStore(&state->watch_progress, proof_no, val1, val2);
+      
+      if (OutputLevel >= 1)
+      {
+         fprintf(GlobalOut, "#   watchlist %4ld: %8ld clauses from '%s'\n", 
+            proof_no, tmpset->members, DStrView(filename));
+      }
+
+      ClauseSetInsertSet(state->watchlist, tmpset);
+      ClauseSetFree(tmpset);
+      DStrFree(filename);
+   }
+
+   closedir(dp);
+}
 
 /*---------------------------------------------------------------------*/
 /*                         Exported Functions                          */
@@ -247,11 +337,13 @@ ProofState_p ProofStateAlloc(FunctionProperties free_symb_prop)
 //
 /----------------------------------------------------------------------*/
 
-PStack_p ProofStateLoadWatchlist(ProofState_p state,
-                                 char* watchlist_filename,
-                                 char* watchlist_dirname,
-                                 IOFormat parse_format)
+void ProofStateLoadWatchlist(ProofState_p state,
+                             char* watchlist_filename,
+                             char* watchlist_dirname,
+                             IOFormat parse_format)
 {
+   assert(state->watchlist);
+
    if (watchlist_filename && watchlist_dirname)
    {
       Error("Options --watchlist and --watchlist-dir can not be used together.",
@@ -260,46 +352,27 @@ PStack_p ProofStateLoadWatchlist(ProofState_p state,
 
    if (watchlist_dirname)
    {
-      return ProofStateLoadWatchlistDir(state, watchlist_dirname, parse_format);
+      if (OutputLevel >= 1)
+      {
+         fprintf(GlobalOut, "# Loading directory watchlist from '%s'\n", 
+            watchlist_dirname);
+      }
+      watchlist_load_dir(state, watchlist_dirname, parse_format);
    }
-
-   // handles both cases: watchlist_filename and !watchlist_filename
-   ProofStateLoadWatchlistFile(state, watchlist_filename, parse_format);
-   return NULL;
-}
-
-void ProofStateLoadWatchlistFile(ProofState_p state,
-                                 char* watchlist_filename,
-                                 IOFormat parse_format)
-{
-   Scanner_p in;
-
-   assert(state->watchlist);
-
-   if(watchlist_filename)
+   else if (watchlist_filename)
    {
       if (OutputLevel >= 1)
       {
          fprintf(GlobalOut, "# Loading file watchlist from '%s'\n", 
             watchlist_filename);
       }
-
-      if(watchlist_filename!=UseInlinedWatchList)
+      if (watchlist_filename != UseInlinedWatchList) 
       {
-         in = CreateScanner(StreamTypeFile, watchlist_filename, true, NULL);
-         ScannerSetFormat(in, parse_format);
-         ClauseSetParseList(in, state->watchlist,
-                            state->terms);
-         CheckInpTok(in, NoToken);
-         DestroyScanner(in);
+         watchlist_load_file(state, watchlist_filename, state->watchlist, 
+                             parse_format);
       }
-      ClauseSetSetTPTPType(state->watchlist, CPTypeWatchClause);
-      ClauseSetSetProp(state->watchlist, CPWatchOnly);
-      ClauseSetDefaultWeighClauses(state->watchlist);
-      ClauseSetSortLiterals(state->watchlist, EqnSubsumeInverseCompareRef);
-      ClauseSetDocInital(GlobalOut, OutputLevel, state->watchlist);
    }
-   else if(!watchlist_filename)
+   else
    {
       GCDeregisterClauseSet(state->gc_terms, state->watchlist);
       ClauseSetFree(state->watchlist);
@@ -308,113 +381,20 @@ void ProofStateLoadWatchlistFile(ProofState_p state,
       {
          fprintf(GlobalOut, "# Watchlist not in use\n");
       }
+      return;
    }
-}
-
-/*-----------------------------------------------------------------------
-//
-// Function: ProofStateLoadWatchlistDir()
-//
-//   Load the watchlists from watchlist directory.
-//
-// Global Variables: -
-//
-// Side Effects    : IO, memory ops, allocates watchlists stack.
-//
-/----------------------------------------------------------------------*/
-
-PStack_p ProofStateLoadWatchlistDir(ProofState_p state,
-                                    char* watchlist_dir,
-                                    IOFormat parse_format)
-{
-   Scanner_p in;
-   DIR *dp;
-   struct dirent *ep;
-   PStack_p watchlists;
-   ClauseSet_p watchlist;
-   FormulaSet_p fset;
-   DStr_p filename;
-   Clause_p handle;
-   long proof_no = 0;
-
-   watchlists = PStackAlloc();
-   if (!watchlist_dir)
-   {
-      return watchlists;
-   }
-
-   if (OutputLevel >= 1)
-   {
-      fprintf(GlobalOut, "# Loading directory watchlist from '%s'\n", 
-         watchlist_dir);
-   }
-
-   dp = opendir(watchlist_dir);
-   if (!dp)
-   {
-      return watchlists;
-   }
-
-   while ((ep = readdir(dp)) != NULL)
-   {
-      if (ep->d_type == DT_DIR)
-      {
-         continue;
-      }
-
-      filename = DStrAlloc();
-      DStrAppendStr(filename, watchlist_dir);
-      DStrAppendChar(filename, '/');
-      DStrAppendStr(filename, ep->d_name);
-      in = CreateScanner(StreamTypeFile, DStrView(filename), true, NULL);
-      ScannerSetFormat(in, parse_format);
-
-      watchlist = ClauseSetAlloc();
-      fset = FormulaSetAlloc();
-      FormulaAndClauseSetParse(in, fset, watchlist, state->terms, NULL, NULL);
-      CheckInpTok(in, NoToken);
-      DestroyScanner(in);
-
-      // move clauses from formulas to watchlist
-      while (!FormulaSetEmpty(fset))
-      {
-         WFormula_p fml = FormulaSetExtractFirst(fset);
-         if (fml->is_clause) 
-         {
-            ClauseSetInsert(watchlist, WFormClauseToClause(fml));
-         }
-         WFormulaFree(fml);
-      }
-      FormulaSetFree(fset);
-
-      // stuff taken from ProofStateLoadWatchlist (needed ???)
-      ClauseSetSetTPTPType(watchlist, CPTypeWatchClause);
-      ClauseSetSetProp(watchlist, CPWatchOnly);
-      ClauseSetDefaultWeighClauses(watchlist);
-      ClauseSetSortLiterals(watchlist, EqnSubsumeInverseCompareRef);
-      ClauseSetDocInital(GlobalOut, OutputLevel, watchlist);
-
-      // set the origin proof number
-      for(handle = watchlist->anchor->succ; 
-          handle != watchlist->anchor; 
-          handle = handle->succ)
-      {
-         handle->watch_proof = proof_no;
-      }
       
-      if (OutputLevel >= 1)
-      {
-         fprintf(GlobalOut, "#   watchlist %4ld: %8ld clauses from '%s'\n", 
-            proof_no, watchlist->members, DStrView(filename));
-      }
-
-      DStrFree(filename);
-      PStackPushP(watchlists, watchlist);
-      proof_no++;
+   ClauseSetSetTPTPType(state->watchlist, CPTypeWatchClause);
+   ClauseSetSetProp(state->watchlist, CPWatchOnly);
+   ClauseSetDefaultWeighClauses(state->watchlist);
+   if(WLNormalizeSkolemSymbols)
+   {
+	ClauseSetSortLiterals(state->watchlist, EqnSubsumeInverseCompareRefWL);
    }
-
-   closedir(dp);
-   return watchlists;
+   {
+	ClauseSetSortLiterals(state->watchlist, EqnSubsumeInverseCompareRef);
+   }
+   ClauseSetDocInital(GlobalOut, OutputLevel, state->watchlist);
 }
 
 
@@ -430,21 +410,7 @@ PStack_p ProofStateLoadWatchlistDir(ProofState_p state,
 //
 /----------------------------------------------------------------------*/
 
-void ProofStateInitWatchlist(ProofState_p state, 
-                             OCB_p ocb, 
-                             PStack_p watchlists)
-{
-   if (!watchlists) 
-   {
-      ProofStateInitWatchlistFile(state, ocb);
-   }
-   else
-   {
-      ProofStateInitWatchlistDir(state, ocb, watchlists);
-   }
-}
-
-void ProofStateInitWatchlistFile(ProofState_p state, OCB_p ocb)
+void ProofStateInitWatchlist(ProofState_p state, OCB_p ocb)
 {
    ClauseSet_p tmpset;
    Clause_p handle;
@@ -465,79 +431,12 @@ void ProofStateInitWatchlistFile(ProofState_p state, OCB_p ocb)
 
       if (OutputLevel >= 1)
       {
-         fprintf(GlobalOut, "# Total file watchlist clauses: %ld\n", 
+         fprintf(GlobalOut, "# Total watchlist clauses: %ld\n", 
             state->watchlist->members);
       }
       // ClauseSetPrint(stdout, state->watchlist, true);
    }
 }
-
-/*-----------------------------------------------------------------------
-//
-// Function: ProofStateInitWatchlistDir()
-//
-//   Initialize (preloaded) watchlists and watchlists progress.
-//
-// Global Variables: -
-//
-// Side Effects    : Changes state->watchlist, IO, memory ops,
-//                   frees watchlist.
-//
-/----------------------------------------------------------------------*/
-
-void ProofStateInitWatchlistDir(ProofState_p state, 
-                                OCB_p ocb, 
-                                PStack_p watchlists)
-{
-   ClauseSet_p tmpwatch;
-   IntOrP val1, val2;
-   long proof_no;
-
-   if (!watchlists || PStackEmpty(watchlists))
-   {
-      if (OutputLevel >= 1)
-      {
-         fprintf(GlobalOut, "# Watchlist not in use\n");
-      }
-      GCDeregisterClauseSet(state->gc_terms, state->watchlist);
-      ClauseSetFree(state->watchlist);
-      state->watchlist = NULL;
-      PStackFree(watchlists);
-      return;
-   }
-      
-   // go through all the input watchlists (backwards)
-   proof_no = watchlists->current;
-   while (!PStackEmpty(watchlists))
-   {
-      proof_no--;
-      // take an input watchlist
-      tmpwatch = PStackPopP(watchlists);
-      ClauseSetMarkMaximalTerms(ocb, tmpwatch);
-
-      // init proof progress status
-      assert(tmpwatch->members > 0);
-      val1.i_val = 0; // 0 matched so far ...
-      val2.i_val = tmpwatch->members; // ... out of "val2" total
-      NumTreeStore(&state->watch_progress, proof_no, val1, val2);
-
-      // insert clauses into a global watchlist
-      ClauseSetIndexedInsertClauseSet(state->watchlist, tmpwatch);
-      ClauseSetFree(tmpwatch);
-   }
-  
-   if (OutputLevel >= 1)
-   {
-      fprintf(GlobalOut, "# Total directory watchlist clauses: %ld\n", 
-         state->watchlist->members);
-   }
-
-   GlobalIndicesInsertClauseSet(&(state->wlindices),state->watchlist);
-   PStackFree(watchlists);
-      
-   //ClauseSetPrint(stdout, state->watchlist, true);
-}
-
 
 /*-----------------------------------------------------------------------
 //
@@ -757,13 +656,19 @@ void ProofStateTrain(ProofState_p state, bool print_pos, bool print_neg)
    if(print_pos)
    {
       fprintf(GlobalOut, "# Training: Positive examples begin\n");
-      PStackClausePrint(GlobalOut, pos_examples, "# trainpos");
+      if(ProofObjectRecordsProofVector && state->watchlist)
+		PStackClausePrintWithState(GlobalOut, pos_examples, "# trainpos #proofvector ");	  
+	  else
+		PStackClausePrint(GlobalOut, pos_examples, "# trainpos");
       fprintf(GlobalOut, "# Training: Positive examples end\n");
    }
    if(print_neg)
    {
       fprintf(GlobalOut, "# Training: Negative examples begin\n");
-      PStackClausePrint(GlobalOut, neg_examples, "#trainneg");
+      if(ProofObjectRecordsProofVector && state->watchlist)
+		PStackClausePrintWithState(GlobalOut, neg_examples, "#trainneg #proofvector ");	  
+	  else
+		PStackClausePrint(GlobalOut, neg_examples, "#trainneg");
       fprintf(GlobalOut, "# Training: Negative examples end\n");
    }
 

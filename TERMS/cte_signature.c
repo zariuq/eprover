@@ -1239,6 +1239,7 @@ FunCode SigGetNewSkolemCode(Sig_p sig, int arity)
       sprintf(new_symbol,"esk%ld_%d",sig->skolem_count,arity);
    }
    res = SigInsertId(sig, new_symbol, arity, false);
+   SigSetFuncProp(sig, res, FPIsSkolem);
    return res;
 }
 

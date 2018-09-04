@@ -54,7 +54,8 @@ Clause_p ClauseArchive(ClauseSet_p archive, Clause_p clause);
 void     ClauseSetArchive(ClauseSet_p archive, ClauseSet_p set);
 
 void PStackClausePrint(FILE* out, PStack_p stack, char* extra);
-
+void PStackClausePrintWithState(FILE* out, PStack_p stack, char* extra);
+void watch_progress_print_single_line(FILE* out, NumTree_p watch_proof_state);
 
 #endif
 

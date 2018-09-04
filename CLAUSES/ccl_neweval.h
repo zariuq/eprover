@@ -44,8 +44,7 @@ typedef long EvalPriority;
 #define PrioPrefer  30
 #define PrioNormal  40
 #define PrioDefer   50
-#define PrioWatchlistPrefer   1030
-#define PrioWatchlistDefer    2030
+#define PrioWatchlistBase     3000
 #define PrioLargestReasonable MEGA
 
 

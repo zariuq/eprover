@@ -1417,6 +1417,39 @@ int EqnSubsumeQOrderCompare(const void* lit1, const void* lit2)
    return res;
 }
 
+// Version to compare skolem symbols by arity alone
+int EqnSubsumeQOrderCompareWL(const void* lit1, const void* lit2)
+{
+   int res;
+   const Eqn_p l1 = (const Eqn_p) lit1;
+   const Eqn_p l2 = (const Eqn_p) lit2;
+
+   res = EqnIsPositive(l1) - EqnIsPositive(l2);
+   if(res)
+   {
+      return res;
+   }
+   res = EqnIsEquLit(l1) - EqnIsEquLit(l2);
+   if(res)
+   {
+      return res;
+   }
+   if(!EqnIsEquLit(l1))
+   {
+	  if(SigQueryFuncProp(l1->bank->sig, l1->lterm->f_code, FPIsSkolem) 
+			  && SigQueryFuncProp(l2->bank->sig, l2->lterm->f_code, FPIsSkolem))
+	  {
+	  	CMP(l1->lterm->arity, l2->lterm->arity);
+	  }
+	  else
+	  {
+		res = CMP(l1->lterm->f_code, l2->lterm->f_code);
+	  }	
+   }
+   return res;
+}
+
+
 
 /*-----------------------------------------------------------------------
 //
@@ -1437,6 +1470,20 @@ int EqnSubsumeInverseCompareRef(const void* lit1ref, const void* lit2ref)
    const Eqn_p *l2 = lit2ref;
 
    int res = EqnSubsumeQOrderCompare(*l2, *l1);
+
+   if(!res)
+   {
+      res = CMP(EqnStandardWeight(*l2), EqnStandardWeight(*l1));
+   }
+   return res;
+}
+
+int EqnSubsumeInverseCompareRefWL(const void* lit1ref, const void* lit2ref)
+{
+   const Eqn_p *l1 = lit1ref;
+   const Eqn_p *l2 = lit2ref;
+
+   int res = EqnSubsumeQOrderCompareWL(*l2, *l1);
 
    if(!res)
    {
@@ -1487,8 +1534,19 @@ int EqnSubsumeInverseRefinedCompareRef(const void* lit1ref, const void* lit2ref)
    return res;
 }
 
+int EqnSubsumeInverseRefinedCompareRefWL(const void* lit1ref, const void* lit2ref)
+{
+   const Eqn_p *l1 = lit1ref;
+   const Eqn_p *l2 = lit2ref;
+   int res = EqnSubsumeInverseCompareRefWL(lit1ref, lit2ref);
 
-
+  /* This hack makes the ordering stable */
+   if(!res)
+   {
+      res = (*l1)->pos - (*l2)->pos;
+   }
+   return res;
+}
 
 /*-----------------------------------------------------------------------
 //
@@ -2711,6 +2769,15 @@ void EqnAddSymbolFeatures(Eqn_p eq, PStack_p mod_stack, long *feature_array)
    TermAddSymbolFeatures(eq->lterm, mod_stack, 0, feature_array, offset);
    TermAddSymbolFeatures(eq->rterm, mod_stack, 0, feature_array, offset);
 }
+
+void EqnAddSymbolFeaturesWL(Eqn_p eq, PStack_p mod_stack, long *feature_array, long skind)
+{ //long *skolem_array, PStack_p skolem_stack)
+   long offset = EqnIsNegative(eq)?2:0;
+
+   TermAddSymbolFeaturesWL(eq->lterm, mod_stack, 0, feature_array, skind, offset, eq->bank->sig);
+   TermAddSymbolFeaturesWL(eq->rterm, mod_stack, 0, feature_array, skind, offset, eq->bank->sig);
+}
+
 
 
 /*-----------------------------------------------------------------------
