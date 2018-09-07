@@ -181,7 +181,7 @@ Clause_p clause_copy_meta(Clause_p clause)
    handle->succ        = NULL;
    handle->watch_proof = clause->watch_proof;
    handle->watch_relevance = clause->watch_relevance;
-   handle->watch_proof_state = clause->watch_proof_state;
+   handle->watch_proof_state = NumTreeCopy(clause->watch_proof_state);
 
    return handle;
 }
@@ -689,10 +689,10 @@ void ClauseFree(Clause_p junk)
    {
       PStackFree(junk->derivation);
    }
-   //if(junk->watch_proof_state)
-   //{
-   //   NumTreeFree(junk->watch_proof_state);
-   //}
+   if(junk->watch_proof_state)
+   {
+      NumTreeFree(junk->watch_proof_state);
+   }
    ClauseCellFree(junk);
 }
 

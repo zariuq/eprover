@@ -300,6 +300,24 @@ NumTree_p NumTreeInsert(NumTree_p *root, NumTree_p newnode)
    return *root;
 }
 
+NumTree_p NumTreeCopy(NumTree_p origin)
+{
+   if (!origin)
+   {
+      return NULL;
+   }
+
+   NumTree_p copy = NumTreeCellAlloc();   
+
+   copy->key = origin->key;
+   copy->val1 = origin->val1;
+   copy->val2 = origin->val2;
+   copy->lson = NumTreeCopy(origin->lson);
+   copy->rson = NumTreeCopy(origin->rson);
+
+   return copy;
+}
+
 
 /*-----------------------------------------------------------------------
 //
