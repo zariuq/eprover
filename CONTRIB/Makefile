@@ -44,6 +44,7 @@ liblinear: liblinear/liblinear.a
 
 liblinear/liblinear.a:
 	make -C liblinear lib
+	make -C liblinear all
 
 libsvd: svdlibc/libsdv.a
 
