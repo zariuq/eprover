@@ -917,15 +917,34 @@ EvalPriority PrioFunPreferWatchlist(Clause_p clause)
    return PrioNormal;
 }
 
+// Calculate watchlist priorities based on relevance of given clause to a watchlist
 EvalPriority PrioFunPreferWatchlistRelevant(Clause_p clause)
 {
    assert(clause);
 
+   double wl = clause->watch_relevance;
+
+   // informal grid search to determine when relevance is "too low to matter"
+   /*   if (wl<0.002) { wl = 0; }; */
+   /*   if ((wl< 0.05) && ((wl/clause->weight) < 0.003))  { wl = 0; }; */
+   if ((wl< 0.03) && ((wl/clause->weight) < 0.009))  { wl = 0; };
+   /*   if ((wl<0.01) && (clause->weight > 10 )) { wl = 0; }; */
+   EvalPriority prio = (PrioWatchlistBase-(long)(1000*wl)); /* +(10*clause->weight); */
+   if (OutputLevel >= 2)
+   {
+      fprintf(GlobalOut, "# WATCHLIST PRIO: prio=%ld; weight=%ld; clause=", prio, clause->weight);
+      ClausePrint(GlobalOut, clause, true);
+      fprintf(GlobalOut, "\n");
+   }
+   return prio;
+
+   /*
    if(ClauseQueryProp(clause, CPSubsumesWatch))
    {
       return PrioWatchlistPrefer-(long)(1000*clause->watch_relevance);
    }
    return PrioWatchlistDefer;
+   */
 }
 
 /*-----------------------------------------------------------------------
@@ -956,11 +975,7 @@ EvalPriority PrioFunDeferWatchlistRelevant(Clause_p clause)
 {
    assert(clause);
 
-   if(ClauseQueryProp(clause, CPSubsumesWatch))
-   {
-      return PrioWatchlistDefer+(long)(1000*clause->watch_relevance);
-   }
-   return PrioWatchlistPrefer;
+   return PrioWatchlistBase+(long)(1000*clause->watch_relevance);
 }
 
 

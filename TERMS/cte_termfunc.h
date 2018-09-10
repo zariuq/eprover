@@ -132,6 +132,9 @@ void    TermAddSymbolFeaturesLimited(Term_p term, long depth,
 void    TermAddSymbolFeatures(Term_p term, PStack_p mod_stack,
                               long depth, long *feature_array, long offset);
 
+void	TermAddSymbolFeaturesWL(Term_p term, PStack_p mod_stack, long depth,
+                                long *feature_array, long skind, long offset, Sig_p sig);
+
 void    TermComputeFunctionRanks(Term_p term, long *rank_array, long *count);
 long    TermCollectPropVariables(Term_p term, PTree_p *tree,
                                  TermProperties prop);

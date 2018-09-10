@@ -70,6 +70,7 @@ typedef struct numtreecell
 
 NumTree_p NumTreeCellAllocEmpty(void);
 void      NumTreeFree(NumTree_p junk);
+NumTree_p NumTreeCopy(NumTree_p origin);
 NumTree_p NumTreeInsert(NumTree_p *root, NumTree_p newnode);
 bool      NumTreeStore(NumTree_p *root, long key, IntOrP val1, IntOrP val2);
 long      NumTreeDebugPrint(FILE* out, NumTree_p tree,
@@ -80,7 +81,9 @@ NumTree_p NumTreeExtractRoot(NumTree_p *root);
 bool      NumTreeDeleteEntry(NumTree_p *root, long key);
 long      NumTreeNodes(NumTree_p root);
 NumTree_p NumTreeMaxNode(NumTree_p root);
+NumTree_p NumTreeMinNode(NumTree_p root);
 #define   NumTreeMaxKey(tree) (NumTreeMaxNode(tree)->key)
+#define   NumTreeMinKey(tree) (NumTreeMinNode(tree)->key)
 
 PStack_p NumTreeLimitedTraverseInit(NumTree_p root, long limit);
 

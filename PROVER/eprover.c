@@ -360,7 +360,6 @@ int main(int argc, char* argv[])
    int              retval = NO_ERROR;
    CLState_p        state;
    ProofState_p     proofstate;
-   PStack_p watchlists;
    ProofControl_p   proofcontrol;
    Clause_p         success = NULL,
       filter_success;
@@ -471,10 +470,10 @@ int main(int argc, char* argv[])
    }
 
    raw_clause_no = proofstate->axioms->members;
-   watchlists = ProofStateLoadWatchlist(proofstate, 
-                                        watchlist_filename, 
-                                        watchlist_dirname,
-                                        parse_format);
+   ProofStateLoadWatchlist(proofstate, 
+                           watchlist_filename, 
+                           watchlist_dirname,
+                           parse_format);
 
    if(!no_preproc)
    {
@@ -507,10 +506,10 @@ int main(int argc, char* argv[])
                      "NoIndex");
    //printf("Alive (1)!\n");
 
-
    ProofStateInit(proofstate, proofcontrol);
    //printf("Alive (2)!\n");
-   ProofStateInitWatchlist(proofstate, proofcontrol->ocb, watchlists);
+
+   //ProofStateInitWatchlist(proofstate, proofcontrol->ocb);
 
    VERBOUT2("Prover state initialized\n");
    preproc_time = GetTotalCPUTime();
@@ -894,6 +893,10 @@ CLState_p process_options(int argc, char* argv[])
             ProofObjectRecordsGCSelection = true;
             proc_training_data = CLStateGetIntArg(handle, arg);
             break;
+	  case OPT_RECORD_PROOF_VECTOR:
+            BuildProofObject = MAX(1, BuildProofObject);
+            ProofObjectRecordsGCSelection = true;
+			ProofObjectRecordsProofVector = true;
       case OPT_PCL_COMPRESSED:
             pcl_full_terms = false;
             break;
@@ -1467,6 +1470,13 @@ CLState_p process_options(int argc, char* argv[])
       case OPT_WATCHLIST_NO_SIMPLIFY:
             h_parms->watchlist_simplify = false;
             break;
+	  case OPT_WATCHLIST_NORMALIZE_SKOLEM_SYMOBLS:
+			WLNormalizeSkolemSymbols = true;
+			break;
+	  case OPT_WATCHLIST_INHERIT_RELEVANCE:
+			WLInheritRelevance = true;
+			decay_factor = CLStateGetFloatArg(handle, arg);
+			break;
       case OPT_NO_INDEXED_SUBSUMPTION:
             fvi_parms->cspec.features = FVINoFeatures;
             break;

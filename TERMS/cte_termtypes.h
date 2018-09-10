@@ -82,7 +82,7 @@ typedef enum
                                    paramodulation */
    TPPosPolarity      = 1<<18,  /* In the term encoding of a formula,
                                    this occurs with positive polarity. */
-   TPNegPolarity      = 1<<19,  /* In the term encoding of a formula,
+   TPNegPolarity      = 1<<19  /* In the term encoding of a formula,
                                    this occurs with negative polarity. */
 }TermProperties;
 

@@ -111,6 +111,7 @@ typedef struct fv_collect_cell
 
 PERF_CTR_DECL(FreqVecTimer);
 
+
 #define PermVectorAlloc(size) FixedDArrayAlloc(size)
 #define PermVectorFree(junk)  FixedDArrayFree(junk)
 #define PermVectorCopy(vec)   FixedDArrayCopy(vec)
@@ -223,6 +224,7 @@ void FreqVectorMax(FreqVector_p dest, FreqVector_p s1, FreqVector_p s2);
 void FreqVectorMin(FreqVector_p dest, FreqVector_p s1, FreqVector_p s2);
 
 
+extern bool WLNormalizeSkolemSymbols;
 
 
 #ifdef NEVER_DEFINED

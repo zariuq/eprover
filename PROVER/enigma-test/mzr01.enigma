@@ -1,0 +1,1 @@
+--definitional-cnf=24  --split-clauses=4  --simul-paramod --forward-context-sr --destructive-er-aggressive --destructive-er -tKBO -Ginvfreqconstmin -F1 --delete-bad-limit=150000000 -WSelectComplexG  -H(1*Enigma(ConstPrio,test,0.2))

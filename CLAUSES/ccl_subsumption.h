@@ -49,8 +49,8 @@ extern long ClauseClauseSubsumptionSuccesses;
 extern long UnitClauseClauseSubsumptionCalls;
 
 
-bool     LiteralSubsumesClause(Eqn_p literal, Clause_p clause);
-bool     UnitClauseSubsumesClause(Clause_p unit, Clause_p clause);
+bool     LiteralSubsumesClause(Eqn_p literal, Clause_p clause, Sig_p sig);
+bool     UnitClauseSubsumesClause(Clause_p unit, Clause_p clause, Sig_p sig);
 Clause_p UnitClauseSetSubsumesClause(ClauseSet_p set, Clause_p
                                      clause);
 bool     ClausePositiveSimplifyReflect(ClauseSet_p set, Clause_p clause);
@@ -71,17 +71,20 @@ Clause_p ClauseSetFindSubsumedClause(ClauseSet_p set, Clause_p
 
 long     ClauseSetFindFVSubsumedClauses(ClauseSet_p set,
                                         FVPackedClause_p subsumer,
-                                        PStack_p res);
+                                        PStack_p res,
+										Sig_p sig);
 
 Clause_p ClauseSetFindFirstFVSubsumedClause(ClauseSet_p set,
-                                            FVPackedClause_p subsumer);
+                                            FVPackedClause_p subsumer,
+											Sig_p sig);
 
 long     ClauseSetFindSubsumedClauses(ClauseSet_p set,
                                       Clause_p subsumer,
                                       PStack_p res);
 
 Clause_p ClauseSetFindFirstSubsumedClause(ClauseSet_p set,
-                                          Clause_p subsumer);
+                                          Clause_p subsumer,
+										  Sig_p sig);
 
 Clause_p ClauseSetFindFVVariantClause(ClauseSet_p set,
                                       FVPackedClause_p clause);
