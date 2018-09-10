@@ -29,6 +29,8 @@
 /*---------------------------------------------------------------------*/
 
 PERF_CTR_DEFINE(FreqVecTimer);
+bool WLNormalizeSkolemSymbols = false;
+
 
 /*---------------------------------------------------------------------*/
 /*                      Forward Declarations                           */
@@ -685,10 +687,18 @@ FreqVector_p FVCollectFreqVectorCompute(Clause_p clause, FVCollect_p cspec)
          vec->array[0] = clause->pos_lit_no;
          vec->array[1] = clause->neg_lit_no;
       }
-      full_vec = RegMemProvide(full_vec, &full_vec_len, sizeof(long)*(max_fun+1)*4);
+	  // + 10 for Skolems
 
-      ClauseAddSymbolFeatures(clause, mod_stack, full_vec);
-
+	  if(WLNormalizeSkolemSymbols)
+	  { // Increase full_vec size to accommodate skolem indices 
+		full_vec = RegMemProvide(full_vec, &full_vec_len, sizeof(long)*(max_fun+11+1)*4);
+		ClauseAddSymbolFeaturesWL(clause, mod_stack, full_vec, (max_fun+1)*4);//skolem_vec, skolem_stack);
+	  }
+	  else
+	  {
+		full_vec = RegMemProvide(full_vec, &full_vec_len, sizeof(long)*(max_fun+1)*4);
+		ClauseAddSymbolFeatures(clause, mod_stack, full_vec);
+	  }
       while(!PStackEmpty(mod_stack))
       {
          findex = PStackPopInt(mod_stack);

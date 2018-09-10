@@ -237,8 +237,11 @@ bool    EqnHasUnboundVars(Eqn_p eq, EqnSide dom_side);
 EqnSide EqnIsDefinition(Eqn_p eq, int min_arity);
 
 int     EqnSubsumeQOrderCompare(const void* lit1, const void* lit2);
+int     EqnSubsumeQOrderCompareWL(const void* lit1, const void* lit2);
 int     EqnSubsumeInverseCompareRef(const void* lit1ref, const void* lit2ref);
+int     EqnSubsumeInverseCompareRefWL(const void* lit1ref, const void* lit2ref);
 int     EqnSubsumeInverseRefinedCompareRef(const void* lit1ref, const void* lit2ref);
+int     EqnSubsumeInverseRefinedCompareRefWL(const void* lit1ref, const void* lit2ref);
 int     EqnSubsumeCompare(Eqn_p l1, Eqn_p l2);
 
 Eqn_p   EqnCanonize(Eqn_p eq);
@@ -358,6 +361,8 @@ int     LiteralCompareFun(Eqn_p lit1, Eqn_p lit2);
                                 (depth_array), (limit))
 
 void    EqnAddSymbolFeatures(Eqn_p eq, PStack_p mod_stack, long *feature_array);
+void	EqnAddSymbolFeaturesWL(Eqn_p eq, PStack_p mod_stack, long *feature_array, long skind);
+//long *skolem_array, PStack_p skolem_stack);
 
 
 #define EqnComputeFunctionRanks(eqn, rank_array, count)                 \

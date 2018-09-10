@@ -56,6 +56,7 @@ typedef enum
    OPT_FORCE_DERIV,
    OPT_RECORD_GIVEN_CLAUSES,
    OPT_TRAINING,
+   OPT_RECORD_PROOF_VECTOR,
    OPT_PCL_COMPRESSED,
    OPT_PCL_COMPACT,
    OPT_PCL_SHELL_LEVEL,
@@ -154,7 +155,9 @@ typedef enum
    OPT_WATCHLIST,
    OPT_WATCHLIST_DIR,
    OPT_STATIC_WATCHLIST,
+   OPT_WATCHLIST_INHERIT_RELEVANCE,
    OPT_WATCHLIST_NO_SIMPLIFY,
+   OPT_WATCHLIST_NORMALIZE_SKOLEM_SYMOBLS,
    OPT_NO_INDEXED_SUBSUMPTION,
    OPT_FVINDEX_STYLE,
    OPT_FVINDEX_FEATURETYPES,
@@ -281,6 +284,13 @@ OptCell opts[] =
     " Implies --record-gcs. The argument is a binary or of the desired "
     "processig. Bit zero prints positive exampels. Bit 1 prints negative "
     "examples. Additional selectors will be added later."},
+
+   {OPT_RECORD_PROOF_VECTOR,
+	'\0', "record-proof-vector",
+    NoArg, NULL,
+    "Record proof-state vector from watchlists for each given clause. "
+	"Use with --watchlist-dir. No watchlist strategies are needed. "
+    "Will be printed with training examples (if the option is set)."},	
 
    {OPT_PCL_COMPRESSED,
     '\0', "pcl-terms-compressed",
@@ -1168,12 +1178,27 @@ OptCell opts[] =
     "terminate if all watchlist clauses have been subsumed. This may be "
     "more useful for heuristic guidance."},
 
+   {OPT_WATCHLIST_INHERIT_RELEVANCE,
+    '\0', "watchlist-inherit-relevance",
+    OptArg, "0.1",
+    "By default clauses matching a watchlist do not inherit relevance " 
+	"from their parents. This option sets clause relevance to "
+	"\"relevance + decday_factor * parents_relevance\" when using "
+	"PreferWatchlistRelevant. This option is set with "
+	"--watchlist-inherit-relevance=decay_factor, "
+	"and the default value of decay_factor is 0.1. "},
+
    {OPT_WATCHLIST_NO_SIMPLIFY,
     '\0', "no-watchlist-simplification",
     NoArg, NULL,
     "By default, the watchlist is brought into normal form with respect "
     "to the current processed clause set and certain simplifications. "
     "This option disables simplification for the watchlist."},
+
+   {OPT_WATCHLIST_NORMALIZE_SKOLEM_SYMOBLS,
+	'\0', "wl-normalize-skolem",
+	NoArg, NULL,
+	"Treat skolem symbols of equal arity as the same in watchlist subsumption."},
 
    {OPT_NO_INDEXED_SUBSUMPTION,
     '\0', "conventional-subsumption",

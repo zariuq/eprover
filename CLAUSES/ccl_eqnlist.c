@@ -1461,6 +1461,16 @@ void EqnListAddSymbolFeatures(Eqn_p list, PStack_p mod_stack, long *feature_arra
    }
 }
 
+void EqnListAddSymbolFeaturesWL(Eqn_p list, PStack_p mod_stack, long *feature_array, long skind)
+{//long *skolem_array, PStack_p skolem_stack)
+   while(list)
+   {
+      EqnAddSymbolFeaturesWL(list, mod_stack, feature_array, skind);//skolem_array, skolem_stack);
+      list = list->next;
+   }
+}
+
+
 
 
 /*-----------------------------------------------------------------------

@@ -68,6 +68,9 @@ char* WeightFunParseFunNames[]=
    "ConjectureTreeDistanceWeight",
    "ConjectureTermPrefixWeight",
    "ConjectureStrucDistanceWeight",
+   "Enigma",
+   "EnigmaSvd",
+   "EnigmaMulti",
    NULL
 };
 
@@ -110,6 +113,9 @@ static WeightFunParseFun parse_fun_array[]=
    ConjectureTreeDistanceWeightParse,
    ConjectureTermPrefixWeightParse,
    ConjectureStrucDistanceWeightParse,
+   EnigmaWeightParse,
+   EnigmaWeightSvdParse,
+   EnigmaWeightMultiParse,
    (WeightFunParseFun)NULL
 };
 

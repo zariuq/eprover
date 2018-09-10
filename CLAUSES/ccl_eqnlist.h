@@ -109,6 +109,8 @@ long    EqnListDepth(Eqn_p list);
 void    EqnListAddSymbolDistribution(Eqn_p list, long *dist_array);
 void    EqnListAddSymbolDistExist(Eqn_p list, long *dist_array, PStack_p exist);
 void    EqnListAddSymbolFeatures(Eqn_p list, PStack_p mod_stack, long *feature_array);
+void	EqnListAddSymbolFeaturesWL(Eqn_p list, PStack_p mod_stack, long *feature_array, 
+			                       long skind);//long *skolem_array, PStack_p skolem_stack);
 void    EqnListComputeFunctionRanks(Eqn_p list, long *rank_array, long* count);
 long    EqnListCollectVariables(Eqn_p list, PTree_p *tree);
 long    EqnListAddFunOccs(Eqn_p list, PDArray_p f_occur, PStack_p res_stack);

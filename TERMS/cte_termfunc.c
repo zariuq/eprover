@@ -1566,6 +1566,46 @@ void TermAddSymbolFeatures(Term_p term, PStack_p mod_stack, long depth,
    }
 }
 
+void TermAddSymbolFeaturesWL(Term_p term, PStack_p mod_stack, long depth,
+                           long *feature_array, long skind, long offset, Sig_p sig)
+{
+   if(!TermIsVar(term))
+   {
+      int i;
+      long findex; 
+	  // Skolem findex
+	  if(SigQueryFuncProp(sig, term->f_code, FPIsSkolem))
+	  {
+		if(term->arity > 10) findex = skind+4*10+offset;
+		else findex = skind+4*term->arity+offset;
+
+		//skolem_array[skindex]++;
+		//skolem_array[skindex+1] = MAX(depth, skolem_array[skindex+1]);
+		//PStackPushInt(skolem_stack, term->f_code);
+	  }
+	  // Normal findex
+	  else
+	  {
+		  findex = 4*term->f_code+offset;
+	  }
+	  
+	  if(feature_array[findex] == 0)
+	  {
+		 PStackPushInt(mod_stack, findex);
+	  }
+
+	  feature_array[findex]++;
+	  feature_array[findex+1] = MAX(depth, feature_array[findex+1]);
+	  
+	    
+	  for(i=0; i<term->arity; i++)
+	  {
+		 TermAddSymbolFeaturesWL(term->args[i], mod_stack, depth+1,
+							   feature_array, skind, offset, sig);
+	  }
+   }
+}
+
 
 /*-----------------------------------------------------------------------
 //

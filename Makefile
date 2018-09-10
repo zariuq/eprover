@@ -28,12 +28,20 @@ PROJECT  = E
 
 LIBS     = BASICS INOUT TERMS ORDERINGS CLAUSES PROPOSITIONAL LEARN \
            PCL2 HEURISTICS CONTROL
-HEADERS  = $(LIBS) EXTERNAL PROVER
+HEADERS  = $(LIBS) EXTERNAL PROVER CONTRIB
 CODE     = $(LIBS) SIMPLE_APPS EXTERNAL CONTRIB PROVER
 PARTS    = $(CODE) DOC
 
 all: E
 
+deploy: SIMPLE_APPS PROVER
+	scp PROVER/eprover yan@grid01.ciirc.cvut.cz:~/atp/bin/eprover-current
+	scp SIMPLE_APPS/enigma-features yan@grid01.ciirc.cvut.cz:~/atp/bin/enigma-features-current
+	scp SIMPLE_APPS/enigma-pretrain.py yan@grid01.ciirc.cvut.cz:~/atp/bin/enigma-pretrain-current.py
+	scp SIMPLE_APPS/enigma-join.py yan@grid01.ciirc.cvut.cz:~/atp/bin/enigma-join.py
+	#scp SIMPLE_APPS/enigma-conj-transtrain.py yan@grid01.ciirc.cvut.cz:~/atp/bin/enigma-conj-transtrain-current.py
+	#scp SIMPLE_APPS/enigma-svd-traintrans yan@grid01.ciirc.cvut.cz:~/atp/bin/enigma-svd-traintrans-current
+	#scp SIMPLE_APPS/enigma-svd-makeinputs.py yan@grid01.ciirc.cvut.cz:~/atp/bin/enigma-svd-makeinputs-current.py
 
 # Generate dependencies
 
