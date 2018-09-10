@@ -88,8 +88,11 @@ static void extweight_init(EnigmaWeightParam_p data)
    data->conj_features = conj_nodes;
    data->conj_features_count = len;
 
-   fprintf(GlobalOut, "# ENIGMA: Model '%s' loaded (%ld features)\n", 
-      data->model_filename, data->enigmap->feature_count);
+   int n_f = data->enigmap->feature_count;
+   int n_v = data->linear_model->nr_feature;
+   fprintf(GlobalOut, "# ENIGMA: Model '%s' loaded (features: %ld; vector len: %d; version: %s)\n", 
+      data->model_filename, data->enigmap->feature_count, data->linear_model->nr_feature,
+      n_v <= n_f ? "Basic" : (n_v <= 2*n_f ? "ConjFeatures" : "ProofWatch"));
 }
 
 /*---------------------------------------------------------------------*/
@@ -227,6 +230,32 @@ double EnigmaWeightCompute(void* data, Clause_p clause)
       //printf("%d:%.0f ", nodes[i+j].index, nodes[i+j].value);
    }
    nodes[i+local->conj_features_count].index = -1;
+
+   // detect proofwatch version
+   if (2*local->enigmap->feature_count < local->linear_model->nr_feature)
+   {
+      //printf("|");
+      NumTree_p proof;
+      PStack_p stack;
+      int k = i + local->conj_features_count;
+      int offset = 2 * local->enigmap->feature_count;
+
+      stack = NumTreeTraverseInit(local->proofstate->watch_progress);
+      while((proof = NumTreeTraverseNext(stack)))
+      {
+         if (proof->val1.i_val == 0) 
+         { 
+            continue; 
+         }
+         nodes[k].index = proof->key + offset;
+         nodes[k].value = (double)proof->val1.i_val/proof->val2.i_val;
+         //printf("%d:%.3f ", nodes[k].index, nodes[k].value);
+         k++;
+         if (k >= 2048) { Error("ENIGMA: Too many proof watch features!", OTHER_ERROR); }
+      }
+      NumTreeTraverseExit(stack);
+      nodes[k].index = -1;
+   }
    //printf("\n");
    
    res = predict(local->linear_model, nodes);
