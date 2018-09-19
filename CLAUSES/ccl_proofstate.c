@@ -143,6 +143,12 @@ static void watchlist_load_file(ProofState_p state,
 //
 /----------------------------------------------------------------------*/
 
+int filename_compare(IntOrP* left, IntOrP* right)
+{
+   return strcmp(DStrView((DStr_p)(left->p_val)), DStrView((DStr_p)(right->p_val)));
+}
+
+
 static void watchlist_load_dir(ProofState_p state,
                                char* watchlist_dir,
                                IOFormat parse_format)
@@ -167,6 +173,7 @@ static void watchlist_load_dir(ProofState_p state,
       return;
    }
 
+   PStack_p filenames = PStackAlloc();
    while ((ep = readdir(dp)) != NULL)
    {
       if (ep->d_type == DT_DIR)
@@ -179,27 +186,35 @@ static void watchlist_load_dir(ProofState_p state,
       DStrAppendChar(filename, '/');
       DStrAppendStr(filename, ep->d_name);
 
+      PStackPushP(filenames, filename);
+   }
+   closedir(dp);
+   PStackSort(filenames, (ComparisonFunctionType)filename_compare);
+
+   for (proof_no=0; proof_no<filenames->current; proof_no++)
+   {
+      filename = filenames->stack[proof_no].p_val;
+
       tmpset = ClauseSetAlloc();
       watchlist_load_file(state, DStrView(filename), tmpset, parse_format);
-      proof_no++;
 
       // set origin proof number
       for(handle = tmpset->anchor->succ; 
           handle != tmpset->anchor; 
           handle = handle->succ)
       {
-         handle->watch_proof = proof_no;
+         handle->watch_proof = proof_no+1;
       }
 
       // initialize watchlist proof progress
       val1.i_val = 0; // 0 matched so far ...
       val2.i_val = tmpset->members; // ... out of "val2" total
-      NumTreeStore(&state->watch_progress, proof_no, val1, val2);
+      NumTreeStore(&state->watch_progress, proof_no+1, val1, val2);
       
       if (OutputLevel >= 1)
       {
          fprintf(GlobalOut, "#   watchlist %4ld: %8ld clauses from '%s'\n", 
-            proof_no, tmpset->members, DStrView(filename));
+            proof_no+1, tmpset->members, DStrView(filename));
       }
 
       ClauseSetInsertSet(state->watchlist, tmpset);
@@ -207,7 +222,7 @@ static void watchlist_load_dir(ProofState_p state,
       DStrFree(filename);
    }
 
-   closedir(dp);
+   PStackFree(filenames);
 }
 
 /*---------------------------------------------------------------------*/
