@@ -43,10 +43,13 @@ EPROVER = eprover.o ../lib/CONTROL.a ../lib/PCL2.a ../lib/HEURISTICS.a\
             ../lib/CLAUSES.a ../lib/ORDERINGS.a ../lib/TERMS.a\
             ../lib/INOUT.a ../lib/BASICS.a \
 				../CONTRIB/liblinear/liblinear.a \
-				../CONTRIB/svdlibc/libsvd.a 
+				../CONTRIB/svdlibc/libsvd.a \
+				../CONTRIB/xgboost/libxgboost.a \
+				../CONTRIB/xgboost/librabit.a \
+				../CONTRIB/xgboost/libdmlc.a 
 
 eprover: $(EPROVER)
-	$(LD) -o eprover $(EPROVER) $(LIBS)
+	$(LD) -o eprover $(EPROVER) $(LIBS) -fopenmp
 
 E_LTB_RUNNER = e_ltb_runner.o ../lib/CONTROL.a ../lib/HEURISTICS.a\
             ../lib/CLAUSES.a ../lib/ORDERINGS.a ../lib/TERMS.a\

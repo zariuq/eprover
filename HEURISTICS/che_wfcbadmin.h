@@ -42,6 +42,7 @@ Changes
 #include <che_enigmaweight.h>
 #include <che_enigmaweightsvd.h>
 #include <che_enigmaweightmulti.h>
+#include <che_enigmaweightxgb.h>
 
 
 /*---------------------------------------------------------------------*/
