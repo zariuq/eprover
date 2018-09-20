@@ -122,6 +122,7 @@ static PStack_p compute_subterms_generalizations(
          copy->args[i] = PStackElementP(sgen,cur->array[i]);
       }
       copy->properties = term->properties;
+      copy->sort = term->sort;
       PStackPushP(gens,copy);
       PStackPushP(all,copy);
       iter_counter++;
