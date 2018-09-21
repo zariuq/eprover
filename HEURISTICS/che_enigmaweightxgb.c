@@ -35,22 +35,25 @@ Changes
 /*                         Internal Functions                          */
 /*---------------------------------------------------------------------*/
 
-/*
-static struct feature_node conj_nodes[2048]; // TODO: dynamic alloc
+static unsigned conj_indices[2048]; // TODO: dynamic alloc
+static float conj_data[2048]; // TODO: dynamic alloc
 
 static void extweight_init(EnigmaWeightXgbParam_p data)
 {
-   if (data->linear_model) 
+   if (data->xgboost_model) 
    {
       return;
    }
+  
+   XGBoosterCreate(NULL, 0, &data->xgboost_model);
 
-   data->linear_model = load_model(data->model_filename);
-   if (!data->linear_model) 
+   if (XGBoosterLoadModel(data->xgboost_model, data->model_filename) != 0)
    {
-      Error("ENIGMA: Failed loading liblinear model: %s", FILE_ERROR,
-         data->model_filename);
+      Error("ENIGMA: Failed loading XGBoost model '%s':\n%s", FILE_ERROR,
+         data->model_filename, XGBGetLastError());
    }
+   //XGBoosterSetAttr(data->xgboost_model, "objective", "binary:logistic");
+
    data->enigmap = EnigmapLoad(data->features_filename, data->ocb->sig);
 
    Clause_p clause;
@@ -70,61 +73,56 @@ static void extweight_init(EnigmaWeightXgbParam_p data)
 
    if (len >= 2048) { Error("ENIGMA: Too many conjecture features!", OTHER_ERROR); } 
   
-   //printf("CONJ FEATURES: ");
+   printf("CONJ FEATURES: ");
    int i = 0;
    while (features) 
    {
       NumTree_p cell = NumTreeExtractEntry(&features,NumTreeMinNode(features)->key);
-      conj_nodes[i].index = cell->key + data->enigmap->feature_count;
-      conj_nodes[i].value = (double)cell->val1.i_val;
-      //printf("%d:%ld ", conj_nodes[i].index, cell->val1.i_val);
+      conj_indices[i] = cell->key + data->enigmap->feature_count;
+      conj_data[i] = (float)cell->val1.i_val;
+      printf("%d:%d ", conj_indices[i], (int)conj_data[i]);
       i++;
       NumTreeCellFree(cell);
    }
-   //printf("\n");
-   conj_nodes[i].index = -1;
+   printf("\n");
 
    assert(i==len);
 
-   data->conj_features = conj_nodes;
    data->conj_features_count = len;
+   data->conj_features_indices = conj_indices;
+   data->conj_features_data = conj_data;
 
-   int n_f = data->enigmap->feature_count;
-   int n_v = data->linear_model->nr_feature;
-   fprintf(GlobalOut, "# ENIGMA: XGBoost model '%s' loaded (features: %ld; vector len: %d; version: %s)\n", 
-      data->model_filename, data->enigmap->feature_count, data->linear_model->nr_feature,
-      n_v <= n_f ? "Basic" : (n_v <= 2*n_f ? "ConjFeatures" : "ProofWatch"));
+   fprintf(GlobalOut, "# ENIGMA: XGBoost model '%s' loaded. (features: %ld; conj_feats: %d; version: TheOnly)\n", data->model_filename, data->enigmap->feature_count, data->conj_features_count);
 }
-*/
 
 /*---------------------------------------------------------------------*/
 /*                         Exported Functions                          */
 /*---------------------------------------------------------------------*/
 
 EnigmaWeightXgbParam_p EnigmaWeightXgbParamAlloc(void)
-{/*
+{
    EnigmaWeightXgbParam_p res = EnigmaWeightXgbParamCellAlloc();
 
-   res->linear_model = NULL;
+   res->xgboost_model = NULL;
    res->enigmap = NULL;
 
    return res;
-*/}
+}
 
 void EnigmaWeightXgbParamFree(EnigmaWeightXgbParam_p junk)
-{/*
+{
    free(junk->model_filename);
    free(junk->features_filename);
-   junk->linear_model = NULL; // TODO: free model & enigmap
+   junk->xgboost_model = NULL; // TODO: free model & enigmap
 
    EnigmaWeightXgbParamCellFree(junk);
-*/}
+}
  
 WFCB_p EnigmaWeightXgbParse(
    Scanner_p in,  
    OCB_p ocb, 
    ProofState_p state)
-{/*   
+{   
    ClausePrioFun prio_fun;
    double len_mult;
 
@@ -146,7 +144,7 @@ WFCB_p EnigmaWeightXgbParse(
    DStrAppendStr(f_model, "/");
    DStrAppendStr(f_model, d_prefix);
    DStrAppendStr(f_model, "/");
-   DStrAppendStr(f_model, "model.lin");
+   DStrAppendStr(f_model, "model.xgb");
    char* model_filename = SecureStrdup(DStrView(f_model));
    DStrFree(f_model);
 
@@ -171,7 +169,7 @@ WFCB_p EnigmaWeightXgbParse(
       model_filename,
       features_filename,
       len_mult);
-*/}
+}
 
 WFCB_p EnigmaWeightXgbInit(
    ClausePrioFun prio_fun, 
@@ -180,7 +178,7 @@ WFCB_p EnigmaWeightXgbInit(
    char* model_filename,
    char* features_filename,
    double len_mult)
-{/*
+{
    EnigmaWeightXgbParam_p data = EnigmaWeightXgbParamAlloc();
 
    data->init_fun   = extweight_init;
@@ -196,11 +194,12 @@ WFCB_p EnigmaWeightXgbInit(
       prio_fun,
       EnigmaWeightXgbExit, 
       data);
-*/}
+}
 
 double EnigmaWeightXgbCompute(void* data, Clause_p clause)
-{/*
-   static struct feature_node nodes[2048]; // TODO: dynamic alloc
+{
+   static unsigned xgb_indices[2048]; // TODO: dynamic alloc
+   static float xgb_data[2048]; // TODO: dynamic alloc
    EnigmaWeightXgbParam_p local;
    double res = 1.0;
    
@@ -217,51 +216,53 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
    while (features) 
    {
       NumTree_p cell = NumTreeExtractEntry(&features,NumTreeMinNode(features)->key);
-      //printf("%ld:%ld ", cell->key, cell->val1.i_val);
-      nodes[i].index = cell->key;
-      nodes[i].value = (double)cell->val1.i_val;
+      xgb_indices[i] = cell->key;
+      xgb_data[i] = (float)cell->val1.i_val;
+      printf("%d:%.0f ", xgb_indices[i], xgb_data[i]);
       i++;
       NumTreeCellFree(cell);
    }
-   //printf("|");
+   printf("|");
 
    for (int j=0; j<local->conj_features_count; j++) 
    {
-      nodes[i+j].index = local->conj_features[j].index;
-      nodes[i+j].value = local->conj_features[j].value;
-      //printf("%d:%.0f ", nodes[i+j].index, nodes[i+j].value);
+      xgb_indices[i+j] = local->conj_features_indices[j];
+      xgb_data[i+j] = local->conj_features_data[j];
+      printf("%d:%.0f ", xgb_indices[i+j], xgb_data[i+j]);
    }
-   nodes[i+local->conj_features_count].index = -1;
+   printf("\n");
 
-   // detect proofwatch version
-   if (2*local->enigmap->feature_count < local->linear_model->nr_feature)
+   size_t xgb_nelem = i + local->conj_features_count;
+   size_t xgb_num_col = 2 * local->enigmap->feature_count;
+   size_t xgb_nindptr = 2;
+   static bst_ulong xgb_indptr[2];
+   xgb_indptr[0] = 0L;
+   xgb_indptr[1] = xgb_nelem;
+   DMatrixHandle xgb_matrix = NULL;
+   if (XGDMatrixCreateFromCSREx(xgb_indptr, xgb_indices, xgb_data, 
+          xgb_nindptr, xgb_nelem, xgb_num_col, &xgb_matrix) != 0)
    {
-      //printf("|");
-      NumTree_p proof;
-      PStack_p stack;
-      int k = i + local->conj_features_count;
-      int offset = 2 * local->enigmap->feature_count;
-
-      stack = NumTreeTraverseInit(local->proofstate->watch_progress);
-      while((proof = NumTreeTraverseNext(stack)))
-      {
-         if (proof->val1.i_val == 0) 
-         { 
-            continue; 
-         }
-         nodes[k].index = proof->key + offset;
-         nodes[k].value = (double)proof->val1.i_val/proof->val2.i_val;
-         //printf("%d:%.3f ", nodes[k].index, nodes[k].value);
-         k++;
-         if (k >= 2048) { Error("ENIGMA: Too many proof watch features!", OTHER_ERROR); }
-      }
-      NumTreeTraverseExit(stack);
-      nodes[k].index = -1;
+      Error("ENIGMA: Failed creating XGBoost prediction matrix:\n%s", 
+         OTHER_ERROR, XGBGetLastError());
    }
-   //printf("\n");
-   
+
+   bst_ulong out_len = 0L;
+   const float* pred;
+   if (XGBoosterPredict(local->xgboost_model, xgb_matrix, 
+          0, 0, &out_len, &pred) != 0)
+   {
+      Error("ENIGMA: Failed computing XGBoost prediction:\n%s", 
+         OTHER_ERROR, XGBGetLastError());
+   }
+   printf("prediction: len=%ld first=%f\n", out_len, pred[0]);
+   res = 1 + ((1.0 - pred[0]) * 10.0);
+
+   XGDMatrixFree(xgb_matrix);
+   /*
    res = predict(local->linear_model, nodes);
    //fprintf(GlobalOut, "+%0.2f ", res);
+   */
+   
    double clen = ClauseWeight(clause,1,1,1,1,1,false);
    res = (clen * local->len_mult) + res;
 
@@ -272,14 +273,14 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
    }
 
    return res;
-*/}
+}
 
 void EnigmaWeightXgbExit(void* data)
-{/*
+{
    EnigmaWeightXgbParam_p junk = data;
    
    EnigmaWeightXgbParamFree(junk);
-*/}
+}
 
 /*---------------------------------------------------------------------*/
 /*                        End of File                                  */

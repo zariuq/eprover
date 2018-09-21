@@ -47,8 +47,9 @@ typedef struct enigmaweightxgbparamcell
    BoosterHandle xgboost_model;
    Enigmap_p enigmap;
    
-   //struct feature_node* conj_features;
-   //int conj_features_count;
+   unsigned* conj_features_indices;
+   float* conj_features_data;
+   int conj_features_count;
 
    void   (*init_fun)(struct enigmaweightxgbparamcell*);
 }EnigmaWeightXgbParamCell, *EnigmaWeightXgbParam_p;
