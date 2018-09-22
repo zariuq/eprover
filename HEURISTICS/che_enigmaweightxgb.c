@@ -73,18 +73,18 @@ static void extweight_init(EnigmaWeightXgbParam_p data)
 
    if (len >= 2048) { Error("ENIGMA: Too many conjecture features!", OTHER_ERROR); } 
   
-   printf("CONJ FEATURES: ");
+   //printf("CONJ FEATURES: ");
    int i = 0;
    while (features) 
    {
       NumTree_p cell = NumTreeExtractEntry(&features,NumTreeMinNode(features)->key);
       conj_indices[i] = cell->key + data->enigmap->feature_count;
       conj_data[i] = (float)cell->val1.i_val;
-      printf("%d:%d ", conj_indices[i], (int)conj_data[i]);
+      //printf("%d:%d ", conj_indices[i], (int)conj_data[i]);
       i++;
       NumTreeCellFree(cell);
    }
-   printf("\n");
+   //printf("\n");
 
    assert(i==len);
 
@@ -218,19 +218,19 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
       NumTree_p cell = NumTreeExtractEntry(&features,NumTreeMinNode(features)->key);
       xgb_indices[i] = cell->key;
       xgb_data[i] = (float)cell->val1.i_val;
-      printf("%d:%.0f ", xgb_indices[i], xgb_data[i]);
+      //printf("%d:%.0f ", xgb_indices[i], xgb_data[i]);
       i++;
       NumTreeCellFree(cell);
    }
-   printf("|");
+   //printf("|");
 
    for (int j=0; j<local->conj_features_count; j++) 
    {
       xgb_indices[i+j] = local->conj_features_indices[j];
       xgb_data[i+j] = local->conj_features_data[j];
-      printf("%d:%.0f ", xgb_indices[i+j], xgb_data[i+j]);
+      //printf("%d:%.0f ", xgb_indices[i+j], xgb_data[i+j]);
    }
-   printf("\n");
+   //printf("\n");
 
    size_t xgb_nelem = i + local->conj_features_count;
    size_t xgb_num_col = 2 * local->enigmap->feature_count;
@@ -254,7 +254,7 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
       Error("ENIGMA: Failed computing XGBoost prediction:\n%s", 
          OTHER_ERROR, XGBGetLastError());
    }
-   printf("prediction: len=%ld first=%f\n", out_len, pred[0]);
+   //printf("prediction: len=%ld first=%f\n", out_len, pred[0]);
    res = 1 + ((1.0 - pred[0]) * 10.0);
 
    XGDMatrixFree(xgb_matrix);
