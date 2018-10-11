@@ -205,12 +205,14 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
    
    local = data;
    local->init_fun(data);
-
+   
+   long long start = GetUSecClock();
    int len = 0;
    NumTree_p features = FeaturesClauseCollect(clause, local->enigmap, &len);
    //printf("features count: %d\n", len);
       
    if (len+local->conj_features_count >= 2048) { Error("ENIGMA: Too many clause features!", OTHER_ERROR); }
+
 
    int i = 0;
    while (features) 
@@ -231,7 +233,9 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
       //printf("%d:%.0f ", xgb_indices[i+j], xgb_data[i+j]);
    }
    //printf("\n");
-
+   //printf("[duration] feature extract: %f.2 ms\n", (double)(clock() - start)/ (CLOCKS_PER_SEC / 1000));
+   
+   //start = clock();
    size_t xgb_nelem = i + local->conj_features_count;
    size_t xgb_num_col = 2 * local->enigmap->feature_count;
    size_t xgb_nindptr = 2;
@@ -245,7 +249,9 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
       Error("ENIGMA: Failed creating XGBoost prediction matrix:\n%s", 
          OTHER_ERROR, XGBGetLastError());
    }
+   //printf("[duration] xgb matrix: %f.2 ms\n", (double)(clock() - start)/ (CLOCKS_PER_SEC / 1000));
 
+   //start = clock();
    bst_ulong out_len = 0L;
    const float* pred;
    if (XGBoosterPredict(local->xgboost_model, xgb_matrix, 
@@ -255,7 +261,9 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
          OTHER_ERROR, XGBGetLastError());
    }
    //printf("prediction: len=%ld first=%f\n", out_len, pred[0]);
-   res = 1 + ((1.0 - pred[0]) * 10.0);
+   
+   //res = 1 + ((1.0 - pred[0]) * 10.0);
+   if (pred[0] <= 0.5) { res = 10.0; } else { res = 1.0; }
 
    XGDMatrixFree(xgb_matrix);
    /*
@@ -267,10 +275,12 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
    res = (clen * local->len_mult) + res;
 
    if (OutputLevel>=1) {
-      fprintf(GlobalOut, "=%.2f: ", res);
+      fprintf(GlobalOut, "=%.2f (val=%.3f,t=%.3fms,clen=%.1f,vlen=%ld) : ", res, pred[0], (double)(GetUSecClock() - start)/ 1000.0, clen, xgb_nelem);
       ClausePrint(GlobalOut, clause, true);
       fprintf(GlobalOut, "\n");
    }
+   
+   //printf("[duration] xgb predict: %.3f ms   (clen=%.1f, vlen=%ld)\n", (double)(GetUSecClock() - start)/ 1000.0, clen, xgb_nelem);
 
    return res;
 }

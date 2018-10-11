@@ -205,6 +205,7 @@ double EnigmaWeightCompute(void* data, Clause_p clause)
    local = data;
    local->init_fun(data);
 
+   long long start = GetUSecClock();
    int len = 0;
    NumTree_p features = FeaturesClauseCollect(clause, local->enigmap, &len);
    //printf("features count: %d\n", len);
@@ -230,6 +231,7 @@ double EnigmaWeightCompute(void* data, Clause_p clause)
       //printf("%d:%.0f ", nodes[i+j].index, nodes[i+j].value);
    }
    nodes[i+local->conj_features_count].index = -1;
+   int total = i+local->conj_features_count;
 
    // detect proofwatch version
    if (2*local->enigmap->feature_count < local->linear_model->nr_feature)
@@ -255,6 +257,7 @@ double EnigmaWeightCompute(void* data, Clause_p clause)
       }
       NumTreeTraverseExit(stack);
       nodes[k].index = -1;
+      total = k;
    }
    //printf("\n");
    
@@ -264,10 +267,12 @@ double EnigmaWeightCompute(void* data, Clause_p clause)
    res = (clen * local->len_mult) + res;
 
    if (OutputLevel>=1) {
-      fprintf(GlobalOut, "=%.2f: ", res);
+      fprintf(GlobalOut, "=%.2f (t=%.3fms,clen=%.1f,vlen=%d): ", res, (double)(GetUSecClock() - start)/ 1000.0, clen, total);
       ClausePrint(GlobalOut, clause, true);
       fprintf(GlobalOut, "\n");
    }
+   
+   //printf("[duration] linear predict: %.3f ms   (clen=%.1f, vlen=%d)\n", (double)(GetUSecClock() - start)/ 1000.0, clen, total);
 
    return res;
 }

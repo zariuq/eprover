@@ -1619,6 +1619,8 @@ void ProofStateInit(ProofState_p state, ProofControl_p control)
                      control->heuristic_parms.rw_bw_index_type,
                      control->heuristic_parms.pm_from_index_type,
                      control->heuristic_parms.pm_into_index_type);
+   
+   OCBDebugPrint(GlobalOut, control->ocb);
 
 }
 
