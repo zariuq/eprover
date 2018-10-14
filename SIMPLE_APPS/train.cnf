@@ -1,0 +1,173 @@
+# Watchlist not in use
+# Initializing proof state
+# Scanning for AC axioms
+
+# CNFization successful!
+# SZS status Unknown
+# Processed positive unit clauses:
+
+# Processed negative unit clauses:
+
+# Processed non-unit clauses:
+
+# Unprocessed positive unit clauses:
+cnf(i_0_57, plain, (top_str(esk1_0))).
+cnf(i_0_78, plain, (top_str(esk7_0))).
+cnf(i_0_84, plain, (top_str(esk9_0))).
+cnf(i_0_113, negated_conjecture, (top_str(esk16_0))).
+cnf(i_0_77, plain, (strict_top_str(esk7_0))).
+cnf(i_0_82, plain, (strict_top_str(esk9_0))).
+cnf(i_0_67, plain, (v1_membered(empty_set))).
+cnf(i_0_75, plain, (v1_membered(esk6_0))).
+cnf(i_0_66, plain, (v2_membered(empty_set))).
+cnf(i_0_74, plain, (v2_membered(esk6_0))).
+cnf(i_0_65, plain, (v3_membered(empty_set))).
+cnf(i_0_73, plain, (v3_membered(esk6_0))).
+cnf(i_0_64, plain, (v4_membered(empty_set))).
+cnf(i_0_72, plain, (v4_membered(esk6_0))).
+cnf(i_0_63, plain, (v5_membered(empty_set))).
+cnf(i_0_71, plain, (v5_membered(esk6_0))).
+cnf(i_0_68, plain, (empty(empty_set))).
+cnf(i_0_81, plain, (topological_space(esk9_0))).
+cnf(i_0_114, negated_conjecture, (topological_space(esk16_0))).
+cnf(i_0_58, plain, (one_sorted_str(esk2_0))).
+cnf(i_0_85, plain, (empty(esk10_1(X1)))).
+cnf(i_0_109, negated_conjecture, (in(esk18_0,esk17_0))).
+cnf(i_0_110, negated_conjecture, (open_subset(esk17_0,esk16_0))).
+cnf(i_0_100, plain, (subset(X1,X1))).
+cnf(i_0_111, negated_conjecture, (element(esk18_0,the_carrier(esk16_0)))).
+cnf(i_0_61, plain, (element(esk5_1(X1),X1))).
+cnf(i_0_112, negated_conjecture, (element(esk17_0,powerset(the_carrier(esk16_0))))).
+cnf(i_0_86, plain, (element(esk10_1(X1),powerset(X1)))).
+
+# Unprocessed negative unit clauses:
+cnf(i_0_76, plain, (~empty(esk6_0))).
+cnf(i_0_83, plain, (~empty_carrier(esk9_0))).
+cnf(i_0_115, negated_conjecture, (~empty_carrier(esk16_0))).
+cnf(i_0_62, plain, (~empty(powerset(X1)))).
+cnf(i_0_108, negated_conjecture, (~point_neighbourhood(esk17_0,esk16_0,esk18_0))).
+
+# Unprocessed non-unit clauses:
+cnf(i_0_117, plain, (X1=empty_set|~empty(X1))).
+cnf(i_0_42, plain, (v1_membered(X1)|~v2_membered(X1))).
+cnf(i_0_22, plain, (v1_membered(X1)|~empty(X1))).
+cnf(i_0_41, plain, (v2_membered(X1)|~v3_membered(X1))).
+cnf(i_0_21, plain, (v2_membered(X1)|~empty(X1))).
+cnf(i_0_40, plain, (v3_membered(X1)|~v4_membered(X1))).
+cnf(i_0_20, plain, (v3_membered(X1)|~empty(X1))).
+cnf(i_0_33, plain, (v4_membered(X1)|~v5_membered(X1))).
+cnf(i_0_19, plain, (v4_membered(X1)|~empty(X1))).
+cnf(i_0_18, plain, (v5_membered(X1)|~empty(X1))).
+cnf(i_0_50, plain, (one_sorted_str(X1)|~top_str(X1))).
+cnf(i_0_119, plain, (X1=X2|~empty(X2)|~empty(X1))).
+cnf(i_0_87, plain, (strict_top_str(esk11_1(X1))|~top_str(X1))).
+cnf(i_0_79, plain, (empty(X1)|~empty(esk8_1(X1)))).
+cnf(i_0_89, plain, (empty_carrier(X1)|strict_top_str(esk12_1(X1))|~top_str(X1))).
+cnf(i_0_93, plain, (strict_top_str(esk13_1(X1))|~top_str(X1)|~topological_space(X1))).
+cnf(i_0_92, plain, (topological_space(esk13_1(X1))|~top_str(X1)|~topological_space(X1))).
+cnf(i_0_60, plain, (m1_pre_topc(esk4_1(X1),X1)|~top_str(X1))).
+cnf(i_0_88, plain, (m1_pre_topc(esk11_1(X1),X1)|~top_str(X1))).
+cnf(i_0_90, plain, (empty_carrier(X1)|~top_str(X1)|~empty_carrier(esk12_1(X1)))).
+cnf(i_0_118, plain, (~empty(X2)|~in(X1,X2))).
+cnf(i_0_80, plain, (empty(X1)|element(esk8_1(X1),powerset(X1)))).
+cnf(i_0_91, plain, (empty_carrier(X1)|m1_pre_topc(esk12_1(X1),X1)|~top_str(X1))).
+cnf(i_0_53, plain, (top_str(X2)|~top_str(X1)|~m1_pre_topc(X2,X1))).
+cnf(i_0_3, plain, (v1_xcmplx_0(X2)|~v1_membered(X1)|~element(X2,X1))).
+cnf(i_0_5, plain, (v1_xcmplx_0(X1)|~v2_membered(X2)|~element(X1,X2))).
+cnf(i_0_8, plain, (v1_xcmplx_0(X1)|~v3_membered(X2)|~element(X1,X2))).
+cnf(i_0_12, plain, (v1_xcmplx_0(X1)|~v4_membered(X2)|~element(X1,X2))).
+cnf(i_0_17, plain, (v1_xcmplx_0(X1)|~v5_membered(X2)|~element(X1,X2))).
+cnf(i_0_4, plain, (v1_xreal_0(X1)|~v2_membered(X2)|~element(X1,X2))).
+cnf(i_0_7, plain, (v1_xreal_0(X1)|~v3_membered(X2)|~element(X1,X2))).
+cnf(i_0_11, plain, (v1_xreal_0(X1)|~v4_membered(X2)|~element(X1,X2))).
+cnf(i_0_15, plain, (v1_xreal_0(X1)|~v5_membered(X2)|~element(X1,X2))).
+cnf(i_0_6, plain, (v1_rat_1(X1)|~v3_membered(X2)|~element(X1,X2))).
+cnf(i_0_9, plain, (v1_rat_1(X1)|~v4_membered(X2)|~element(X1,X2))).
+cnf(i_0_13, plain, (v1_rat_1(X1)|~v5_membered(X2)|~element(X1,X2))).
+cnf(i_0_10, plain, (v1_int_1(X1)|~v4_membered(X2)|~element(X1,X2))).
+cnf(i_0_14, plain, (v1_int_1(X1)|~v5_membered(X2)|~element(X1,X2))).
+cnf(i_0_16, plain, (natural(X1)|~v5_membered(X2)|~element(X1,X2))).
+cnf(i_0_94, plain, (m1_pre_topc(esk13_1(X1),X1)|~top_str(X1)|~topological_space(X1))).
+cnf(i_0_95, plain, (closed_subset(esk14_1(X1),X1)|~top_str(X1)|~topological_space(X1))).
+cnf(i_0_98, plain, (empty_carrier(X1)|~top_str(X1)|~topological_space(X1)|~empty(esk15_1(X1)))).
+cnf(i_0_101, plain, (element(X1,X2)|~in(X1,X2))).
+cnf(i_0_97, plain, (empty_carrier(X1)|closed_subset(esk15_1(X1),X1)|~top_str(X1)|~topological_space(X1))).
+cnf(i_0_34, plain, (topological_space(X2)|~top_str(X1)|~topological_space(X1)|~m1_pre_topc(X2,X1))).
+cnf(i_0_102, plain, (empty(X2)|in(X1,X2)|~element(X1,X2))).
+cnf(i_0_1, plain, (top_str_of(the_carrier(X1),the_topology(X1))=X1|~top_str(X1)|~strict_top_str(X1))).
+cnf(i_0_103, plain, (element(X1,powerset(X2))|~subset(X1,X2))).
+cnf(i_0_23, plain, (v1_membered(X2)|~v1_membered(X1)|~element(X2,powerset(X1)))).
+cnf(i_0_25, plain, (v1_membered(X1)|~v2_membered(X2)|~element(X1,powerset(X2)))).
+cnf(i_0_28, plain, (v1_membered(X1)|~v3_membered(X2)|~element(X1,powerset(X2)))).
+cnf(i_0_32, plain, (v1_membered(X1)|~v4_membered(X2)|~element(X1,powerset(X2)))).
+cnf(i_0_39, plain, (v1_membered(X1)|~v5_membered(X2)|~element(X1,powerset(X2)))).
+cnf(i_0_24, plain, (v2_membered(X1)|~v2_membered(X2)|~element(X1,powerset(X2)))).
+cnf(i_0_27, plain, (v2_membered(X1)|~v3_membered(X2)|~element(X1,powerset(X2)))).
+cnf(i_0_31, plain, (v2_membered(X1)|~v4_membered(X2)|~element(X1,powerset(X2)))).
+cnf(i_0_38, plain, (v2_membered(X1)|~v5_membered(X2)|~element(X1,powerset(X2)))).
+cnf(i_0_26, plain, (v3_membered(X1)|~v3_membered(X2)|~element(X1,powerset(X2)))).
+cnf(i_0_30, plain, (v3_membered(X1)|~v4_membered(X2)|~element(X1,powerset(X2)))).
+cnf(i_0_37, plain, (v3_membered(X1)|~v5_membered(X2)|~element(X1,powerset(X2)))).
+cnf(i_0_29, plain, (v4_membered(X1)|~v4_membered(X2)|~element(X1,powerset(X2)))).
+cnf(i_0_36, plain, (v4_membered(X1)|~v5_membered(X2)|~element(X1,powerset(X2)))).
+cnf(i_0_35, plain, (v5_membered(X1)|~v5_membered(X2)|~element(X1,powerset(X2)))).
+cnf(i_0_2, plain, (~in(X2,X1)|~in(X1,X2))).
+cnf(i_0_104, plain, (subset(X1,X2)|~element(X1,powerset(X2)))).
+cnf(i_0_96, plain, (element(esk14_1(X1),powerset(the_carrier(X1)))|~top_str(X1)|~topological_space(X1))).
+cnf(i_0_99, plain, (empty_carrier(X1)|element(esk15_1(X1),powerset(the_carrier(X1)))|~top_str(X1)|~topological_space(X1))).
+cnf(i_0_116, plain, (~empty(X3)|~in(X1,X2)|~element(X2,powerset(X3)))).
+cnf(i_0_105, plain, (element(X1,X3)|~in(X1,X2)|~element(X2,powerset(X3)))).
+cnf(i_0_55, plain, (element(the_topology(X1),powerset(powerset(the_carrier(X1))))|~top_str(X1))).
+cnf(i_0_45, plain, (top_str(top_str_of(X1,X2))|~element(X2,powerset(powerset(X1))))).
+cnf(i_0_46, plain, (strict_top_str(top_str_of(X1,X2))|~element(X2,powerset(powerset(X1))))).
+cnf(i_0_69, plain, (X1=X2|top_str_of(X3,X1)!=top_str_of(X4,X2)|~element(X1,powerset(powerset(X3))))).
+cnf(i_0_70, plain, (X1=X2|top_str_of(X1,X3)!=top_str_of(X2,X4)|~element(X3,powerset(powerset(X1))))).
+cnf(i_0_47, plain, (element(interior(X1,X2),powerset(the_carrier(X1)))|~top_str(X1)|~element(X2,powerset(the_carrier(X1))))).
+cnf(i_0_59, plain, (empty_carrier(X1)|point_neighbourhood(esk3_2(X1,X2),X1,X2)|~top_str(X1)|~topological_space(X1)|~element(X2,the_carrier(X1)))).
+cnf(i_0_107, plain, (interior(X2,X1)=X1|~top_str(X4)|~top_str(X2)|~topological_space(X4)|~open_subset(X1,X2)|~element(X3,powerset(the_carrier(X4)))|~element(X1,powerset(the_carrier(X2))))).
+cnf(i_0_106, plain, (open_subset(X2,X1)|interior(X1,X2)!=X2|~top_str(X4)|~top_str(X1)|~topological_space(X1)|~element(X3,powerset(the_carrier(X4)))|~element(X2,powerset(the_carrier(X1))))).
+cnf(i_0_52, plain, (empty_carrier(X1)|element(X3,powerset(the_carrier(X1)))|~top_str(X1)|~topological_space(X1)|~point_neighbourhood(X3,X1,X2)|~element(X2,the_carrier(X1)))).
+cnf(i_0_43, plain, (empty_carrier(X2)|point_neighbourhood(X3,X2,X1)|~top_str(X2)|~topological_space(X2)|~element(X1,the_carrier(X2))|~in(X1,interior(X2,X3))|~element(X3,powerset(the_carrier(X2))))).
+cnf(i_0_44, plain, (empty_carrier(X2)|in(X3,interior(X2,X1))|~top_str(X2)|~topological_space(X2)|~point_neighbourhood(X1,X2,X3)|~element(X3,the_carrier(X2))|~element(X1,powerset(the_carrier(X2))))).
+
+
+# Parsed axioms                        : 59
+# Removed by relevancy pruning/SinE    : 0
+# Initial clauses                      : 119
+# Removed in clause preprocessing      : 5
+# Initial clauses in saturation        : 114
+# Processed clauses                    : 0
+# ...of these trivial                  : 0
+# ...subsumed                          : 0
+# ...remaining for further processing  : 0
+# Other redundant clauses eliminated   : 0
+# Clauses deleted for lack of memory   : 0
+# Backward-subsumed                    : 0
+# Backward-rewritten                   : 0
+# Generated clauses                    : 0
+# ...of the previous two non-trivial   : 0
+# Contextual simplify-reflections      : 0
+# Paramodulations                      : 0
+# Factorizations                       : 0
+# Equation resolutions                 : 0
+# Propositional unsat checks           : 0
+# Propositional unsat check successes  : 0
+# Current number of processed clauses  : 0
+#    Positive orientable unit clauses  : 0
+#    Positive unorientable unit clauses: 0
+#    Negative unit clauses             : 0
+#    Non-unit-clauses                  : 0
+# Current number of unprocessed clauses: 114
+# ...number of literals in the above   : 277
+# Current number of archived formulas  : 0
+# Current number of archived clauses   : 0
+# Clause-clause subsumption calls (NU) : 0
+# Rec. Clause-clause subsumption calls : 0
+# Non-unit clause-clause subsumptions  : 0
+# Unit Clause-clause subsumption calls : 0
+# Rewrite failures with RHS unbound    : 0
+# BW rewrite match attempts            : 0
+# BW rewrite match successes           : 0
+# Condensation attempts                : 0
+# Condensation successes               : 0
+# Termbank termtop insertions          : 5368

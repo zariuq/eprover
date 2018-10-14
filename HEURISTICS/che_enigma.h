@@ -34,6 +34,20 @@ Changes
 /*                    Data type declarations                           */
 /*---------------------------------------------------------------------*/
 
+typedef enum
+{
+   EFNone = 0,
+   EFVertical = 1,
+   EFHorizontal = 2,
+   EFSymbols = 4,
+   EFLengths = 8,
+   EFConjecture = 16,
+   EFProofWatch = 32,
+   EFAll = 0xFFFF
+}EnigmaFeature;
+
+typedef long EnigmaFeatures;
+
 typedef struct enigmapcell
 {
    Sig_p sig;
@@ -62,6 +76,8 @@ Enigmap_p EnigmapAlloc(void);
 void EnigmapFree(Enigmap_p junk);
 
 Enigmap_p EnigmapLoad(char* features_filename, Sig_p sig);
+
+EnigmaFeatures ParseEnigmaFeaturesSpec(char *spec);
 
 DStr_p FeaturesGetTermHorizontal(char* top, Term_p term, Sig_p sig);
 DStr_p FeaturesGetEqHorizontal(Term_p lterm, Term_p rterm, Sig_p sig);

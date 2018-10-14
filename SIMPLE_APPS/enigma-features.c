@@ -42,6 +42,7 @@ typedef enum
    OPT_HELP,
    OPT_VERBOSE,
    OPT_FREE_NUMBERS,
+   OPT_ENIGMA_FEATURES,
    OPT_OUTPUT
 }OptionCodes;
 
@@ -63,6 +64,13 @@ OptCell opts[] =
         'o', "output-file",
         ReqArg, NULL,
         "Redirect output into the named file."},
+   {OPT_ENIGMA_FEATURES,
+      '\0', "enigma-features",
+      ReqArg, NULL,
+      "Enigma features to be generate. The value is a string of characters "
+      "determining the features to be used. Valid characters are 'V' "
+      "(vertical features), 'H' (horizontal), 'S' (symbols), 'L' "
+      "(length stats) 'C' (conjecture)."},
    {OPT_FREE_NUMBERS,
     '\0', "free-numbers",
      NoArg, NULL,
@@ -77,6 +85,7 @@ OptCell opts[] =
 
 char *outname = NULL;
 FunctionProperties free_symb_prop = FPIgnoreProps;
+EnigmaFeatures Enigma = EFAll;
 
 /*---------------------------------------------------------------------*/
 /*                      Forward Declarations                           */
@@ -108,12 +117,17 @@ static char* top_symbol_string(Term_p term, Sig_p sig)
 
 static void term_features_string(DStr_p str, Term_p term, Sig_p sig, char* sym1, char* sym2)
 {
+   assert(Enigma & EFVertical);
+
    char* sym3 = top_symbol_string(term, sig);
 
    // vertical features
-   DStrAppendStr(str, sym1); DStrAppendChar(str, ':');
-   DStrAppendStr(str, sym2); DStrAppendChar(str, ':');
-   DStrAppendStr(str, sym3); DStrAppendChar(str, ' ');
+   if (Enigma & EFVertical)
+   {
+      DStrAppendStr(str, sym1); DStrAppendChar(str, ':');
+      DStrAppendStr(str, sym2); DStrAppendChar(str, ':');
+      DStrAppendStr(str, sym3); DStrAppendChar(str, ' ');
+   }
    
    if (TermIsVar(term)||(TermIsConst(term))) 
    {
@@ -125,10 +139,13 @@ static void term_features_string(DStr_p str, Term_p term, Sig_p sig, char* sym1,
    }
 
    // horizontal features (functions only)
-   DStr_p hstr = FeaturesGetTermHorizontal(sym3, term, sig);
-   DStrAppendDStr(str, hstr);
-   DStrAppendChar(str, ' ');
-   DStrFree(hstr);
+   if (Enigma & EFHorizontal)
+   {
+      DStr_p hstr = FeaturesGetTermHorizontal(sym3, term, sig);
+      DStrAppendDStr(str, hstr);
+      DStrAppendChar(str, ' ');
+      DStrFree(hstr);
+   }
 }
 
 static void clause_features_string(DStr_p str, Clause_p clause, Sig_p sig, long* vec)
@@ -138,15 +155,16 @@ static void clause_features_string(DStr_p str, Clause_p clause, Sig_p sig, long*
       char* sym1 = EqnIsPositive(lit)?ENIGMA_POS:ENIGMA_NEG;
       if (lit->rterm->f_code == SIG_TRUE_CODE)
       {
-         // verticals
          char* sym2 = SigFindName(sig, lit->lterm->f_code);
+
+         // traverse verticals/horizontals 
          for (int i=0; i<lit->lterm->arity; i++) // here we ignore prop. constants
          {
             term_features_string(str, lit->lterm->args[i], sig, sym1, sym2);
          }
 
-         // horizontals
-         if (lit->lterm->arity > 0) 
+         // top-level horizontal
+         if ((Enigma & EFHorizontal) && (lit->lterm->arity > 0))
          {
             DStr_p hstr = FeaturesGetTermHorizontal(sym2, lit->lterm, sig);
             DStrAppendDStr(str, hstr);
@@ -156,16 +174,20 @@ static void clause_features_string(DStr_p str, Clause_p clause, Sig_p sig, long*
       }
       else
       {
-         // verticals
          char* sym2 = ENIGMA_EQ;
+         
+         // traverse verticals/horizontals 
          term_features_string(str, lit->lterm, sig, sym1, sym2);
          term_features_string(str, lit->rterm, sig, sym1, sym2);
 
-         // horizontals
-         DStr_p hstr = FeaturesGetEqHorizontal(lit->lterm, lit->rterm, sig);
-         DStrAppendDStr(str, hstr);
-         DStrAppendChar(str, ' ');
-         DStrFree(hstr);
+         // top-level horizontal
+         if (Enigma & EFHorizontal)
+         {
+            DStr_p hstr = FeaturesGetEqHorizontal(lit->lterm, lit->rterm, sig);
+            DStrAppendDStr(str, hstr);
+            DStrAppendChar(str, ' ');
+            DStrFree(hstr);
+         }
       }
    }
 
@@ -181,9 +203,17 @@ static void clause_static_features_string(DStr_p str, long* vec, Sig_p sig)
 {
    static char fstr[1024];
 
-   snprintf(fstr, 1024, "!LEN/%ld ", vec[0]); DStrAppendStr(str, fstr);
-   snprintf(fstr, 1024, "!POS/%ld ", vec[1]); DStrAppendStr(str, fstr);
-   snprintf(fstr, 1024, "!NEG/%ld ", vec[2]); DStrAppendStr(str, fstr);
+   if (Enigma & EFLengths) 
+   {
+      snprintf(fstr, 1024, "!LEN/%ld ", vec[0]); DStrAppendStr(str, fstr);
+      snprintf(fstr, 1024, "!POS/%ld ", vec[1]); DStrAppendStr(str, fstr);
+      snprintf(fstr, 1024, "!NEG/%ld ", vec[2]); DStrAppendStr(str, fstr);
+   }
+
+   if (!(Enigma & EFSymbols)) 
+   {
+      return;
+   }
    
    for (long f=sig->internal_symbols+1; f<=sig->f_count; f++)
    {
@@ -268,14 +298,7 @@ static void dump_features_strings(FILE* out, char* filename, TB_p bank, char* pr
       clause_static_features_string(str, vec, bank->sig);
 
       DStrDeleteLastChar(str);
-      if (prefix)
-      {
-         fprintf(out, "%s|%s|%s\n", prefix, DStrView(str), conj);
-      }
-      else
-      {
-         fprintf(out, "%s\n", DStrView(str));
-      }
+      fprintf(out, "%s|%s|%s\n", prefix, DStrView(str), conj);
       DStrReset(str);
       ClauseFree(clause);
    }
@@ -296,7 +319,7 @@ int main(int argc, char* argv[])
   
    DStr_p dstr = NULL;
    char* conj = "";
-   if (args->argc == 3)
+   if ((Enigma & EFConjecture) && (args->argc == 3))
    {
       dstr = get_conjecture_features_string(args->argv[2], bank);
       conj = DStrView(dstr); 
@@ -357,6 +380,9 @@ CLState_p process_options(int argc, char* argv[])
              exit(NO_ERROR);
       case OPT_OUTPUT:
              outname = arg;
+             break;
+      case OPT_ENIGMA_FEATURES:
+             Enigma = ParseEnigmaFeaturesSpec(arg);
              break;
       case OPT_FREE_NUMBERS:
             free_symb_prop = free_symb_prop|FPIsInteger|FPIsRational|FPIsFloat;

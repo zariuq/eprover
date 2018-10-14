@@ -241,6 +241,29 @@ Enigmap_p EnigmapLoad(char* features_filename, Sig_p sig)
    return enigmap;
 }
 
+EnigmaFeatures ParseEnigmaFeaturesSpec(char *spec)
+{
+   EnigmaFeatures enigma_features = EFNone;
+   while (*spec) 
+   {
+      switch (*spec) 
+      {
+         case 'V': enigma_features |= EFVertical; break;
+         case 'H': enigma_features |= EFHorizontal; break;
+         case 'S': enigma_features |= EFSymbols; break;
+         case 'L': enigma_features |= EFLengths; break;
+         case 'C': enigma_features |= EFConjecture; break;
+         case 'W': enigma_features |= EFProofWatch; break;
+         default:
+                   Error("Invalid Enigma features specifier '%c'. Valid characters are 'VHSLCW'.",
+                         USAGE_ERROR, *spec);
+                   break;
+      }
+      spec++;
+   }
+   return enigma_features;
+}
+
 int FeaturesClauseExtend(NumTree_p* counts, Clause_p clause, Enigmap_p enigmap)
 {
    int len = 0;
