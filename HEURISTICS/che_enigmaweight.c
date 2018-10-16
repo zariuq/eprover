@@ -52,47 +52,48 @@ static void extweight_init(EnigmaWeightParam_p data)
    }
    data->enigmap = EnigmapLoad(data->features_filename, data->ocb->sig);
 
-   Clause_p clause;
-   Clause_p anchor;
-   NumTree_p features = NULL;
    int len = 0;
-
-   anchor = data->proofstate->axioms->anchor;
-   for (clause=anchor->succ; clause!=anchor; clause=clause->succ)
+   if (data->enigmap->version & EFConjecture)
    {
-      if(ClauseQueryTPTPType(clause)==CPTypeNegConjecture) 
+      Clause_p clause;
+      Clause_p anchor;
+      NumTree_p features = NULL;
+
+      anchor = data->proofstate->axioms->anchor;
+      for (clause=anchor->succ; clause!=anchor; clause=clause->succ)
       {
-         len += FeaturesClauseExtend(&features, clause, data->enigmap);
-         FeaturesAddClauseStatic(&features, clause, data->enigmap, &len);
+         if(ClauseQueryTPTPType(clause)==CPTypeNegConjecture) 
+         {
+            len += FeaturesClauseExtend(&features, clause, data->enigmap);
+            FeaturesAddClauseStatic(&features, clause, data->enigmap, &len);
+         }
       }
-   }
 
-   if (len >= 2048) { Error("ENIGMA: Too many conjecture features!", OTHER_ERROR); } 
-  
-   //printf("CONJ FEATURES: ");
-   int i = 0;
-   while (features) 
-   {
-      NumTree_p cell = NumTreeExtractEntry(&features,NumTreeMinNode(features)->key);
-      conj_nodes[i].index = cell->key + data->enigmap->feature_count;
-      conj_nodes[i].value = (double)cell->val1.i_val;
-      //printf("%d:%ld ", conj_nodes[i].index, cell->val1.i_val);
-      i++;
-      NumTreeCellFree(cell);
+      if (len >= 2048) { Error("ENIGMA: Too many conjecture features!", OTHER_ERROR); } 
+     
+      //printf("CONJ FEATURES: ");
+      int i = 0;
+      while (features) 
+      {
+         NumTree_p cell = NumTreeExtractEntry(&features,NumTreeMinNode(features)->key);
+         conj_nodes[i].index = cell->key + data->enigmap->feature_count;
+         conj_nodes[i].value = (double)cell->val1.i_val;
+         //printf("%d:%ld ", conj_nodes[i].index, cell->val1.i_val);
+         i++;
+         NumTreeCellFree(cell);
+      }
+      //printf("\n");
+      conj_nodes[i].index = -1;
+      assert(i==len);
    }
-   //printf("\n");
-   conj_nodes[i].index = -1;
-
-   assert(i==len);
 
    data->conj_features = conj_nodes;
    data->conj_features_count = len;
 
-   int n_f = data->enigmap->feature_count;
-   int n_v = data->linear_model->nr_feature;
-   fprintf(GlobalOut, "# ENIGMA: Model '%s' loaded (features: %ld; vector len: %d; version: %s)\n", 
+   fprintf(GlobalOut, 
+      "# ENIGMA: Model '%s' loaded (features: %ld; vector len: %d; version: %ld)\n", 
       data->model_filename, data->enigmap->feature_count, data->linear_model->nr_feature,
-      n_v <= n_f ? "Basic" : (n_v <= 2*n_f ? "ConjFeatures" : "ProofWatch"));
+      data->enigmap->version);
 }
 
 /*---------------------------------------------------------------------*/
@@ -234,13 +235,17 @@ double EnigmaWeightCompute(void* data, Clause_p clause)
    int total = i+local->conj_features_count;
 
    // detect proofwatch version
-   if (2*local->enigmap->feature_count < local->linear_model->nr_feature)
+   if (local->enigmap->version & EFProofWatch)
    {
       //printf("|");
       NumTree_p proof;
       PStack_p stack;
       int k = i + local->conj_features_count;
-      int offset = 2 * local->enigmap->feature_count;
+      int offset = local->enigmap->feature_count;
+      if (local->enigmap->version & EFConjecture) 
+      {
+         offset += local->enigmap->feature_count;
+      }
 
       stack = NumTreeTraverseInit(local->proofstate->watch_progress);
       while((proof = NumTreeTraverseNext(stack)))
@@ -266,8 +271,8 @@ double EnigmaWeightCompute(void* data, Clause_p clause)
    double clen = ClauseWeight(clause,1,1,1,1,1,false);
    res = (clen * local->len_mult) + res;
 
-   if (OutputLevel>=1) {
-      fprintf(GlobalOut, "=%.2f (t=%.3fms,clen=%.1f,vlen=%d): ", res, (double)(GetUSecClock() - start)/ 1000.0, clen, total);
+   if (OutputLevel == 1) {
+      fprintf(GlobalOut, "=%.2f (lin,t=%.3fms,clen=%.1f,vlen=%d): ", res, (double)(GetUSecClock() - start)/ 1000.0, clen, total);
       ClausePrint(GlobalOut, clause, true);
       fprintf(GlobalOut, "\n");
    }

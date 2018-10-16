@@ -129,11 +129,15 @@ static int features_term_collect(
    int len = 0;
 
    // verticals
-   if (snprintf(str, 128, "%s:%s:%s", sym1, sym2, sym3) >= 128) 
+   if (enigmap->version & EFVertical)
    {
-      Error("ENIGMA: Your symbol names are too long (%s:%s:%s)!", OTHER_ERROR, sym1, sym2, sym3);
+      if (snprintf(str, 128, "%s:%s:%s", sym1, sym2, sym3) >= 128) 
+      {
+         Error("ENIGMA: Your symbol names are too long (%s:%s:%s)!", OTHER_ERROR, 
+            sym1, sym2, sym3);
+      }
+      feature_increase(str, 1, counts, enigmap, &len);
    }
-   feature_increase(str, 1, counts, enigmap, &len);
    
    if (TermIsVar(term)||(TermIsConst(term))) { return len; }
    for (int i=0; i<term->arity; i++)
@@ -142,9 +146,12 @@ static int features_term_collect(
    }
 
    // horizontals
-   DStr_p hstr = FeaturesGetTermHorizontal(sym3, term, enigmap->sig);
-   feature_increase(DStrView(hstr), 1, counts, enigmap, &len);
-   DStrFree(hstr);
+   if (enigmap->version & EFHorizontal)
+   {
+      DStr_p hstr = FeaturesGetTermHorizontal(sym3, term, enigmap->sig);
+      feature_increase(DStrView(hstr), 1, counts, enigmap, &len);
+      DStrFree(hstr);
+   }
 
    return len;
 }
@@ -192,6 +199,7 @@ Enigmap_p EnigmapAlloc(void)
 
    res->sig = NULL;
    res->feature_map = NULL;
+   res->version = EFNone;
 
    return res;
 }
@@ -213,6 +221,17 @@ Enigmap_p EnigmapLoad(char* features_filename, Sig_p sig)
    
    Scanner_p in = CreateScanner(StreamTypeFile, features_filename, true, NULL);
    ScannerSetFormat(in, TSTPFormat);                                             
+   enigmap->version = EFAll;
+   if (TestInpId(in, "version"))
+   {
+      AcceptInpId(in, "version");
+      AcceptInpTok(in, OpenBracket);
+      CheckInpTok(in, String);
+      enigmap->version = ParseEnigmaFeaturesSpec(AktToken(in)->literal->string);
+      NextToken(in);
+      AcceptInpTok(in, CloseBracket);
+      AcceptInpTok(in, Fullstop);
+   }
    while (TestInpId(in, "feature"))
    {
       AcceptInpId(in, "feature");
@@ -254,6 +273,7 @@ EnigmaFeatures ParseEnigmaFeaturesSpec(char *spec)
          case 'L': enigma_features |= EFLengths; break;
          case 'C': enigma_features |= EFConjecture; break;
          case 'W': enigma_features |= EFProofWatch; break;
+         case '"': break;
          default:
                    Error("Invalid Enigma features specifier '%c'. Valid characters are 'VHSLCW'.",
                          USAGE_ERROR, *spec);
@@ -274,15 +294,15 @@ int FeaturesClauseExtend(NumTree_p* counts, Clause_p clause, Enigmap_p enigmap)
       char* sym1 = EqnIsPositive(lit)?ENIGMA_POS:ENIGMA_NEG;
       if (lit->rterm->f_code == SIG_TRUE_CODE)
       {
-         // verticals
+         // verticals & horizontals
          char* sym2 = SigFindName(enigmap->sig, lit->lterm->f_code);
          for (int i=0; i<lit->lterm->arity; i++) // here we ignore prop. constants
          {
             len += features_term_collect(counts, lit->lterm->args[i], enigmap, sym1, sym2);
          }
 
-         // horizontals
-         if (lit->lterm->arity > 0) 
+         // top-level horizontal
+         if ((enigmap->version & EFHorizontal) && (lit->lterm->arity > 0))
          {
             hstr = FeaturesGetTermHorizontal(sym2, lit->lterm, enigmap->sig);
             feature_increase(DStrView(hstr), 1, counts, enigmap, &len);
@@ -291,15 +311,18 @@ int FeaturesClauseExtend(NumTree_p* counts, Clause_p clause, Enigmap_p enigmap)
       }
       else
       {
-         // verticals
+         // verticals & horizontals
          char* sym2 = ENIGMA_EQ;
          len += features_term_collect(counts, lit->lterm, enigmap, sym1, sym2);
          len += features_term_collect(counts, lit->rterm, enigmap, sym1, sym2);
 
-         // horizontals
-         hstr = FeaturesGetEqHorizontal(lit->lterm, lit->rterm, enigmap->sig);
-         feature_increase(DStrView(hstr), 1, counts, enigmap, &len);
-         DStrFree(hstr);
+         // top-level horizontal
+         if (enigmap->version & EFHorizontal)
+         {
+            hstr = FeaturesGetEqHorizontal(lit->lterm, lit->rterm, enigmap->sig);
+            feature_increase(DStrView(hstr), 1, counts, enigmap, &len);
+            DStrFree(hstr);
+         }
       }
    }
 
@@ -318,26 +341,32 @@ void FeaturesAddClauseStatic(NumTree_p* counts, Clause_p clause, Enigmap_p enigm
    vec = RegMemProvide(vec, &size, (4*(enigmap->sig->f_count+1))*sizeof(long)); // when sig changes
    for (int i=0; i<4*(enigmap->sig->f_count+1); i++) { vec[i] = 0L; }
 
-   feature_increase("!LEN", (long)ClauseWeight(clause,1,1,1,1,1,false), counts, enigmap, len);
-   feature_increase("!POS", clause->pos_lit_no, counts, enigmap, len);
-   feature_increase("!NEG", clause->neg_lit_no, counts, enigmap, len);
-      
-   PStack_p mod_stack = PStackAlloc();
-   ClauseAddSymbolFeatures(clause, mod_stack, vec);
-   PStackFree(mod_stack);
-  
-   for (long f=enigmap->sig->internal_symbols+1; f<=enigmap->sig->f_count; f++)
+   if (enigmap->version & EFLengths)
    {
-      char* fname = SigFindName(enigmap->sig, f);
-      if ((strlen(fname)>3) && (strncmp(fname, "esk", 3) == 0))
-      {
-         continue;
-      }
+      feature_increase("!LEN", (long)ClauseWeight(clause,1,1,1,1,1,false), counts, enigmap, len);
+      feature_increase("!POS", clause->pos_lit_no, counts, enigmap, len);
+      feature_increase("!NEG", clause->neg_lit_no, counts, enigmap, len);
+   }
 
-      feature_symbol_increase("#+", fname, vec[4*f+0], counts, enigmap, len);
-      feature_symbol_increase("%+", fname, vec[4*f+1], counts, enigmap, len);
-      feature_symbol_increase("#-", fname, vec[4*f+2], counts, enigmap, len);
-      feature_symbol_increase("%-", fname, vec[4*f+3], counts, enigmap, len);
+   if (enigmap->version & EFSymbols)
+   {
+      PStack_p mod_stack = PStackAlloc();
+      ClauseAddSymbolFeatures(clause, mod_stack, vec);
+      PStackFree(mod_stack);
+     
+      for (long f=enigmap->sig->internal_symbols+1; f<=enigmap->sig->f_count; f++)
+      {
+         char* fname = SigFindName(enigmap->sig, f);
+         if ((strlen(fname)>3) && (strncmp(fname, "esk", 3) == 0))
+         {
+            continue;
+         }
+
+         feature_symbol_increase("#+", fname, vec[4*f+0], counts, enigmap, len);
+         feature_symbol_increase("%+", fname, vec[4*f+1], counts, enigmap, len);
+         feature_symbol_increase("#-", fname, vec[4*f+2], counts, enigmap, len);
+         feature_symbol_increase("%-", fname, vec[4*f+3], counts, enigmap, len);
+      }
    }
 }
 

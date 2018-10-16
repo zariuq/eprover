@@ -51,6 +51,7 @@ typedef long EnigmaFeatures;
 typedef struct enigmapcell
 {
    Sig_p sig;
+   EnigmaFeatures version;
    
    StrTree_p feature_map;
    long feature_count;
