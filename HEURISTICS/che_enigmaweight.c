@@ -267,11 +267,13 @@ double EnigmaWeightCompute(void* data, Clause_p clause)
    //printf("\n");
    
    res = predict(local->linear_model, nodes);
+   res = 1 + ((1.0 - res) * 10); // 0 maps to 11, 1 maps to 1
    //fprintf(GlobalOut, "+%0.2f ", res);
    double clen = ClauseWeight(clause,1,1,1,1,1,false);
    res = (clen * local->len_mult) + res;
 
-   if (OutputLevel == 1) {
+   if (OutputLevel == 1) 
+   {
       fprintf(GlobalOut, "=%.2f (lin,t=%.3fms,clen=%.1f,vlen=%d): ", res, (double)(GetUSecClock() - start)/ 1000.0, clen, total);
       ClausePrint(GlobalOut, clause, true);
       fprintf(GlobalOut, "\n");
