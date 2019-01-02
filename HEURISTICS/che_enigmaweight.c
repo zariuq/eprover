@@ -265,6 +265,7 @@ double EnigmaWeightCompute(void* data, Clause_p clause)
       total = k;
    }
    //printf("\n");
+   //printf("[duration] feature extract: %f.2 ms\n", (double)(GetUSecClock() - start)/ 1000.0);
    
    res = predict(local->linear_model, nodes);
    res = 1 + ((1.0 - res) * 10); // 0 maps to 11, 1 maps to 1
@@ -279,8 +280,6 @@ double EnigmaWeightCompute(void* data, Clause_p clause)
       fprintf(GlobalOut, "\n");
    }
    
-   //printf("[duration] linear predict: %.3f ms   (clen=%.1f, vlen=%d)\n", (double)(GetUSecClock() - start)/ 1000.0, clen, total);
-
    return res;
 }
 

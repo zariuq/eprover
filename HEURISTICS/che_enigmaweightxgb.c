@@ -56,43 +56,46 @@ static void extweight_init(EnigmaWeightXgbParam_p data)
 
    data->enigmap = EnigmapLoad(data->features_filename, data->ocb->sig);
 
-   Clause_p clause;
-   Clause_p anchor;
-   NumTree_p features = NULL;
    int len = 0;
-
-   anchor = data->proofstate->axioms->anchor;
-   for (clause=anchor->succ; clause!=anchor; clause=clause->succ)
+   if (data->enigmap->version & EFConjecture)
    {
-      if(ClauseQueryTPTPType(clause)==CPTypeNegConjecture) 
+      Clause_p clause;
+      Clause_p anchor;
+      NumTree_p features = NULL;
+
+      anchor = data->proofstate->axioms->anchor;
+      for (clause=anchor->succ; clause!=anchor; clause=clause->succ)
       {
-         len += FeaturesClauseExtend(&features, clause, data->enigmap);
-         FeaturesAddClauseStatic(&features, clause, data->enigmap, &len);
+         if(ClauseQueryTPTPType(clause)==CPTypeNegConjecture) 
+         {
+            len += FeaturesClauseExtend(&features, clause, data->enigmap);
+            FeaturesAddClauseStatic(&features, clause, data->enigmap, &len);
+         }
       }
-   }
 
-   if (len >= 2048) { Error("ENIGMA: Too many conjecture features!", OTHER_ERROR); } 
+      if (len >= 2048) { Error("ENIGMA: Too many conjecture features!", OTHER_ERROR); } 
   
-   //printf("CONJ FEATURES: ");
-   int i = 0;
-   while (features) 
-   {
-      NumTree_p cell = NumTreeExtractEntry(&features,NumTreeMinNode(features)->key);
-      conj_indices[i] = cell->key + data->enigmap->feature_count;
-      conj_data[i] = (float)cell->val1.i_val;
-      //printf("%d:%d ", conj_indices[i], (int)conj_data[i]);
-      i++;
-      NumTreeCellFree(cell);
-   }
-   //printf("\n");
+      //printf("CONJ FEATURES: ");
+      int i = 0;
+      while (features) 
+      {
+         NumTree_p cell = NumTreeExtractEntry(&features,NumTreeMinNode(features)->key);
+         conj_indices[i] = cell->key + data->enigmap->feature_count;
+         conj_data[i] = (float)cell->val1.i_val;
+         //printf("%d:%d ", conj_indices[i], (int)conj_data[i]);
+         i++;
+         NumTreeCellFree(cell);
+      }
+      //printf("\n");
 
-   assert(i==len);
+      assert(i==len);
+   }
 
    data->conj_features_count = len;
    data->conj_features_indices = conj_indices;
    data->conj_features_data = conj_data;
 
-   fprintf(GlobalOut, "# ENIGMA: XGBoost model '%s' loaded. (features: %ld; conj_feats: %d; version: TheOnly)\n", data->model_filename, data->enigmap->feature_count, data->conj_features_count);
+   fprintf(GlobalOut, "# ENIGMA: XGBoost model '%s' loaded. (features: %ld; conj_feats: %d; version: %ld)\n", data->model_filename, data->enigmap->feature_count, data->conj_features_count, data->enigmap->version);
 }
 
 /*---------------------------------------------------------------------*/
@@ -233,7 +236,7 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
       //printf("%d:%.0f ", xgb_indices[i+j], xgb_data[i+j]);
    }
    //printf("\n");
-   //printf("[duration] feature extract: %f.2 ms\n", (double)(clock() - start)/ (CLOCKS_PER_SEC / 1000));
+   //printf("[duration] feature extract: %f.2 ms\n", (double)(GetUSecClock() - start)/1000.0);
    
    //start = clock();
    size_t xgb_nelem = i + local->conj_features_count;
