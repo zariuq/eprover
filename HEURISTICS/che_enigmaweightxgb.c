@@ -240,7 +240,7 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
    
    //start = clock();
    size_t xgb_nelem = i + local->conj_features_count;
-   size_t xgb_num_col = 2 * local->enigmap->feature_count;
+   size_t xgb_num_col = 1 + (2 * local->enigmap->feature_count);
    size_t xgb_nindptr = 2;
    static bst_ulong xgb_indptr[2];
    xgb_indptr[0] = 0L;
