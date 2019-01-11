@@ -271,12 +271,9 @@ static DStr_p get_conjecture_features_string(char* filename, TB_p bank)
    return str;
 }
 
-static void dump_features_strings(FILE* out, char* filename, TB_p bank, char* prefix, char* conj)
+// TODO: join these two!
+static DStr_p get_theory_features_string(char* filename, TB_p bank)
 {
-   DStr_p str = DStrAlloc();
-   Scanner_p in = CreateScanner(StreamTypeFile, filename, true, NULL);
-   ScannerSetFormat(in, TSTPFormat);
-
    static long* vec = NULL;
    static size_t size = 0;
    if (!vec)
@@ -284,27 +281,31 @@ static void dump_features_strings(FILE* out, char* filename, TB_p bank, char* pr
       size = (3+4*64)*sizeof(long); // start with memory for 64 symbols
       vec = RegMemAlloc(size);
    }
-   
+   vec = RegMemProvide(vec, &size, (3+4*(bank->sig->f_count+1))*sizeof(long));
+   for (int i=0; i<3+4*(bank->sig->f_count+1); i++) { vec[i] = 0L; }
+
+   DStr_p str = DStrAlloc();
+   Scanner_p in = CreateScanner(StreamTypeFile, filename, true, NULL);
+   ScannerSetFormat(in, TSTPFormat);
    while (TestInpId(in, "cnf"))
    {
       Clause_p clause = ClauseParse(in, bank);
       vec = RegMemProvide(vec, &size, (3+4*(bank->sig->f_count+1))*sizeof(long));
-      for (int i=0; i<3+4*(bank->sig->f_count+1); i++) { vec[i] = 0L; }
-      
-      vec[0] = (long)ClauseWeight(clause,1,1,1,1,1,false);
-      vec[1] = clause->pos_lit_no;
-      vec[2] = clause->neg_lit_no;
-      clause_features_string(str, clause, bank->sig, &vec[3]);
-      clause_static_features_string(str, vec, bank->sig);
-
-      DStrDeleteLastChar(str);
-      fprintf(out, "%s|%s|%s\n", prefix, DStrView(str), conj);
-      DStrReset(str);
+      if (ClauseQueryTPTPType(clause) != CPTypeNegConjecture) 
+      {
+         vec[0] += (long)ClauseWeight(clause,1,1,1,1,1,false);
+         vec[1] += clause->pos_lit_no;
+         vec[2] += clause->neg_lit_no;
+         clause_features_string(str, clause, bank->sig, &vec[3]);
+      }
       ClauseFree(clause);
    }
    CheckInpTok(in, NoToken);
    DestroyScanner(in);
-   DStrFree(str);
+
+   clause_static_features_string(str, vec, bank->sig);
+   DStrDeleteLastChar(str);
+   return str;
 }
 
 int main(int argc, char* argv[])
@@ -317,26 +318,14 @@ int main(int argc, char* argv[])
    ProofState_p state = ProofStateAlloc(free_symb_prop);
    TB_p bank = state->terms;
   
-   DStr_p dstr = NULL;
-   char* conj = "";
-   if ((Enigma & EFConjecture) && (args->argc == 3))
-   {
-      dstr = get_conjecture_features_string(args->argv[2], bank);
-      conj = DStrView(dstr); 
-   }
-   if (args->argc == 1)
-   {
-      dump_features_strings(GlobalOut, args->argv[0], bank, "*", conj);
-   }
-   else
-   {
-      dump_features_strings(GlobalOut, args->argv[0], bank, "+", conj);
-      dump_features_strings(GlobalOut, args->argv[1], bank, "-", conj);
-   }
+   DStr_p cstr = get_conjecture_features_string(args->argv[0], bank);
+   DStr_p tstr = get_theory_features_string(args->argv[0], bank);
 
-   if (dstr) { DStrFree(dstr); }
-   //TBFree(bank);
-   //SigFree(sig);
+   fprintf(GlobalOut, "*|%s|%s\n", DStrView(tstr), DStrView(cstr));
+
+   DStrFree(cstr);
+   DStrFree(tstr);
+   
    ProofStateFree(state);
    CLStateFree(args);
    ExitIO();
@@ -406,12 +395,9 @@ void print_help(FILE* out)
 {
    fprintf(out, "\n\
 \n\
-Usage: enigma-features [options] cnfs.tptp\n\
-   or: enigma-features [options] train.pos train.neg [train.cnf]\n\
+Usage: enigma-problem-features [options] cnf.tptp\n\
 \n\
-Make enigma features from TPTP cnf clauses.  Optionally prefixing with\n\
-sign (+ or -), and postfixing with conjecture features from train.cnf.\n\
-Output line format is 'sign|clause|conjecture'.\n\
+Make enigma features from TPTP problem in CNF.\n\
 \n");
    PrintOptions(stdout, opts, NULL);
 }
