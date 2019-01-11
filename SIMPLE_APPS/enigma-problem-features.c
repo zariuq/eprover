@@ -321,7 +321,7 @@ int main(int argc, char* argv[])
    DStr_p cstr = get_conjecture_features_string(args->argv[0], bank);
    DStr_p tstr = get_theory_features_string(args->argv[0], bank);
 
-   fprintf(GlobalOut, "*|%s|%s\n", DStrView(tstr), DStrView(cstr));
+   fprintf(GlobalOut, "#|%s|%s\n", DStrView(tstr), DStrView(cstr));
 
    DStrFree(cstr);
    DStrFree(tstr);
