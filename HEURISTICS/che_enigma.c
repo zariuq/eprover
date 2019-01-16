@@ -168,7 +168,7 @@ DStr_p FeaturesGetTermHorizontal(char* top, Term_p term, Sig_p sig)
    {
       PStackPushP(args, top_symbol_string(term->args[i], sig));
    }
-   PStackSort(args, string_compare);
+   //PStackSort(args, string_compare);
    DStrAppendStr(str, top);
    while (!PStackEmpty(args))
    {  
@@ -362,10 +362,16 @@ void FeaturesAddClauseStatic(NumTree_p* counts, Clause_p clause, Enigmap_p enigm
             continue;
          }
 
-         feature_symbol_increase("#+", fname, vec[4*f+0], counts, enigmap, len);
-         feature_symbol_increase("%+", fname, vec[4*f+1], counts, enigmap, len);
-         feature_symbol_increase("#-", fname, vec[4*f+2], counts, enigmap, len);
-         feature_symbol_increase("%-", fname, vec[4*f+3], counts, enigmap, len);
+         if (vec[4*f+0] > 0)
+         {
+            feature_symbol_increase("#+", fname, vec[4*f+0], counts, enigmap, len);
+            feature_symbol_increase("%+", fname, vec[4*f+1]+1, counts, enigmap, len);
+         }
+         if (vec[4*f+2] > 0)
+         {
+            feature_symbol_increase("#-", fname, vec[4*f+2], counts, enigmap, len);
+            feature_symbol_increase("%-", fname, vec[4*f+3]+1, counts, enigmap, len);
+         }
       }
    }
 }
