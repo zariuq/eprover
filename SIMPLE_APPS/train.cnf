@@ -14,7 +14,7 @@
 cnf(i_0_57, plain, (top_str(esk1_0))).
 cnf(i_0_78, plain, (top_str(esk7_0))).
 cnf(i_0_84, plain, (top_str(esk9_0))).
-cnf(i_0_113, negated_conjecture, (top_str(esk16_0))).
+cnf(i_0_113, negated_conjecture, (top_str(X))).
 cnf(i_0_77, plain, (strict_top_str(esk7_0))).
 cnf(i_0_82, plain, (strict_top_str(esk9_0))).
 cnf(i_0_67, plain, (v1_membered(empty_set))).

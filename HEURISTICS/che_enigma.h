@@ -43,6 +43,7 @@ typedef enum
    EFLengths = 8,
    EFConjecture = 16,
    EFProofWatch = 32,
+   EFVariables = 64,
    EFAll = 0xFFFF
 }EnigmaFeature;
 
@@ -82,6 +83,10 @@ EnigmaFeatures ParseEnigmaFeaturesSpec(char *spec);
 
 DStr_p FeaturesGetTermHorizontal(char* top, Term_p term, Sig_p sig);
 DStr_p FeaturesGetEqHorizontal(Term_p lterm, Term_p rterm, Sig_p sig);
+
+void FeaturesClauseVariablesExtend(NumTree_p* stat, Clause_p clause, int* distinct, int offset);
+void FeaturesClauseVariablesStat(NumTree_p* stat, long* out);
+void FeaturesClauseVariables(Clause_p clause, long* out);
 
 int FeaturesClauseExtend(NumTree_p* counts, Clause_p clause, Enigmap_p enigmap);
 void FeaturesAddClauseStatic(NumTree_p* counts, Clause_p clause, Enigmap_p enigmap, int *len);

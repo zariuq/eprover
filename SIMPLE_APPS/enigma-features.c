@@ -199,7 +199,7 @@ static void clause_features_string(DStr_p str, Clause_p clause, Sig_p sig, long*
    }
 }
 
-static void clause_static_features_string(DStr_p str, long* vec, Sig_p sig)
+static void clause_static_features_string(DStr_p str, long* vec, Sig_p sig, long* vars)
 {
    static char fstr[1024];
 
@@ -208,6 +208,18 @@ static void clause_static_features_string(DStr_p str, long* vec, Sig_p sig)
       snprintf(fstr, 1024, "!LEN/%ld ", vec[0]); DStrAppendStr(str, fstr);
       snprintf(fstr, 1024, "!POS/%ld ", vec[1]); DStrAppendStr(str, fstr);
       snprintf(fstr, 1024, "!NEG/%ld ", vec[2]); DStrAppendStr(str, fstr);
+   }
+
+   // if (variable features) ...
+   if (vars && (Enigma & EFVariables))
+   {
+      snprintf(fstr, 1024, "#!COUNT/%ld ", vars[0]); DStrAppendStr(str, fstr);
+      snprintf(fstr, 1024, "#!OCCUR/%ld ", vars[1]); DStrAppendStr(str, fstr);
+      snprintf(fstr, 1024, "#!UNIQ/%ld ",  vars[2]); DStrAppendStr(str, fstr);
+      snprintf(fstr, 1024, "#!SHARE/%ld ", vars[3]); DStrAppendStr(str, fstr);
+      snprintf(fstr, 1024, "%%!MAX1/%ld ", vars[4]); DStrAppendStr(str, fstr);
+      snprintf(fstr, 1024, "%%!MAX2/%ld ", vars[5]); DStrAppendStr(str, fstr);
+      snprintf(fstr, 1024, "%%!MAX3/%ld ", vars[6]); DStrAppendStr(str, fstr);
    }
 
    if (!(Enigma & EFSymbols)) 
@@ -239,6 +251,10 @@ static DStr_p get_conjecture_features_string(char* filename, TB_p bank)
 {
    static long* vec = NULL;
    static size_t size = 0;
+   NumTree_p stat = NULL;
+   long vars[10] = { 0 };
+   int offset = 0;
+
    if (!vec)
    {
       size = (3+4*64)*sizeof(long); // start with memory for 64 symbols
@@ -260,19 +276,31 @@ static DStr_p get_conjecture_features_string(char* filename, TB_p bank)
          vec[1] += clause->pos_lit_no;
          vec[2] += clause->neg_lit_no;
          clause_features_string(str, clause, bank->sig, &vec[3]);
+         if (Enigma & EFVariables)
+         {
+            int distinct = 0;
+            FeaturesClauseVariablesExtend(&stat, clause, &distinct, offset);
+            offset += (2 * distinct);
+         }
       }
       ClauseFree(clause);
    }
    CheckInpTok(in, NoToken);
    DestroyScanner(in);
 
-   clause_static_features_string(str, vec, bank->sig);
+   if (Enigma & EFVariables)
+   {
+      FeaturesClauseVariablesStat(&stat, vars);
+      NumTreeFree(stat);
+   }
+   clause_static_features_string(str, vec, bank->sig, vars);
    DStrDeleteLastChar(str);
    return str;
 }
 
 static void dump_features_strings(FILE* out, char* filename, TB_p bank, char* prefix, char* conj)
 {
+   long vars[10];
    DStr_p str = DStrAlloc();
    Scanner_p in = CreateScanner(StreamTypeFile, filename, true, NULL);
    ScannerSetFormat(in, TSTPFormat);
@@ -295,7 +323,11 @@ static void dump_features_strings(FILE* out, char* filename, TB_p bank, char* pr
       vec[1] = clause->pos_lit_no;
       vec[2] = clause->neg_lit_no;
       clause_features_string(str, clause, bank->sig, &vec[3]);
-      clause_static_features_string(str, vec, bank->sig);
+      if (Enigma & EFVariables) 
+      {
+         FeaturesClauseVariables(clause, vars);
+      }
+      clause_static_features_string(str, vec, bank->sig, vars);
 
       DStrDeleteLastChar(str);
       fprintf(out, "%s|%s|%s\n", prefix, DStrView(str), conj);

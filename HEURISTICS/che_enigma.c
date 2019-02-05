@@ -156,6 +156,40 @@ static int features_term_collect(
    return len;
 }
 
+static void features_term_variables(
+   NumTree_p* stat,
+   Term_p term,
+   int* distinct,
+   int offset)
+{
+   if (TermIsVar(term))
+   {
+      NumTree_p vnode = NumTreeFind(stat, term->f_code - offset);
+      if (vnode)
+      {
+         vnode->val1.i_val += 1;
+      }
+      else
+      {
+         vnode = NumTreeCellAllocEmpty();
+         vnode->key = term->f_code - offset;
+         vnode->val1.i_val = 1;
+         NumTreeInsert(stat, vnode);
+         if (distinct)
+         {
+            (*distinct)++;
+         }
+      }
+   }
+   else
+   {
+      for (int i=0; i<term->arity; i++)
+      {
+         features_term_variables(stat, term->args[i], distinct, offset);
+      }
+   }
+}
+
 /*---------------------------------------------------------------------*/
 /*                         Exported Functions                          */
 /*---------------------------------------------------------------------*/
@@ -273,6 +307,7 @@ EnigmaFeatures ParseEnigmaFeaturesSpec(char *spec)
          case 'L': enigma_features |= EFLengths; break;
          case 'C': enigma_features |= EFConjecture; break;
          case 'W': enigma_features |= EFProofWatch; break;
+         case 'X': enigma_features |= EFVariables; break;
          case '"': break;
          default:
                    Error("Invalid Enigma features specifier '%c'. Valid characters are 'VHSLCW'.",
@@ -328,6 +363,69 @@ int FeaturesClauseExtend(NumTree_p* counts, Clause_p clause, Enigmap_p enigmap)
 
    return len;
 }
+
+void FeaturesClauseVariablesExtend(
+   NumTree_p* stat,
+   Clause_p clause,
+   int* distinct,
+   int offset)
+{
+   for(Eqn_p lit = clause->literals; lit; lit = lit->next)
+   {
+      features_term_variables(stat, lit->lterm, distinct, offset);
+      features_term_variables(stat, lit->rterm, distinct, offset);
+   }
+}
+
+/*
+   out[0]: distinct variable count
+   out[1]: variable occurances count
+   out[2]: unique (non-shared) variables count
+   out[3]: shared variables count
+   out[4]: max1 (the occurence count of the most occuring variable)
+   out[5]: max2 ( --- second most --- )
+   out[6]: max3 ( --- third most --- )
+*/
+void FeaturesClauseVariablesStat(
+   NumTree_p* stat,
+   long* out)
+{
+   PStack_p stack;
+   NumTree_p vnode;
+
+   stack = NumTreeTraverseInit(*stat);
+   while ((vnode = NumTreeTraverseNext(stack)))
+   {
+      out[0]++;
+      out[1] += vnode->val1.i_val;
+      if (vnode->val1.i_val == 1)
+      {
+         out[2]++;
+      }
+      else
+      {
+         out[3]++;
+      }
+      if (vnode->val1.i_val >= out[4])
+      {
+         out[6] = out[5];
+         out[5] = out[4];
+         out[4] = vnode->val1.i_val;
+      }
+   }
+   NumTreeTraverseExit(stack);
+}
+
+void FeaturesClauseVariables(Clause_p clause, long* out)
+{
+   for (int i=0; i<=6; i++) { out[i] = 0; }
+
+   NumTree_p stat = NULL;
+   FeaturesClauseVariablesExtend(&stat, clause, NULL, 0);
+   FeaturesClauseVariablesStat(&stat, out);
+   NumTreeFree(stat);
+}
+
       
 void FeaturesAddClauseStatic(NumTree_p* counts, Clause_p clause, Enigmap_p enigmap, int *len)
 {
