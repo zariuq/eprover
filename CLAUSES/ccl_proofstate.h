@@ -29,6 +29,7 @@
 #include <ccl_def_handling.h>
 #include <ccl_garbage_coll.h>
 #include <ccl_global_indices.h>
+#include <ccl_watchlist.h>
 
 /*---------------------------------------------------------------------*/
 /*                    Data type declarations                           */
@@ -66,8 +67,9 @@ typedef struct proofstatecell
    ClauseSet_p   demods[3];       /* Synonyms for
                                      processed_pos_rules and
                                      processed_pos_eqns */
-   ClauseSet_p   watchlist;
-   GlobalIndices wlindices;
+   WatchlistControl_p wlcontrol;
+   //ClauseSet_p   watchlist;
+   //GlobalIndices wlindices;
    bool          state_is_complete;
    bool          has_interpreted_symbols;
    DefStore_p    definition_store;
@@ -101,7 +103,7 @@ typedef struct proofstatecell
    unsigned long gc_count;
    unsigned long gc_used_count;
 
-   NumTree_p watch_progress;
+   //NumTree_p watch_progress;
 }ProofStateCell, *ProofState_p;
 
 typedef enum

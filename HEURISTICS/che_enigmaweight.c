@@ -247,7 +247,7 @@ double EnigmaWeightCompute(void* data, Clause_p clause)
          offset += local->enigmap->feature_count;
       }
 
-      stack = NumTreeTraverseInit(local->proofstate->watch_progress);
+      stack = NumTreeTraverseInit(local->proofstate->wlcontrol->watch_progress);
       while((proof = NumTreeTraverseNext(stack)))
       {
          if (proof->val1.i_val == 0) 

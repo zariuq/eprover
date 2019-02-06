@@ -74,8 +74,12 @@ Clause_p Saturate(ProofState_p state, ProofControl_p control, long
                   step_limit, long proc_limit, long unproc_limit, long
                   total_limit,  long generated_limit, long tb_insert_limit,
                   long answer_limit);
-
-
+long RemoveSubsumed(GlobalIndices_p indices,
+                            FVPackedClause_p subsumer,
+                            ClauseSet_p set,
+                            ClauseSet_p archive,
+                            NumTree_p* watch_progress,
+							Sig_p sig);
 
 #endif
 

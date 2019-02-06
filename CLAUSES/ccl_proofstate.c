@@ -118,19 +118,6 @@ static void clause_set_pick_training_examples(ClauseSet_p set,
    }
 }
 
-static void watchlist_load_file(ProofState_p state,
-                                char* watchlist_filename,
-                                ClauseSet_p watchlist,
-                                IOFormat parse_format)
-{
-   Scanner_p in;
-   in = CreateScanner(StreamTypeFile, watchlist_filename, true, NULL);
-   ScannerSetFormat(in, parse_format);
-   ClauseSetParseList(in, watchlist, state->terms);
-   CheckInpTok(in, NoToken);
-   DestroyScanner(in);
-}
-
 /*-----------------------------------------------------------------------
 //
 // Function: ProofStateLoadWatchlistDir()
@@ -142,88 +129,6 @@ static void watchlist_load_file(ProofState_p state,
 // Side Effects    : IO, memory ops, extends state->watchlist.
 //
 /----------------------------------------------------------------------*/
-
-int filename_compare(IntOrP* left, IntOrP* right)
-{
-   return strcmp(DStrView((DStr_p)(left->p_val)), DStrView((DStr_p)(right->p_val)));
-}
-
-
-static void watchlist_load_dir(ProofState_p state,
-                               char* watchlist_dir,
-                               IOFormat parse_format)
-{
-   DIR *dp;
-   struct dirent *ep;
-   ClauseSet_p tmpset;
-   DStr_p filename;
-   Clause_p handle;
-   IntOrP val1, val2;
-   long proof_no = 0;
-
-   if (!watchlist_dir)
-   {
-      return;
-   }
-
-   dp = opendir(watchlist_dir);
-   if (!dp)
-   {  
-      Error("Can't access watchlist dir '%s'", OTHER_ERROR, watchlist_dir);
-      return;
-   }
-
-   PStack_p filenames = PStackAlloc();
-   while ((ep = readdir(dp)) != NULL)
-   {
-      if (ep->d_type == DT_DIR)
-      {
-         continue;
-      }
-
-      filename = DStrAlloc();
-      DStrAppendStr(filename, watchlist_dir);
-      DStrAppendChar(filename, '/');
-      DStrAppendStr(filename, ep->d_name);
-
-      PStackPushP(filenames, filename);
-   }
-   closedir(dp);
-   PStackSort(filenames, (ComparisonFunctionType)filename_compare);
-
-   for (proof_no=0; proof_no<filenames->current; proof_no++)
-   {
-      filename = filenames->stack[proof_no].p_val;
-
-      tmpset = ClauseSetAlloc();
-      watchlist_load_file(state, DStrView(filename), tmpset, parse_format);
-
-      // set origin proof number
-      for(handle = tmpset->anchor->succ; 
-          handle != tmpset->anchor; 
-          handle = handle->succ)
-      {
-         handle->watch_proof = proof_no+1;
-      }
-
-      // initialize watchlist proof progress
-      val1.i_val = 0; // 0 matched so far ...
-      val2.i_val = tmpset->members; // ... out of "val2" total
-      NumTreeStore(&state->watch_progress, proof_no+1, val1, val2);
-      
-      if (OutputLevel >= 1)
-      {
-         fprintf(GlobalOut, "#   watchlist %4ld: %8ld clauses from '%s'\n", 
-            proof_no+1, tmpset->members, DStrView(filename));
-      }
-
-      ClauseSetInsertSet(state->watchlist, tmpset);
-      ClauseSetFree(tmpset);
-      DStrFree(filename);
-   }
-
-   PStackFree(filenames);
-}
 
 /*---------------------------------------------------------------------*/
 /*                         Exported Functions                          */
@@ -270,7 +175,7 @@ ProofState_p ProofStateAlloc(FunctionProperties free_symb_prop)
    handle->tmp_store            = ClauseSetAlloc();
    handle->eval_store           = ClauseSetAlloc();
    handle->archive              = ClauseSetAlloc();
-   handle->watchlist            = ClauseSetAlloc();
+   handle->wlcontrol            = WatchlistControlAlloc();
    handle->f_archive            = FormulaSetAlloc();
    handle->extract_roots        = PStackAlloc();
    GlobalIndicesNull(&(handle->gindices));
@@ -282,7 +187,7 @@ ProofState_p ProofStateAlloc(FunctionProperties free_symb_prop)
    handle->demods[0]            = handle->processed_pos_rules;
    handle->demods[1]            = handle->processed_pos_eqns;
    handle->demods[2]            = NULL;
-   GlobalIndicesNull(&(handle->wlindices));
+   //GlobalIndicesNull(&(handle->wlindices));
    handle->state_is_complete       = true;
    handle->has_interpreted_symbols = false;
    handle->definition_store     = DefStoreAlloc(handle->terms);
@@ -301,7 +206,7 @@ ProofState_p ProofStateAlloc(FunctionProperties free_symb_prop)
    GCRegisterClauseSet(handle->gc_terms, handle->tmp_store);
    GCRegisterClauseSet(handle->gc_terms, handle->eval_store);
    GCRegisterClauseSet(handle->gc_terms, handle->archive);
-   GCRegisterClauseSet(handle->gc_terms, handle->watchlist);
+   WatchlistGCRegister(handle->gc_terms, handle->wlcontrol);
    GCRegisterClauseSet(handle->gc_terms, handle->definition_store->def_clauses);
    GCRegisterFormulaSet(handle->gc_terms, handle->definition_store->def_archive);
    GCRegisterFormulaSet(handle->gc_terms, handle->f_archive);
@@ -333,7 +238,7 @@ ProofState_p ProofStateAlloc(FunctionProperties free_symb_prop)
    handle->signature->distinct_props =
       handle->signature->distinct_props&(~free_symb_prop);
 
-   handle->watch_progress = NULL;
+   //handle->watch_progress = NULL;
 
    return handle;
 }
@@ -374,7 +279,7 @@ void ProofStateLoadWatchlist(ProofState_p state,
          fprintf(GlobalOut, "# Loading directory watchlist from '%s'\n", 
             watchlist_dirname);
       }
-      watchlist_load_dir(state, watchlist_dirname, parse_format);
+      WatchlistLoadDir(state->wlcontrol, state->terms, watchlist_dirname, parse_format);
    }
    else if (watchlist_filename)
    {
@@ -385,33 +290,26 @@ void ProofStateLoadWatchlist(ProofState_p state,
       }
       if (watchlist_filename != UseInlinedWatchList) 
       {
-         watchlist_load_file(state, watchlist_filename, state->watchlist, 
-                             parse_format);
+         ClauseSet_p tmpset = WatchlistLoadFile(state->terms, watchlist_filename, parse_format);
+         WatchlistInsertSet(state->wlcontrol, tmpset);
+         ClauseSetFree(tmpset);
       }
    }
    else
    {
-      GCDeregisterClauseSet(state->gc_terms, state->watchlist);
-      ClauseSetFree(state->watchlist);
-      state->watchlist = NULL;
+      //GCDeregisterClauseSet(state->gc_terms, state->watchlist);
+      //ClauseSetFree(state->watchlist);
+      WatchlistControlFree(state->wlcontrol, state->gc_terms, false);
+      state->wlcontrol = NULL;
       if (OutputLevel >= 1)
       {
          fprintf(GlobalOut, "# Watchlist not in use\n");
       }
       return;
    }
+
+   WatchlistLoaded(state->wlcontrol);
       
-   ClauseSetSetTPTPType(state->watchlist, CPTypeWatchClause);
-   ClauseSetSetProp(state->watchlist, CPWatchOnly);
-   ClauseSetDefaultWeighClauses(state->watchlist);
-   if(WLNormalizeSkolemSymbols)
-   {
-	ClauseSetSortLiterals(state->watchlist, EqnSubsumeInverseCompareRefWL);
-   }
-   {
-	ClauseSetSortLiterals(state->watchlist, EqnSubsumeInverseCompareRef);
-   }
-   ClauseSetDocInital(GlobalOut, OutputLevel, state->watchlist);
 }
 
 
@@ -429,29 +327,9 @@ void ProofStateLoadWatchlist(ProofState_p state,
 
 void ProofStateInitWatchlist(ProofState_p state, OCB_p ocb)
 {
-   ClauseSet_p tmpset;
-   Clause_p handle;
-
-   if(state->watchlist)
+   if(state->wlcontrol)
    {
-      tmpset = ClauseSetAlloc();
-
-      ClauseSetMarkMaximalTerms(ocb, state->watchlist);
-      while(!ClauseSetEmpty(state->watchlist))
-      {
-         handle = ClauseSetExtractFirst(state->watchlist);
-         ClauseSetInsert(tmpset, handle);
-      }
-      ClauseSetIndexedInsertClauseSet(state->watchlist, tmpset);
-      ClauseSetFree(tmpset);
-      GlobalIndicesInsertClauseSet(&(state->wlindices),state->watchlist);
-
-      if (OutputLevel >= 1)
-      {
-         fprintf(GlobalOut, "# Total watchlist clauses: %ld\n", 
-            state->watchlist->members);
-      }
-      // ClauseSetPrint(stdout, state->watchlist, true);
+      WatchlistInit(state->wlcontrol, ocb);
    }
 }
 
@@ -485,10 +363,11 @@ void ProofStateResetClauseSets(ProofState_p state, bool term_gc)
    ClauseSetFreeClauses(state->ax_archive);
    FormulaSetFreeFormulas(state->f_ax_archive);
    GlobalIndicesReset(&(state->gindices));
-   if(state->watchlist)
+   if(state->wlcontrol)
    {
-      ClauseSetFreeClauses(state->watchlist);
-      GlobalIndicesReset(&(state->wlindices));
+      WatchlistReset(state->wlcontrol);
+      //ClauseSetFreeClauses(state->watchlist);
+      //GlobalIndicesReset(&(state->wlindices));
    }
    if(term_gc)
    {
@@ -530,11 +409,11 @@ void ProofStateFree(ProofState_p junk)
    GlobalIndicesFreeIndices(&(junk->gindices));
    GCAdminFree(junk->gc_terms);
    //GCAdminFree(junk->gc_original_terms);
-   if(junk->watchlist)
+   if(junk->wlcontrol)
    {
-      ClauseSetFree(junk->watchlist);
+      //ClauseSetFree(junk->watchlist);
+      WatchlistControlFree(junk->wlcontrol, NULL, true);
    }
-   GlobalIndicesFreeIndices(&(junk->wlindices));
 
    DefStoreFree(junk->definition_store);
    if(junk->fvi_cspec)
@@ -675,19 +554,27 @@ void ProofStateTrain(ProofState_p state, bool print_pos, bool print_neg)
    if(print_pos)
    {
       fprintf(GlobalOut, "# Training: Positive examples begin\n");
-      if(ProofObjectRecordsProofVector && state->watchlist)
-		PStackClausePrintWithState(GlobalOut, pos_examples, "# trainpos #proofvector ");	  
-	  else
-		PStackClausePrint(GlobalOut, pos_examples, "# trainpos");
+      if(ProofObjectRecordsProofVector && state->wlcontrol)
+      {
+   		PStackClausePrintWithState(GlobalOut, pos_examples, "# trainpos #proofvector ");	  
+      }
+	   else
+      {
+   		PStackClausePrint(GlobalOut, pos_examples, "# trainpos");
+      }
       fprintf(GlobalOut, "# Training: Positive examples end\n");
    }
    if(print_neg)
    {
       fprintf(GlobalOut, "# Training: Negative examples begin\n");
-      if(ProofObjectRecordsProofVector && state->watchlist)
-		PStackClausePrintWithState(GlobalOut, neg_examples, "#trainneg #proofvector ");	  
-	  else
-		PStackClausePrint(GlobalOut, neg_examples, "#trainneg");
+      if(ProofObjectRecordsProofVector && state->wlcontrol)
+      {
+   		PStackClausePrintWithState(GlobalOut, neg_examples, "#trainneg #proofvector ");	  
+      }
+      else
+      {
+         PStackClausePrint(GlobalOut, neg_examples, "#trainneg");
+      }
       fprintf(GlobalOut, "# Training: Negative examples end\n");
    }
 

@@ -14,7 +14,7 @@
 cnf(i_0_57, plain, (top_str(esk1_0))).
 cnf(i_0_78, plain, (top_str(esk7_0))).
 cnf(i_0_84, plain, (top_str(esk9_0))).
-cnf(i_0_113, negated_conjecture, (top_str(X))).
+cnf(i_0_113, negated_conjecture, (top_str2(X,Y))).
 cnf(i_0_77, plain, (strict_top_str(esk7_0))).
 cnf(i_0_82, plain, (strict_top_str(esk9_0))).
 cnf(i_0_67, plain, (v1_membered(empty_set))).
@@ -29,7 +29,7 @@ cnf(i_0_63, plain, (v5_membered(empty_set))).
 cnf(i_0_71, plain, (v5_membered(esk6_0))).
 cnf(i_0_68, plain, (empty(empty_set))).
 cnf(i_0_81, plain, (topological_space(esk9_0))).
-cnf(i_0_114, negated_conjecture, (topological_space(esk16_0))).
+cnf(i_0_114, negated_conjecture, (topological_space2(Z,X,Z,esk16_0))).
 cnf(i_0_58, plain, (one_sorted_str(esk2_0))).
 cnf(i_0_85, plain, (empty(esk10_1(X1)))).
 cnf(i_0_109, negated_conjecture, (in(esk18_0,esk17_0))).
