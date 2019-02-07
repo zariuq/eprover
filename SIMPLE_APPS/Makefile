@@ -46,7 +46,7 @@ ex_commandline: $(EX_COMMANDLINE)
 	$(LD) -o ex_commandline $(EX_COMMANDLINE) $(LIBS)
 
 ENIGMACONJFEATURES = enigma-features.o \
-            ../lib/PCL2.a ../lib/CLAUSES.a ../lib/ORDERINGS.a \
+            ../lib/CONTROL.a ../lib/PCL2.a ../lib/CLAUSES.a ../lib/ORDERINGS.a \
             ../lib/TERMS.a ../lib/INOUT.a ../lib/BASICS.a ../lib/HEURISTICS.a
 
 enigma-features: $(ENIGMACONJFEATURES)

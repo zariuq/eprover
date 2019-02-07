@@ -31,6 +31,7 @@ Changes
 #define CCL_UNFOLD_DEFS
 
 #include "ccl_clausefunc.h"
+#include "ccl_watchlist.h"
 
 /*---------------------------------------------------------------------*/
 /*                    Data type declarations                           */
@@ -53,11 +54,11 @@ Changes
 
 bool ClauseUnfoldEqDef(Clause_p clause, ClausePos_p demod);
 bool ClauseSetUnfoldEqDef(ClauseSet_p set, ClausePos_p demod);
-long ClauseSetUnfoldAllEqDefs(ClauseSet_p set, ClauseSet_p passive,
+long ClauseSetUnfoldAllEqDefs(ClauseSet_p set, WatchlistControl_p passive,
                               ClauseSet_p archive,
                int min_arity, int eqdef_incrlimit);
 
-long ClauseSetPreprocess(ClauseSet_p set, ClauseSet_p passive,
+long ClauseSetPreprocess(ClauseSet_p set, WatchlistControl_p passive,
                          ClauseSet_p archive, TB_p tmp_terms,
                          int eqdef_incrlimit, long eqdef_maxclauses);
 

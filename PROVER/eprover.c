@@ -139,6 +139,7 @@ ProofState_p parse_spec(CLState_p state,
    int i;
    StrTree_p skip_includes = NULL;
    long parsed_ax_no;
+   ClauseSet_p watchset = ClauseSetAlloc(); // YAN
 
    proofstate = ProofStateAlloc(free_symb_prop_local);
    for(i=0; state->argv[i]; i++)
@@ -160,7 +161,7 @@ ProofState_p parse_spec(CLState_p state,
 
       FormulaAndClauseSetParse(in,
                                proofstate->f_axioms,
-                               proofstate->watchlist,
+                               /*proofstate->*/watchset,
                                proofstate->terms,
                                NULL,
                                &skip_includes);
@@ -168,6 +169,9 @@ ProofState_p parse_spec(CLState_p state,
       DestroyScanner(in);
    }
    VERBOUT2("Specification read\n");
+
+   WatchlistInsertSet(proofstate->wlcontrol, watchset); // YAN
+   ClauseSetFree(watchset); // YAN
 
    proofstate->has_interpreted_symbols =
       FormulaSetHasInterpretedSymbol(proofstate->f_axioms);
@@ -480,13 +484,13 @@ int main(int argc, char* argv[])
       if(BuildProofObject)
       {
          ClauseSetArchive(proofstate->ax_archive, proofstate->axioms);
-         if(proofstate->watchlist)
+         if(proofstate->wlcontrol)
          {
-            ClauseSetArchive(proofstate->ax_archive, proofstate->watchlist);
+            WatchlistArchive(proofstate->wlcontrol, proofstate->ax_archive);
          }
       }
       preproc_removed = ClauseSetPreprocess(proofstate->axioms,
-                                            proofstate->watchlist,
+                                            proofstate->wlcontrol,
                                             proofstate->archive,
                                             proofstate->tmp_terms,
                                             eqdef_incrlimit,
@@ -499,11 +503,14 @@ int main(int argc, char* argv[])
    PCLFullTerms = pcl_full_terms; /* Preprocessing always uses full
                                      terms, so we set the flag for
                                      the main proof search only now! */
-   GlobalIndicesInit(&(proofstate->wlindices),
+   if (proofstate->wlcontrol)
+   {
+      WatchlistIndicesInit(proofstate->wlcontrol,
                      proofstate->signature,
                      proofcontrol->heuristic_parms.rw_bw_index_type,
                      "NoIndex",
                      "NoIndex");
+   }
    //printf("Alive (1)!\n");
 
    ProofStateInit(proofstate, proofcontrol);
@@ -601,7 +608,7 @@ int main(int argc, char* argv[])
                          proc_training_data&TSPrintNeg);
       }
    }
-   else if(proofstate->watchlist && ClauseSetEmpty(proofstate->watchlist))
+   else if(proofstate->wlcontrol && WatchlistEmpty(proofstate->wlcontrol))
    {
       ProofStatePropDocQuote(GlobalOut, OutputLevel,
                              CPSubsumesWatch, proofstate,

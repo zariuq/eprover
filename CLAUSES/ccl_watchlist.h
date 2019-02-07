@@ -66,21 +66,19 @@ void WatchlistLoaded(WatchlistControl_p wlcontrol);
 void WatchlistInit(WatchlistControl_p wlcontrol, OCB_p ocb);
 void WatchlistReset(WatchlistControl_p wlcontrol);
 
-void WatchlistRemoveRewritables(WatchlistControl_p wlcontrol, ClauseSet_p rws,
-   OCB_p ocb, ClauseSet_p archive, Clause_p clause);
-
-void WatchlistInsertRewritten(WatchlistControl_p wlcontrol, ClauseSet_p rws, 
-   ProofControl_p control, TB_p terms, ClauseSet_p *demodulators);
-
-void WatchlistCheck(WatchlistControl_p wlcontrol, Clause_p clause, ClauseSet_p archive, 
-   bool static_watchlist, Sig_p sig);
-
 void WatchlistInitFVI(WatchlistControl_p wlcontrol, FVCollect_p cspec, 
    PermVector_p perm);
 
 void WatchlistClauseProcessed(WatchlistControl_p wlcontrol, Clause_p clause);
 
 bool WatchlistEmpty(WatchlistControl_p wlcontrol);
+
+void WatchlistArchive(WatchlistControl_p wlcontrol, ClauseSet_p archive);
+
+void WatchlistUnfoldEqDef(WatchlistControl_p wlcontrol, ClausePos_p demod);
+
+void WatchlistIndicesInit(WatchlistControl_p wlcontrol, Sig_p sig,
+   char* rw_bw_index_type, char* pm_from_index_type, char* pm_into_index_type);
 
 #endif
 

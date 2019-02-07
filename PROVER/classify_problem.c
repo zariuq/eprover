@@ -823,8 +823,12 @@ int main(int argc, char* argv[])
          in    = CreateScanner(StreamTypeFile, state->argv[i], true, NULL);
          ScannerSetFormat(in, parse_format);
 
-         FormulaAndClauseSetParse(in, fstate->f_axioms, fstate->watchlist,
+         ClauseSet_p watch = ClauseSetAlloc(); // YAN
+         FormulaAndClauseSetParse(in, fstate->f_axioms, watch,
                                   fstate->terms, NULL, &skip_includes);
+         WatchlistInsertSet(fstate->wlcontrol, watch); // YAN
+         ClauseSetFree(watch); // YAN
+
          if(raw_classify)
          {
             do_raw_classification(state->argv[i], fstate, limits);
@@ -855,7 +859,7 @@ int main(int argc, char* argv[])
             if(!no_preproc)
             {
                ClauseSetPreprocess(fstate->axioms,
-                                   fstate->watchlist,
+                                   fstate->wlcontrol,
                                    fstate->archive,
                                    fstate->tmp_terms,
                                    eqdef_incrlimit,

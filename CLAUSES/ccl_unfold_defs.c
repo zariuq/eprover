@@ -257,7 +257,7 @@ bool ClauseSetUnfoldEqDef(ClauseSet_p set, ClausePos_p demod)
 //
 /----------------------------------------------------------------------*/
 
-long ClauseSetUnfoldAllEqDefs(ClauseSet_p set, ClauseSet_p passive,
+long ClauseSetUnfoldAllEqDefs(ClauseSet_p set, WatchlistControl_p passive,
                               ClauseSet_p archive,
                               int min_arity, int eqdef_incrlimit)
 {
@@ -275,7 +275,7 @@ long ClauseSetUnfoldAllEqDefs(ClauseSet_p set, ClauseSet_p passive,
          ClauseSetUnfoldEqDef(set, demod);
          if(passive)
          {
-            ClauseSetUnfoldEqDef(passive, demod);
+            WatchlistUnfoldEqDef(passive, demod);
          }
          if(BuildProofObject)
          {
@@ -308,7 +308,7 @@ long ClauseSetUnfoldAllEqDefs(ClauseSet_p set, ClauseSet_p passive,
 //
 /----------------------------------------------------------------------*/
 
-long ClauseSetPreprocess(ClauseSet_p set, ClauseSet_p passive,
+long ClauseSetPreprocess(ClauseSet_p set, WatchlistControl_p passive,
                          ClauseSet_p archive, TB_p tmp_terms,
                          int eqdef_incrlimit, long eqdef_maxclauses)
 {
