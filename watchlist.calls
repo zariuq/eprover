@@ -1,0 +1,44 @@
+main:
+--> parse_spec
+    --> ProofStateAlloc
+        --> WatchlistControlAlloc
+        --> WatchlistGCRegister
+--> ProofStateLoadWatchlist
+    --> WatchlistLoadDir
+    --> WatchlistLoadFile
+    --> WatchlistInsertSet
+    --> WatchlistControlFree
+    --> WatchlistLoaded
+--> WatchlistArchive
+--> ClauseSetPreprocess
+    --> ClauseSetUnfoldAllEqDefs
+        --> WatchlistUnfoldEqDef
+
+
+
+### above un-indexed operations; below creates index etc.
+
+--> WatchlistIndicesInit
+--> ProofStateInit
+    --> fvi_param_init
+        --> WatchlistInitFVI
+    --> ProofStateInitWatchlist
+        --> WatchlistInit   # init indexing
+    --> WatchlistCheck
+--> Saturate
+    --> WatchlistEmpty
+    --> ProcessClause
+        --> WatchlistClauseProcessed
+        --> WatchlistCheck
+        --> simplify_watchlist
+            --> WatchlistSimplify
+        --> insert_new_clauses
+            --> WatchlistCheck
+--> WatchlistEmpty
+
+
+# NOT CALLED EVER:
+
+--> ProofStateResetClauseSets
+    --> WatchlistReset
+

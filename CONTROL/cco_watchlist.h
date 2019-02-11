@@ -43,6 +43,9 @@ void WatchlistInsertRewritten(WatchlistControl_p wlcontrol, ClauseSet_p rws,
 void WatchlistCheck(WatchlistControl_p wlcontrol, Clause_p clause, ClauseSet_p archive, 
    bool static_watchlist, Sig_p sig);
 
+void WatchlistSimplify(WatchlistControl_p wlcontrol, Clause_p clause, ProofControl_p control, 
+   TB_p terms, ClauseSet_p archive, ClauseSet_p* demodulators);
+
 #endif
 
 /*---------------------------------------------------------------------*/

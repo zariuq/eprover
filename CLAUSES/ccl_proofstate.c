@@ -264,7 +264,7 @@ void ProofStateLoadWatchlist(ProofState_p state,
                              char* watchlist_dirname,
                              IOFormat parse_format)
 {
-   assert(state->watchlist);
+   assert(state->wlcontrol);
 
    if (watchlist_filename && watchlist_dirname)
    {

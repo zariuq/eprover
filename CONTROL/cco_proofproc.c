@@ -445,17 +445,12 @@ static long eliminate_context_sr_clauses(ProofState_p state,
 void simplify_watchlist(ProofState_p state, ProofControl_p control,
                         Clause_p clause)
 {
-   ClauseSet_p rws;
-
    if(!ClauseIsDemodulator(clause))
    {
       return;
    }
    // printf("# simplify_watchlist()...\n");
-   rws = ClauseSetAlloc();
-   WatchlistRemoveRewritables(state->wlcontrol, rws, control->ocb, state->archive, clause);
-   WatchlistInsertRewritten(state->wlcontrol, rws, control, state->terms, state->demods);
-   ClauseSetFree(rws);
+   WatchlistSimplify(state->wlcontrol, clause, control, state->terms, state->archive, state->demods);
    // printf("# ...simplify_watchlist()\n");
 }
 
@@ -1296,7 +1291,7 @@ void ProofStateInit(ProofState_p state, ProofControl_p control)
    {
       fvi_param_init(state, control);
    }
-   ProofStateInitWatchlist(state, control->ocb);
+   //ProofStateInitWatchlist(state, control->ocb);
 
    tmphcb = GetHeuristic("Uniq", state, control, &(control->heuristic_parms));
    assert(tmphcb);
@@ -1668,9 +1663,9 @@ long RemoveSubsumed(GlobalIndices_p indices,
          DocClauseQuote(GlobalOut, OutputLevel, 6, handle,
                         "extract_wl_subsumed", subsumer->clause);
          
-         fprintf(GlobalOut, "# Watchlist hit: ");
-         ClausePrint(GlobalOut, handle, true);
-         fprintf(GlobalOut, "\n");
+         //fprintf(GlobalOut, "# Watchlist hit: ");
+         //ClausePrint(GlobalOut, handle, true);
+         //fprintf(GlobalOut, "\n");
 
          //fprintf(GlobalOut, "# ... by: ");
          //ClausePrint(GlobalOut, subsumer->clause, true);

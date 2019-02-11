@@ -45,6 +45,101 @@ int filename_compare(IntOrP* left, IntOrP* right)
    return strcmp(DStrView((DStr_p)(left->p_val)), DStrView((DStr_p)(right->p_val)));
 }
 
+int tops_compare(IntOrP* left, IntOrP* right)
+{
+   return CMP(left->i_val, right->i_val);
+}
+
+DStr_p clause_code(PStack_p codes, Sig_p sig)
+{
+   DStr_p code = DStrAlloc();
+   char sgn;
+   long top, i;
+   char *sym;
+
+   for (i=0; i<codes->current; i++)
+   {
+      top = PStackElementInt(codes, i);
+      if (top > 0)
+      {
+         sgn = '+';
+      }
+      else
+      {
+         sgn = '-';
+         top = -top;
+      }
+      sym = (top == SIG_TRUE_CODE) ? "=" : SigFindName(sig, top);
+      DStrAppendChar(code, sgn);
+      DStrAppendStr(code, sym);
+      DStrAppendChar(code, '|');
+   }
+   DStrDeleteLastChar(code);
+
+   return code;   
+}
+
+void watchlists_insert_clause(WatchlistControl_p wlcontrol, Clause_p clause)
+{
+   PStack_p tops = WatchlistClauseTops(clause);
+   DStr_p code = clause_code(tops, wlcontrol->sig);
+   StrTree_p node;
+   Watchlist_p wl;
+   IntOrP val;
+   long top, i;
+   PStackPointer index;
+   NumTree_p topnode;
+
+   // get the watchlist for this clause code
+   node = StrTreeFind(&(wlcontrol->codes), DStrView(code));
+   if (node)
+   {
+      fprintf(GlobalOut, "# Reusing watchlist index: %s\n", DStrView(code));
+      wl = PStackElementP(wlcontrol->watchlists, node->val1.i_val);
+      index = node->val1.i_val;
+   }
+   else
+   {
+      fprintf(GlobalOut, "# Creating new watchlist index: %s\n", DStrView(code));
+
+      wl = WatchlistAlloc();
+      GlobalIndicesInit(&(wl->indices), wlcontrol->sig, wlcontrol->rw_bw_index_type, 
+         wlcontrol->pm_from_index_type, wlcontrol->pm_into_index_type);
+      wl->set->fvindex = FVIAnchorAlloc(wlcontrol->cspec, PermVectorCopy(wlcontrol->perm));
+
+      index = wlcontrol->watchlists->current;
+      PStackPushP(wlcontrol->watchlists, wl);
+      val.i_val = index;
+      StrTreeStore(&(wlcontrol->codes), DStrView(code), val, val);
+   }
+
+   // for each top-level symbol, append this watchlist to the set
+   for (i=0; i<tops->current; i++)
+   {
+      top = PStackElementInt(tops, i);
+      topnode = NumTreeFind(&(wlcontrol->tops), top);
+      if (!topnode)
+      {
+         topnode = NumTreeCellAlloc();
+         topnode->key = top;
+         topnode->val1.p_val = NULL;
+         NumTreeInsert(&(wlcontrol->tops), topnode);
+      }
+
+      val.i_val = 0;
+      NumTreeStore((NumTree_p*)&(topnode->val1.p_val), index, val, val);
+   }
+
+   // finally insert the clause
+   ClauseSetIndexedInsertClause(wl->set, clause);
+   GlobalIndicesInsertClause(&(wl->indices), clause);
+
+   wlcontrol->is_empty = false;
+
+   DStrFree(code);
+   PStackFree(tops);
+}
+
 /*---------------------------------------------------------------------*/
 /*                         Exported Functions                          */
 /*---------------------------------------------------------------------*/
@@ -53,23 +148,40 @@ WatchlistControl_p WatchlistControlAlloc(void)
 {
    WatchlistControl_p res = WatchlistControlCellAlloc();
 
-   res->watchlist = ClauseSetAlloc();
+   res->watchlist0 = ClauseSetAlloc();
+   res->watchlists = PStackAlloc();
    res->watch_progress = NULL;
+   res->is_empty = true;
    GlobalIndicesNull(&(res->wlindices));
 
    return res;
 }
 
+Watchlist_p WatchlistAlloc(void)
+{
+   Watchlist_p res = WatchlistCellAlloc();
+
+   res->set = ClauseSetAlloc();
+   GlobalIndicesNull(&(res->indices));
+
+   return res;
+}
+
+void WatchlistFree(Watchlist_p junk)
+{
+   // TODO
+}
+
 void WatchlistControlFree(WatchlistControl_p junk, GCAdmin_p gc, bool indfree)
 {
-   if (junk->watchlist)
+   if (junk->watchlist0)
    {
       if (gc) 
       {
-         GCDeregisterClauseSet(gc, junk->watchlist);
+         GCDeregisterClauseSet(gc, junk->watchlist0);
       }
-      ClauseSetFree(junk->watchlist);
-      junk->watchlist = NULL;
+      ClauseSetFree(junk->watchlist0);
+      junk->watchlist0 = NULL;
    }
    if (indfree)
    {
@@ -78,14 +190,38 @@ void WatchlistControlFree(WatchlistControl_p junk, GCAdmin_p gc, bool indfree)
    WatchlistControlCellFree(junk);
 }
 
-void WatchlistInsertSet(WatchlistControl_p wlcontrol, ClauseSet_p tmpset)
+PStack_p WatchlistClauseTops(Clause_p clause)
 {
-   ClauseSetInsertSet(wlcontrol->watchlist, tmpset);
+   long top, sgn;
+   PStack_p codes = PStackAlloc();
+
+   for(Eqn_p lit = clause->literals; lit; lit = lit->next)
+   {
+      sgn = EqnIsPositive(lit) ? 1 : -1;
+      top = (lit->rterm->f_code == SIG_TRUE_CODE) ? lit->lterm->f_code : SIG_TRUE_CODE;
+      // use SIG_TRUE_CODE for equality
+      PStackPushInt(codes, sgn*top);
+   }
+   PStackSort(codes, (ComparisonFunctionType)tops_compare);
+
+   PStack_p out = PStackAlloc();
+   PStack_p empty = PStackAlloc();
+   PStackMerge(codes, empty, out, (ComparisonFunctionType)tops_compare); // remove dups 
+   PStackFree(codes);
+   PStackFree(empty);
+
+   return out;
+}
+
+
+void WatchlistInsertSet(WatchlistControl_p wlcontrol, ClauseSet_p from)
+{
+   ClauseSetInsertSet(wlcontrol->watchlist0, from);
 }
 
 void WatchlistGCRegister(GCAdmin_p gc, WatchlistControl_p wlcontrol)
 {
-   GCRegisterClauseSet(gc, wlcontrol->watchlist);
+   GCRegisterClauseSet(gc, wlcontrol->watchlist0);
 }
 
 ClauseSet_p WatchlistLoadFile(TB_p bank, char* watchlist_filename, IOFormat parse_format)
@@ -180,54 +316,90 @@ void WatchlistLoadDir(WatchlistControl_p wlcontrol, TB_p bank,
 
 void WatchlistLoaded(WatchlistControl_p wlcontrol)
 {
-   ClauseSetSetTPTPType(wlcontrol->watchlist, CPTypeWatchClause);
-   ClauseSetSetProp(wlcontrol->watchlist, CPWatchOnly);
-   ClauseSetDefaultWeighClauses(wlcontrol->watchlist);
+   ClauseSetSetTPTPType(wlcontrol->watchlist0, CPTypeWatchClause);
+   ClauseSetSetProp(wlcontrol->watchlist0, CPWatchOnly);
+   ClauseSetDefaultWeighClauses(wlcontrol->watchlist0);
    if(WLNormalizeSkolemSymbols)
    {
-	   ClauseSetSortLiterals(wlcontrol->watchlist, EqnSubsumeInverseCompareRefWL);
+	   ClauseSetSortLiterals(wlcontrol->watchlist0, EqnSubsumeInverseCompareRefWL);
    }
    {
-   	ClauseSetSortLiterals(wlcontrol->watchlist, EqnSubsumeInverseCompareRef);
+   	ClauseSetSortLiterals(wlcontrol->watchlist0, EqnSubsumeInverseCompareRef);
    }
-   ClauseSetDocInital(GlobalOut, OutputLevel, wlcontrol->watchlist);
+   ClauseSetDocInital(GlobalOut, OutputLevel, wlcontrol->watchlist0);
+}
+
+void WatchlistUnfoldEqDef(WatchlistControl_p wlcontrol, ClausePos_p demod)
+{
+   ClauseSetUnfoldEqDef(wlcontrol->watchlist0, demod);
+}
+
+void WatchlistReset(WatchlistControl_p wlcontrol)
+{  // never used???
+   ClauseSetFreeClauses(wlcontrol->watchlist0);
+   GlobalIndicesReset(&(wlcontrol->wlindices));
+}
+
+void WatchlistArchive(WatchlistControl_p wlcontrol, ClauseSet_p archive)
+{
+   ClauseSetArchive(archive, wlcontrol->watchlist0);
+}
+
+
+
+
+
+void WatchlistIndicesInit(WatchlistControl_p wlcontrol, Sig_p sig,
+   char* rw_bw_index_type, char* pm_from_index_type, char* pm_into_index_type)
+{
+   wlcontrol->sig = sig;
+   wlcontrol->rw_bw_index_type = rw_bw_index_type;
+   wlcontrol->pm_from_index_type = pm_from_index_type;
+   wlcontrol->pm_into_index_type = pm_into_index_type;
+   //GlobalIndicesInit(&(wlcontrol->wlindices), sig, rw_bw_index_type, pm_from_index_type, pm_into_index_type);
 }
 
 void WatchlistInit(WatchlistControl_p wlcontrol, OCB_p ocb)
 {
-   ClauseSet_p tmpset;
+   //ClauseSet_p tmpset;
    Clause_p handle;
 
-   tmpset = ClauseSetAlloc();
+   //tmpset = ClauseSetAlloc();
 
-   ClauseSetMarkMaximalTerms(ocb, wlcontrol->watchlist);
-   while(!ClauseSetEmpty(wlcontrol->watchlist))
+   ClauseSetMarkMaximalTerms(ocb, wlcontrol->watchlist0);
+   while(!ClauseSetEmpty(wlcontrol->watchlist0))
    {
-      handle = ClauseSetExtractFirst(wlcontrol->watchlist);
-      ClauseSetInsert(tmpset, handle);
+      handle = ClauseSetExtractFirst(wlcontrol->watchlist0);
+      //ClauseSetInsert(tmpset, handle);
+      watchlists_insert_clause(wlcontrol, handle);
    }
-   ClauseSetIndexedInsertClauseSet(wlcontrol->watchlist, tmpset);
-   ClauseSetFree(tmpset);
-   GlobalIndicesInsertClauseSet(&(wlcontrol->wlindices),wlcontrol->watchlist);
+   //ClauseSetIndexedInsertClauseSet(wlcontrol->watchlist0, tmpset);
+   //ClauseSetFree(tmpset);
+   //GlobalIndicesInsertClauseSet(&(wlcontrol->wlindices),wlcontrol->watchlist0);
 
    if (OutputLevel >= 1)
    {
+      long total = 0;
+      for (int i=0; i<wlcontrol->watchlists->current; i++)
+      {
+         total += ((Watchlist_p)PStackElementP(wlcontrol->watchlists,i))->set->members;
+      }
+
       fprintf(GlobalOut, "# Total watchlist clauses: %ld\n", 
-         wlcontrol->watchlist->members);
+         total);
+         //wlcontrol->watchlist0->members);
    }
    // ClauseSetPrint(stdout, wlcontrol->watchlist, true);
-}
-
-void WatchlistReset(WatchlistControl_p wlcontrol)
-{
-   ClauseSetFreeClauses(wlcontrol->watchlist);
-   GlobalIndicesReset(&(wlcontrol->wlindices));
 }
 
 void WatchlistInitFVI(WatchlistControl_p wlcontrol, FVCollect_p cspec, 
    PermVector_p perm)
 {
-   wlcontrol->watchlist->fvindex = FVIAnchorAlloc(cspec, perm);
+   //wlcontrol->watchlist0->fvindex = FVIAnchorAlloc(cspec, perm);
+   
+   wlcontrol->cspec = cspec;
+   wlcontrol->perm = perm;
+
    //ClauseSetNewTerms(state->watchlist, state->terms);
 }
 
@@ -249,26 +421,9 @@ void WatchlistClauseProcessed(WatchlistControl_p wlcontrol, Clause_p clause)
 
 bool WatchlistEmpty(WatchlistControl_p wlcontrol)
 {
-   return (ClauseSetEmpty(wlcontrol->watchlist));
+   //return (ClauseSetEmpty(wlcontrol->watchlist0));
+   return wlcontrol->is_empty;
 }
-
-void WatchlistArchive(WatchlistControl_p wlcontrol, ClauseSet_p archive)
-{
-   ClauseSetArchive(archive, wlcontrol->watchlist);
-}
-
-void WatchlistUnfoldEqDef(WatchlistControl_p wlcontrol, ClausePos_p demod)
-{
-   ClauseSetUnfoldEqDef(wlcontrol->watchlist, demod);
-}
-
-void WatchlistIndicesInit(WatchlistControl_p wlcontrol, Sig_p sig,
-   char* rw_bw_index_type, char* pm_from_index_type, char* pm_into_index_type)
-{
-   GlobalIndicesInit(&(wlcontrol->wlindices), sig, rw_bw_index_type, pm_from_index_type, pm_into_index_type);
-}
-
-
 
 /*---------------------------------------------------------------------*/
 /*                        End of File                                  */

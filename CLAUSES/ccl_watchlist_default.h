@@ -36,30 +36,12 @@ typedef struct proofcontrolcell *ProofControl_p;
 
 typedef struct watchlistcontrolcell 
 {
-   PStack_p        watchlists;
-   StrTree_p       codes;
-   NumTree_p       tops;
-   Sig_p           sig;
+   ClauseSet_p     watchlist;
+   GlobalIndices   wlindices;
    NumTree_p       watch_progress;
-   ClauseSet_p     watchlist0; // global watchlist used when loading (not indexed)
-   bool            is_empty;
-
-   char* rw_bw_index_type;
-   char* pm_from_index_type;
-   char* pm_into_index_type;
-   FVCollect_p cspec;
-   PermVector_p perm;
-
-   // refactor:
-   GlobalIndices   wlindices;   
 } WatchlistControlCell, *WatchlistControl_p;
 
 
-typedef struct watchlistcell 
-{
-   ClauseSet_p     set;
-   GlobalIndices   indices; 
-} WatchlistCell, *Watchlist_p;
 
 /*---------------------------------------------------------------------*/
 /*                Exported Functions and Variables                     */
@@ -69,16 +51,6 @@ typedef struct watchlistcell
         SizeMalloc(sizeof(WatchlistControlCell))
 #define WatchlistControlCellFree(junk) \
         SizeFree(junk, sizeof(WatchlistControlCell))
-
-#define WatchlistCellAlloc() (WatchlistCell*) \
-        SizeMalloc(sizeof(WatchlistCell))
-#define WatchlistCellFree(junk) \
-        SizeFree(junk, sizeof(WatchlistCell))
-
-PStack_p WatchlistClauseTops(Clause_p clause);
-
-Watchlist_p WatchlistAlloc(void);
-void WatchlistFree(Watchlist_p junk);
 
 WatchlistControl_p WatchlistControlAlloc(void);
 void WatchlistControlFree(WatchlistControl_p junk, GCAdmin_p gc, bool indfree);

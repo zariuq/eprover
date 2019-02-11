@@ -69,7 +69,7 @@ void WatchlistRemoveRewritables(WatchlistControl_p wlcontrol, ClauseSet_p rws,
    }
    else
    {
-      RemoveRewritableClauses(ocb, wlcontrol->watchlist, rws, archive, 
+      RemoveRewritableClauses(ocb, wlcontrol->watchlist0, rws, archive, 
          clause, clause->date, &(wlcontrol->wlindices));
    }
 }
@@ -101,10 +101,20 @@ void WatchlistInsertRewritten(WatchlistControl_p wlcontrol, ClauseSet_p rws,
       }
       handle->weight = ClauseStandardWeight(handle);
       ClauseMarkMaximalTerms(control->ocb, handle);
-      ClauseSetIndexedInsertClause(wlcontrol->watchlist, handle);
+      ClauseSetIndexedInsertClause(wlcontrol->watchlist0, handle);
       // printf("# WL Inserting: "); ClausePrint(stdout, handle, true); printf("\n");
       GlobalIndicesInsertClause(&(wlcontrol->wlindices), handle);
    }
+}
+
+void WatchlistSimplify(WatchlistControl_p wlcontrol, Clause_p clause, ProofControl_p control, 
+   TB_p terms, ClauseSet_p archive, ClauseSet_p* demodulators)
+{
+   ClauseSet_p rws;
+   rws = ClauseSetAlloc();
+   WatchlistRemoveRewritables(wlcontrol, rws, control->ocb, archive, clause);
+   WatchlistInsertRewritten(wlcontrol, rws, control, terms, demodulators);
+   ClauseSetFree(rws);
 }
 
 /*-----------------------------------------------------------------------
@@ -120,10 +130,39 @@ void WatchlistInsertRewritten(WatchlistControl_p wlcontrol, ClauseSet_p rws,
 //
 /----------------------------------------------------------------------*/
 
+long watchlist_check(WatchlistControl_p wlcontrol, long index, FVPackedClause_p pclause, ClauseSet_p archive)
+{
+   Watchlist_p watchlist = PStackElementP(wlcontrol->watchlists, index);
+   return RemoveSubsumed(&(watchlist->indices), pclause, watchlist->set, archive, &(wlcontrol->watch_progress), wlcontrol->sig);
+}
+
+long watchlists_check(WatchlistControl_p wlcontrol, FVPackedClause_p pclause, ClauseSet_p archive)
+{
+   long removed = 0;
+   PStack_p tops = WatchlistClauseTops(pclause->clause);
+   for (long i=0; i<tops->current; i++)
+   {
+      NumTree_p topwl;
+      long top = PStackElementInt(tops, i);
+      NumTree_p topnode = NumTreeFind(&(wlcontrol->tops), top);
+      if (!topnode) { continue; }
+      
+      PStack_p stack = NumTreeTraverseInit((NumTree_p)(topnode->val1.p_val));
+      while((topwl = NumTreeTraverseNext(stack)))
+      {
+         long index = topwl->key;
+         removed += watchlist_check(wlcontrol, index, pclause, archive);
+      }
+      NumTreeTraverseExit(stack);
+   }
+  
+   return removed;
+}
+
 void WatchlistCheck(WatchlistControl_p wlcontrol, Clause_p clause, ClauseSet_p archive, 
    bool static_watchlist, Sig_p sig)
 {
-   FVPackedClause_p pclause = FVIndexPackClause(clause, wlcontrol->watchlist->fvindex);
+   FVPackedClause_p pclause = FVIndexPackClause(clause, wlcontrol->watchlist0->fvindex);
    long removed;
 
    // printf("# check_watchlist(%p)...\n", indices);
@@ -143,7 +182,7 @@ void WatchlistCheck(WatchlistControl_p wlcontrol, Clause_p clause, ClauseSet_p a
    {
       Clause_p subsumed;
 
-      subsumed = ClauseSetFindFirstSubsumedClause(wlcontrol->watchlist, clause, sig);
+      subsumed = ClauseSetFindFirstSubsumedClause(wlcontrol->watchlist0, clause, sig);
       if(subsumed)
       {
          ClauseSetProp(clause, CPSubsumesWatch);
@@ -151,7 +190,7 @@ void WatchlistCheck(WatchlistControl_p wlcontrol, Clause_p clause, ClauseSet_p a
    }
    else
    {
-      if((removed = RemoveSubsumed(&(wlcontrol->wlindices), pclause, wlcontrol->watchlist, 
+      if((removed = RemoveSubsumed(&(wlcontrol->wlindices), pclause, wlcontrol->watchlist0, 
          archive, &(wlcontrol->watch_progress), sig)))
       {
          ClauseSetProp(clause, CPSubsumesWatch);
@@ -166,7 +205,8 @@ void WatchlistCheck(WatchlistControl_p wlcontrol, Clause_p clause, ClauseSet_p a
          }
          //printf("# XCL "); ClausePrint(GlobalOut, clause, true); printf("\n");
          DocClauseQuote(GlobalOut, OutputLevel, 6, clause,
-                        "extract_subsumed_watched", NULL);   }
+                        "extract_subsumed_watched", NULL);   
+      }
    }
    FVUnpackClause(pclause);
    // printf("# ...check_watchlist()\n");
