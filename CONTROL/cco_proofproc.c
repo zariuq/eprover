@@ -1539,10 +1539,10 @@ Clause_p ProcessClause(ProofState_p state, ProofControl_p control,
       return empty;
    }
    //
-   fprintf(GlobalOut, "%%STATE,%ld,%ld,%ld\n",
-      state->processed_count,
-      state->generated_count,
-      state->paramod_count);
+   //fprintf(GlobalOut, "%%STATE,%ld,%ld,%ld\n",
+   //   state->processed_count,
+   //   state->generated_count,
+   //   state->paramod_count);
    //
    return NULL;
 }
@@ -1668,9 +1668,9 @@ long RemoveSubsumed(GlobalIndices_p indices,
          DocClauseQuote(GlobalOut, OutputLevel, 6, handle,
                         "extract_wl_subsumed", subsumer->clause);
          
-         //fprintf(GlobalOut, "# Watchlist hit: ");
-         //ClausePrint(GlobalOut, handle, true);
-         //fprintf(GlobalOut, "\n");
+         fprintf(GlobalOut, "# Watchlist hit: ");
+         ClausePrint(GlobalOut, handle, true);
+         fprintf(GlobalOut, "\n");
 
          //fprintf(GlobalOut, "# ... by: ");
          //ClausePrint(GlobalOut, subsumer->clause, true);
