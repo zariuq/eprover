@@ -42,7 +42,7 @@ typedef struct watchlistcontrolcell
    Sig_p           sig;
    NumTree_p       watch_progress;
    ClauseSet_p     watchlist0; // global watchlist used when loading (not indexed)
-   bool            is_empty;
+   long            members;
 
    char* rw_bw_index_type;
    char* pm_from_index_type;
@@ -59,6 +59,7 @@ typedef struct watchlistcell
 {
    ClauseSet_p     set;
    GlobalIndices   indices; 
+   DStr_p          code;    // informative
 } WatchlistCell, *Watchlist_p;
 
 /*---------------------------------------------------------------------*/

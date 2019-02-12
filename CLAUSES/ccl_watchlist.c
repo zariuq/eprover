@@ -94,18 +94,20 @@ void watchlists_insert_clause(WatchlistControl_p wlcontrol, Clause_p clause)
    node = StrTreeFind(&(wlcontrol->codes), DStrView(code));
    if (node)
    {
-      fprintf(GlobalOut, "# Reusing watchlist index: %s\n", DStrView(code));
+      //fprintf(GlobalOut, "# Reusing watchlist index: %s\n", DStrView(code));
       wl = PStackElementP(wlcontrol->watchlists, node->val1.i_val);
       index = node->val1.i_val;
+      DStrFree(code);
    }
    else
    {
-      fprintf(GlobalOut, "# Creating new watchlist index: %s\n", DStrView(code));
+      //fprintf(GlobalOut, "# Creating new watchlist index: %s\n", DStrView(code));
 
       wl = WatchlistAlloc();
       GlobalIndicesInit(&(wl->indices), wlcontrol->sig, wlcontrol->rw_bw_index_type, 
          wlcontrol->pm_from_index_type, wlcontrol->pm_into_index_type);
       wl->set->fvindex = FVIAnchorAlloc(wlcontrol->cspec, PermVectorCopy(wlcontrol->perm));
+      wl->code = code;
 
       index = wlcontrol->watchlists->current;
       PStackPushP(wlcontrol->watchlists, wl);
@@ -126,7 +128,7 @@ void watchlists_insert_clause(WatchlistControl_p wlcontrol, Clause_p clause)
          NumTreeInsert(&(wlcontrol->tops), topnode);
       }
 
-      val.i_val = 0;
+      val.i_val = 1; // used as intersection counter
       NumTreeStore((NumTree_p*)&(topnode->val1.p_val), index, val, val);
    }
 
@@ -134,9 +136,7 @@ void watchlists_insert_clause(WatchlistControl_p wlcontrol, Clause_p clause)
    ClauseSetIndexedInsertClause(wl->set, clause);
    GlobalIndicesInsertClause(&(wl->indices), clause);
 
-   wlcontrol->is_empty = false;
-
-   DStrFree(code);
+   //DStrFree(code);
    PStackFree(tops);
 }
 
@@ -151,7 +151,7 @@ WatchlistControl_p WatchlistControlAlloc(void)
    res->watchlist0 = ClauseSetAlloc();
    res->watchlists = PStackAlloc();
    res->watch_progress = NULL;
-   res->is_empty = true;
+   res->members= 0L;
    GlobalIndicesNull(&(res->wlindices));
 
    return res;
@@ -377,18 +377,23 @@ void WatchlistInit(WatchlistControl_p wlcontrol, OCB_p ocb)
    //ClauseSetFree(tmpset);
    //GlobalIndicesInsertClauseSet(&(wlcontrol->wlindices),wlcontrol->watchlist0);
 
+   wlcontrol->members = 0L;
+   for (int i=0; i<wlcontrol->watchlists->current; i++)
+   {
+      Watchlist_p watchlist = PStackElementP(wlcontrol->watchlists,i);
+      wlcontrol->members += watchlist->set->members;
+      if (OutputLevel >= 1)
+      {
+         fprintf(GlobalOut, "# Watchlist index #%6d: members=%6ld, code='%s'\n",
+            i, watchlist->set->members, DStrView(watchlist->code));
+      }
+   }
+
    if (OutputLevel >= 1)
    {
-      long total = 0;
-      for (int i=0; i<wlcontrol->watchlists->current; i++)
-      {
-         total += ((Watchlist_p)PStackElementP(wlcontrol->watchlists,i))->set->members;
-      }
-
-      fprintf(GlobalOut, "# Total watchlist clauses: %ld\n", 
-         total);
-         //wlcontrol->watchlist0->members);
+      fprintf(GlobalOut, "# Total watchlist clauses: %ld\n", wlcontrol->members);
    }
+         //wlcontrol->watchlist0->members);
    // ClauseSetPrint(stdout, wlcontrol->watchlist, true);
 }
 
@@ -422,7 +427,7 @@ void WatchlistClauseProcessed(WatchlistControl_p wlcontrol, Clause_p clause)
 bool WatchlistEmpty(WatchlistControl_p wlcontrol)
 {
    //return (ClauseSetEmpty(wlcontrol->watchlist0));
-   return wlcontrol->is_empty;
+   return (wlcontrol->members <= 0L);
 }
 
 /*---------------------------------------------------------------------*/

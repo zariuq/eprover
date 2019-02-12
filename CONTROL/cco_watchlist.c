@@ -53,6 +53,210 @@ static void watch_progress_print(NumTree_p watch_progress)
    NumTreeTraverseExit(stack);
 }
 
+static double watch_progress_get(NumTree_p* watch_progress, long proof_no)
+{
+   NumTree_p proof;
+
+   // find the proof progress statistics ...
+   proof = NumTreeFind(watch_progress, proof_no);
+   if (!proof) 
+   {
+      Error("Unknown proof number (%ld) of a watchlist clause! Should not happen!", 
+         OTHER_ERROR, proof_no);
+   }
+   
+   return (double)proof->val1.i_val/proof->val2.i_val;
+}
+
+static double watch_parents_relevance(Clause_p clause)
+{
+   PStackPointer i, sp;
+   DerivationCodes op;
+   Clause_p parent;
+   double relevance = 0.0;
+   int parents = 0;
+  
+   if (OutputLevel >= 2)
+   {
+      fprintf(GlobalOut, "# PARENTS OF ");
+      ClausePrint(GlobalOut, clause, true);
+      fprintf(GlobalOut, "\n");
+   }
+
+   if (!clause->derivation)
+   {
+      if (ClauseQueryProp(clause, CPInitial))
+      {
+         return 0.0;
+      }
+      Error("Clause has no derivation.  Are you running with -p option?", USAGE_ERROR);
+   }
+   
+   sp = PStackGetSP(clause->derivation);
+   i = 0;
+   while (i<sp)
+   {
+      op = PStackElementInt(clause->derivation, i);
+      i++;
+      
+      if(DCOpHasCnfArg1(op))
+      {
+         parent = PStackElementP(clause->derivation, i);
+         relevance += parent->watch_relevance;
+         parents++;
+    
+         if (OutputLevel >= 2)
+         {
+            fprintf(GlobalOut, "# -> ");
+            ClausePrint(GlobalOut, parent, true);
+            fprintf(GlobalOut, "\n");
+         }
+      }
+      if(DCOpHasArg1(op))
+      {
+         i++;
+      }
+
+      if(DCOpHasCnfArg2(op))
+      {
+         parent = PStackElementP(clause->derivation, i);
+         relevance += parent->watch_relevance;
+         parents++;
+
+         if (OutputLevel >= 2)
+         {
+            fprintf(GlobalOut, "# -> ");
+            ClausePrint(GlobalOut, parent, true);
+            fprintf(GlobalOut, "\n");
+         }
+      }
+      if(DCOpHasArg2(op))
+      {
+         i++;
+      }
+   }
+
+   return (parents>0) ? (relevance/parents) : 0.0;
+}
+
+static void watchlist_set_relevance(Clause_p clause, NumTree_p* watch_progress)
+{
+   if (watch_progress && *watch_progress) 
+   {
+      double proof_progress = 0.0;
+      
+      if (clause->watch_proof > 0)
+      {
+         proof_progress = watch_progress_get(watch_progress, clause->watch_proof);
+      }
+     
+	  if (WLInheritRelevance)
+	  { 
+		  double parents_relevance = watch_parents_relevance(clause);
+		  //double decay_factor = 0.1; // transformed into an option
+		  double combined_relevance = proof_progress + (decay_factor*parents_relevance);
+
+		  if (OutputLevel >= 2 || (OutputLevel == 1 && clause->watch_proof > 0))
+		  {
+			 fprintf(GlobalOut, "# WATCHLIST RELEVANCE: relevance=%1.3f(=%1.3f+%1.3f*%1.3f); proof=%ld; clause=", 
+				combined_relevance,
+				proof_progress,
+				decay_factor,
+				parents_relevance,
+				clause->watch_proof);
+			 ClausePrint(GlobalOut, clause, true);
+			 fprintf(GlobalOut, "\n");
+		  }
+		  clause->watch_relevance = combined_relevance;
+	  }
+	  else
+	  {
+		  if (OutputLevel >= 2 || (OutputLevel == 1 && clause->watch_proof > 0))
+		  {
+			 fprintf(GlobalOut, "# WATCHLIST RELEVANCE: relevance=%1.3f; proof=%ld; clause=", 
+				proof_progress,
+				clause->watch_proof);
+			 ClausePrint(GlobalOut, clause, true);
+			 fprintf(GlobalOut, "\n");
+		  }
+		  clause->watch_relevance = proof_progress;
+	  }
+   }
+}
+
+static long watchlist_check(WatchlistControl_p wlcontrol, long index, Clause_p clause, ClauseSet_p archive)
+{
+   Watchlist_p watchlist = PStackElementP(wlcontrol->watchlists, index);
+   FVPackedClause_p pclause = FVIndexPackClause(clause, watchlist->set->fvindex);
+   long removed = RemoveSubsumed(&(watchlist->indices), pclause, watchlist->set, archive, &(wlcontrol->watch_progress), wlcontrol->sig);
+   FVUnpackClause(pclause);
+   //if (removed)
+   //{
+   //   fprintf(GlobalOut, "# checking index '%s': removed=%ld\n", DStrView(watchlist->code), removed);
+   //}
+   return removed;
+}
+
+static long watchlists_check(WatchlistControl_p wlcontrol, Clause_p clause, ClauseSet_p archive)
+{
+   long removed = 0;
+   PStack_p stack;
+
+   //fprintf(GlobalOut, "# watchlist check for: ");
+   //ClausePrint(GlobalOut, clause, true);
+   //fprintf(GlobalOut, "\n");
+
+   PStack_p tops = WatchlistClauseTops(clause);
+
+   NumTree_p top0 = NULL;
+   NumTree_p counts = NULL;
+   NumTree_p topwl, countwl;
+   for (long i=0; i<tops->current; i++)
+   {
+      long top = PStackElementInt(tops, i);
+      if (!top0)
+      {
+         top0 = NumTreeFind(&(wlcontrol->tops), top);
+         continue;
+      }
+      if (!counts)
+      {
+         counts = NumTreeCopy(top0->val1.p_val);
+      }
+      NumTree_p topi = NumTreeFind(&(wlcontrol->tops), top);
+      if (!topi) { continue; }
+
+      stack = NumTreeTraverseInit((NumTree_p)(topi->val1.p_val));
+      while ((topwl = NumTreeTraverseNext(stack)))
+      {
+         countwl = NumTreeFind(&counts, topwl->key);
+         if (countwl)
+         {
+            countwl->val1.i_val++; // increase intersection count
+         }
+      }
+      NumTreeTraverseExit(stack);
+   }
+      
+   stack = NumTreeTraverseInit(counts);
+   while ((countwl = NumTreeTraverseNext(stack)))
+   {
+      if (countwl->val1.i_val == tops->current) // check only watchlists in the full intersection
+      {
+         removed += watchlist_check(wlcontrol, countwl->key, clause, archive);
+      }
+   }
+   NumTreeTraverseExit(stack);
+
+   NumTreeFree(counts);
+   PStackFree(tops);
+
+   watchlist_set_relevance(clause, &(wlcontrol->watch_progress));
+  
+   return removed;
+}
+
+
 /*---------------------------------------------------------------------*/
 /*                         Exported Functions                          */
 /*---------------------------------------------------------------------*/
@@ -130,39 +334,9 @@ void WatchlistSimplify(WatchlistControl_p wlcontrol, Clause_p clause, ProofContr
 //
 /----------------------------------------------------------------------*/
 
-long watchlist_check(WatchlistControl_p wlcontrol, long index, FVPackedClause_p pclause, ClauseSet_p archive)
-{
-   Watchlist_p watchlist = PStackElementP(wlcontrol->watchlists, index);
-   return RemoveSubsumed(&(watchlist->indices), pclause, watchlist->set, archive, &(wlcontrol->watch_progress), wlcontrol->sig);
-}
-
-long watchlists_check(WatchlistControl_p wlcontrol, FVPackedClause_p pclause, ClauseSet_p archive)
-{
-   long removed = 0;
-   PStack_p tops = WatchlistClauseTops(pclause->clause);
-   for (long i=0; i<tops->current; i++)
-   {
-      NumTree_p topwl;
-      long top = PStackElementInt(tops, i);
-      NumTree_p topnode = NumTreeFind(&(wlcontrol->tops), top);
-      if (!topnode) { continue; }
-      
-      PStack_p stack = NumTreeTraverseInit((NumTree_p)(topnode->val1.p_val));
-      while((topwl = NumTreeTraverseNext(stack)))
-      {
-         long index = topwl->key;
-         removed += watchlist_check(wlcontrol, index, pclause, archive);
-      }
-      NumTreeTraverseExit(stack);
-   }
-  
-   return removed;
-}
-
 void WatchlistCheck(WatchlistControl_p wlcontrol, Clause_p clause, ClauseSet_p archive, 
    bool static_watchlist, Sig_p sig)
 {
-   FVPackedClause_p pclause = FVIndexPackClause(clause, wlcontrol->watchlist0->fvindex);
    long removed;
 
    // printf("# check_watchlist(%p)...\n", indices);
@@ -190,10 +364,12 @@ void WatchlistCheck(WatchlistControl_p wlcontrol, Clause_p clause, ClauseSet_p a
    }
    else
    {
-      if((removed = RemoveSubsumed(&(wlcontrol->wlindices), pclause, wlcontrol->watchlist0, 
-         archive, &(wlcontrol->watch_progress), sig)))
+      if ((removed = watchlists_check(wlcontrol,clause,archive)))
       {
          ClauseSetProp(clause, CPSubsumesWatch);
+         wlcontrol->members -= removed;
+         DocClauseQuote(GlobalOut, OutputLevel, 6, clause,
+                        "extract_subsumed_watched", NULL);   
          if(OutputLevel >= 1)
          {
             fprintf(GlobalOut,"# Watchlist reduced by %ld clause%s\n",
@@ -203,12 +379,9 @@ void WatchlistCheck(WatchlistControl_p wlcontrol, Clause_p clause, ClauseSet_p a
                watch_progress_print(wlcontrol->watch_progress);
             }
          }
-         //printf("# XCL "); ClausePrint(GlobalOut, clause, true); printf("\n");
-         DocClauseQuote(GlobalOut, OutputLevel, 6, clause,
-                        "extract_subsumed_watched", NULL);   
+
       }
    }
-   FVUnpackClause(pclause);
    // printf("# ...check_watchlist()\n");
 }
 
