@@ -164,7 +164,7 @@ pid_t ExecuteSchedule(ScheduleCell strats[],
             {
                if(print_rusage)
                {
-                  PrintRusage(GlobalOut);
+                  PrintRusage(GlobalOut, 0);
                }
                exit(status);
             }
@@ -183,7 +183,7 @@ pid_t ExecuteSchedule(ScheduleCell strats[],
    }
    if(print_rusage)
    {
-      PrintRusage(GlobalOut);
+      PrintRusage(GlobalOut, 0);
    }
    /* The following is ugly: Because the individual strategies can
       fail, but the whole schedule can succeed, we cannot let the

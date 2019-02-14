@@ -112,7 +112,7 @@ long watchlists_insert_clause(WatchlistControl_p wlcontrol, NumTree_p* wls, Clau
       GlobalIndicesInit(&(wl->indices), wlcontrol->sig, wlcontrol->rw_bw_index_type, 
          wlcontrol->pm_from_index_type, wlcontrol->pm_into_index_type);
       wl->set->fvindex = FVIAnchorAlloc(wlcontrol->cspec, PermVectorCopy(wlcontrol->perm));
-      NumTreeStore(wls, idx, (IntOrP)wl, (IntOrP)NULL);
+      NumTreeStore(wls, idx, (IntOrP)(void*)wl, (IntOrP)NULL);
    }
 
    // finally insert the clause
@@ -131,9 +131,14 @@ WatchlistControl_p WatchlistControlAlloc(void)
    WatchlistControl_p res = WatchlistControlCellAlloc();
 
    res->watchlist0 = ClauseSetAlloc();
-   res->watchlists = PStackAlloc();
+   res->watchlists = NULL;
    res->watch_progress = NULL;
    res->members= 0L;
+   res->xgboost_model = NULL;
+   res->enigmap = NULL;
+   res->ready = false;
+   res->enigmap_filename = "wl-zar/enigma.map";
+   res->xgboost_filename = "wl-zar/cluster.xgb";
    GlobalIndicesNull(&(res->wlindices));
 
    return res;
@@ -341,27 +346,35 @@ void WatchlistIndicesInit(WatchlistControl_p wlcontrol, Sig_p sig,
 
 void WatchlistInit(WatchlistControl_p wlcontrol, OCB_p ocb)
 {
+   long maxidx = 0L;
    Clause_p handle;
    NumTree_p wls = NULL;
+   long idx;
 
    ClauseSetMarkMaximalTerms(ocb, wlcontrol->watchlist0);
    while (!ClauseSetEmpty(wlcontrol->watchlist0))
    {
       handle = ClauseSetExtractFirst(wlcontrol->watchlist0);
-      watchlists_insert_clause(wlcontrol, &wls, handle);
+      idx = watchlists_insert_clause(wlcontrol, &wls, handle);
+      maxidx = MAX(idx, maxidx);
    }
 
-   wlcontrol->members = 0L;
-   for (int i=0; i<wlcontrol->watchlists->current; i++)
+   wlcontrol->watchlists = PDArrayAlloc(maxidx+1, 1);
+   NumTree_p wlnode;
+   PStack_p stack = NumTreeTraverseInit(wls);
+   wlcontrol->members = 0;
+   while ((wlnode = NumTreeTraverseNext(stack)))
    {
-      Watchlist_p watchlist = PStackElementP(wlcontrol->watchlists,i);
+      Watchlist_p watchlist = wlnode->val1.p_val;
+      PDArrayAssignP(wlcontrol->watchlists, wlnode->key, watchlist);
       wlcontrol->members += watchlist->set->members;
       if (OutputLevel >= 1)
       {
-         fprintf(GlobalOut, "# Watchlist index #%6d: members=%6ld, code='%s'\n",
-            i, watchlist->set->members, DStrView(watchlist->code));
+         fprintf(GlobalOut, "# Watchlist cluster #%6ld: members=%6ld\n",
+            wlnode->key, watchlist->set->members);
       }
    }
+   NumTreeTraverseExit(stack);
 
    if (OutputLevel >= 1)
    {
@@ -372,12 +385,8 @@ void WatchlistInit(WatchlistControl_p wlcontrol, OCB_p ocb)
 void WatchlistInitFVI(WatchlistControl_p wlcontrol, FVCollect_p cspec, 
    PermVector_p perm)
 {
-   //wlcontrol->watchlist0->fvindex = FVIAnchorAlloc(cspec, perm);
-   
    wlcontrol->cspec = cspec;
    wlcontrol->perm = perm;
-
-   //ClauseSetNewTerms(state->watchlist, state->terms);
 }
 
 void WatchlistClauseProcessed(WatchlistControl_p wlcontrol, Clause_p clause)

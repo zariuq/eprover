@@ -76,7 +76,7 @@ void SysError(char* message, ErrorCodes ret, ...);
 void          Warning(char* message, ...);
 void          SysWarning(char* message, ...);
 double        GetTotalCPUTime(void);
-void          PrintRusage(FILE* out);
+void          PrintRusage(FILE* out, double preproc_time);
 void          StrideMemory(char* mem, long size);
 
 bool          TestLetterString(char* to_check, char* options);

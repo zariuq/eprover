@@ -344,7 +344,7 @@ double GetTotalCPUTime(void)
 //
 /----------------------------------------------------------------------*/
 
-void PrintRusage(FILE* out)
+void PrintRusage(FILE* out, double preproc_time)
 {
    struct rusage usage, cusage;
 
@@ -370,6 +370,13 @@ void PrintRusage(FILE* out)
    fprintf(out,
       "# User time                : %.3f s\n",
       (usage.ru_utime.tv_sec)+(usage.ru_utime.tv_usec)/1000000.0);
+   if (preproc_time)
+   {
+      fprintf(out, "# ...preprocessing         : %.3f s\n", preproc_time);
+      fprintf(out,
+         "# ...main loop             : %.3f s\n",
+         (usage.ru_utime.tv_sec-preproc_time)+(usage.ru_utime.tv_usec)/1000000.0);
+   }
    fprintf(out,
       "# System time              : %.3f s\n",
       (usage.ru_stime.tv_sec)+(usage.ru_stime.tv_usec)/1000000.0);

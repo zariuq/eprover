@@ -781,7 +781,7 @@ cleanup1:
 #endif
    if(print_rusage && !SilentTimeOut)
    {
-      PrintRusage(GlobalOut);
+      PrintRusage(GlobalOut, preproc_time);
    }
 #ifdef CLB_MEMORY_DEBUG
    RegMemCleanUp();

@@ -169,7 +169,7 @@ void* SecureMalloc(size_t size)
          fprintf(stdout, "# Failure: Resource limit exceeded (memory)\n");
          TSTPOUT(stdout, "ResourceOut");
          fflush(stdout);
-         PrintRusage(stdout);
+         PrintRusage(stdout, 0);
 #endif
          Error("Out of Memory", OUT_OF_MEMORY);
       }
@@ -224,7 +224,7 @@ void* SecureRealloc(void *ptr, size_t size)
          SetMemoryLimit(RLIM_INFINITY);
          fprintf(stdout, "# Failure: Resource limit exceeded (memory)\n");
          fflush(stdout);
-         PrintRusage(stdout);
+         PrintRusage(stdout, 0);
 #endif
          Error("Out of Memory", OUT_OF_MEMORY);
       }

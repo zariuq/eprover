@@ -25,6 +25,7 @@
 #include <ccl_clausesets.h>
 #include <ccl_global_indices.h>
 #include <ccl_garbage_coll.h>
+#include "xgboost.h"
 
 
 
@@ -33,16 +34,25 @@
 /*---------------------------------------------------------------------*/
 
 typedef struct proofcontrolcell *ProofControl_p;
+typedef struct enigmapcell *Enigmap_p;
 
 typedef struct watchlistcontrolcell 
 {
-   PStack_p        watchlists;
-   StrTree_p       codes;
-   NumTree_p       tops;
+   PDArray_p       watchlists; 
    Sig_p           sig;
    NumTree_p       watch_progress;
    ClauseSet_p     watchlist0; // global watchlist used when loading (not indexed)
    long            members;
+
+   Enigmap_p       enigmap;
+   BoosterHandle   xgboost_model;
+   bool            ready;
+   char*     enigmap_filename;
+   char*     xgboost_filename;
+
+   //PStack_p watchlists;
+   StrTree_p       codes;
+   NumTree_p       tops;
 
    char* rw_bw_index_type;
    char* pm_from_index_type;

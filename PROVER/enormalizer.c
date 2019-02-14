@@ -550,7 +550,7 @@ int main(int argc, char* argv[])
 #endif
    if(print_rusage)
    {
-      PrintRusage(GlobalOut);
+      PrintRusage(GlobalOut, 0);
    }
 
    fflush(GlobalOut);
