@@ -34,10 +34,10 @@
 /*                Exported Functions and Variables                     */
 /*---------------------------------------------------------------------*/
 
-void WatchlistRemoveRewritables(WatchlistControl_p wlcontrol, ClauseSet_p rws,
+void WatchlistRemoveRewritables(Watchlist_p watchlist, ClauseSet_p rws,
    OCB_p ocb, ClauseSet_p archive, Clause_p clause);
 
-void WatchlistInsertRewritten(WatchlistControl_p wlcontrol, ClauseSet_p rws, 
+void WatchlistInsertRewritten(Watchlist_p watchlist, ClauseSet_p rws, 
    ProofControl_p control, TB_p terms, ClauseSet_p *demodulators);
 
 void WatchlistCheck(WatchlistControl_p wlcontrol, Clause_p clause, ClauseSet_p archive, 

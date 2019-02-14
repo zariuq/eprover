@@ -256,35 +256,34 @@ static long watchlists_check(WatchlistControl_p wlcontrol, Clause_p clause, Clau
    return removed;
 }
 
-
 /*---------------------------------------------------------------------*/
 /*                         Exported Functions                          */
 /*---------------------------------------------------------------------*/
 
-void WatchlistRemoveRewritables(WatchlistControl_p wlcontrol, ClauseSet_p rws,
+void WatchlistRemoveRewritables(Watchlist_p watchlist, ClauseSet_p rws,
    OCB_p ocb, ClauseSet_p archive, Clause_p clause)
 {
-   if(wlcontrol->wlindices.bw_rw_index)
+   if (watchlist->indices.bw_rw_index)
    {
       // printf("# Simpclause: "); ClausePrint(stdout, clause, true); printf("\n");
       RemoveRewritableClausesIndexed(ocb, rws, archive, clause, clause->date,
-         &(wlcontrol->wlindices));
+         &(watchlist->indices));
       // printf("# Simpclause done\n");
    }
    else
    {
-      RemoveRewritableClauses(ocb, wlcontrol->watchlist0, rws, archive, 
-         clause, clause->date, &(wlcontrol->wlindices));
+      RemoveRewritableClauses(ocb, watchlist->set, rws, archive, 
+         clause, clause->date, &(watchlist->indices));
    }
 }
 
-void WatchlistInsertRewritten(WatchlistControl_p wlcontrol, ClauseSet_p rws, 
+void WatchlistInsertRewritten(Watchlist_p watchlist, ClauseSet_p rws, 
    ProofControl_p control, TB_p terms, ClauseSet_p *demodulators)
 {
    long     removed_lits;
    Clause_p handle;
 
-   while((handle = ClauseSetExtractFirst(rws)))
+   while ((handle = ClauseSetExtractFirst(rws)))
    {
       // printf("# WL simplify: "); ClausePrint(stdout, handle, true);
       // printf("\n");
@@ -305,9 +304,9 @@ void WatchlistInsertRewritten(WatchlistControl_p wlcontrol, ClauseSet_p rws,
       }
       handle->weight = ClauseStandardWeight(handle);
       ClauseMarkMaximalTerms(control->ocb, handle);
-      ClauseSetIndexedInsertClause(wlcontrol->watchlist0, handle);
+      ClauseSetIndexedInsertClause(watchlist->set, handle);
       // printf("# WL Inserting: "); ClausePrint(stdout, handle, true); printf("\n");
-      GlobalIndicesInsertClause(&(wlcontrol->wlindices), handle);
+      GlobalIndicesInsertClause(&(watchlist->indices), handle);
    }
 }
 
@@ -315,9 +314,14 @@ void WatchlistSimplify(WatchlistControl_p wlcontrol, Clause_p clause, ProofContr
    TB_p terms, ClauseSet_p archive, ClauseSet_p* demodulators)
 {
    ClauseSet_p rws;
+
    rws = ClauseSetAlloc();
-   WatchlistRemoveRewritables(wlcontrol, rws, control->ocb, archive, clause);
-   WatchlistInsertRewritten(wlcontrol, rws, control, terms, demodulators);
+   for (long i=0; i<wlcontrol->watchlists->current; i++)
+   {
+      Watchlist_p watchlist = PStackElementP(wlcontrol->watchlists, i);
+      WatchlistRemoveRewritables(watchlist, rws, control->ocb, archive, clause);
+      WatchlistInsertRewritten(watchlist, rws, control, terms, demodulators);
+   }
    ClauseSetFree(rws);
 }
 
