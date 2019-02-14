@@ -79,47 +79,65 @@ DStr_p clause_code(PStack_p codes, Sig_p sig)
    return code;   
 }
 
-long clause_init_cluster(Clause_p clause)
+void watchlists_insert_clause(WatchlistControl_p wlcontrol, Clause_p clause)
 {
-   char* s = clause->info->name + strlen(clause->info->name);
-   while (*s != '_') 
-   { 
-      s--; 
-      if (s < clause->info->name)
-      {
-         Error("A watchlist clause '%s' does not contain delimiter '_' before initial cluster index!\n", USAGE_ERROR, clause->info->name);
-      }
-   
-   }
-   s++;
-
-   return atoi(s);
-}
-
-long watchlists_insert_clause(WatchlistControl_p wlcontrol, NumTree_p* wls, Clause_p clause)
-{
-   long idx = clause_init_cluster(clause);
-
-   NumTree_p wlnode = NumTreeFind(wls, idx);
+   PStack_p tops = WatchlistClauseTops(clause);
+   DStr_p code = clause_code(tops, wlcontrol->sig);
+   StrTree_p node;
    Watchlist_p wl;
-   if (wlnode)
+   IntOrP val;
+   long top, i;
+   PStackPointer index;
+   NumTree_p topnode;
+
+   // get the watchlist for this clause code
+   node = StrTreeFind(&(wlcontrol->codes), DStrView(code));
+   if (node)
    {
-      wl = wlnode->val1.p_val;
+      //fprintf(GlobalOut, "# Reusing watchlist index: %s\n", DStrView(code));
+      wl = PStackElementP(wlcontrol->watchlists, node->val1.i_val);
+      index = node->val1.i_val;
+      DStrFree(code);
    }
    else
-   {  
+   {
+      //fprintf(GlobalOut, "# Creating new watchlist index: %s\n", DStrView(code));
+
       wl = WatchlistAlloc();
       GlobalIndicesInit(&(wl->indices), wlcontrol->sig, wlcontrol->rw_bw_index_type, 
          wlcontrol->pm_from_index_type, wlcontrol->pm_into_index_type);
       wl->set->fvindex = FVIAnchorAlloc(wlcontrol->cspec, PermVectorCopy(wlcontrol->perm));
-      NumTreeStore(wls, idx, (IntOrP)wl, (IntOrP)NULL);
+      wl->code = code;
+
+      index = wlcontrol->watchlists->current;
+      PStackPushP(wlcontrol->watchlists, wl);
+      val.i_val = index;
+      StrTreeStore(&(wlcontrol->codes), DStrView(code), val, val);
+   }
+
+   // for each top-level symbol, append this watchlist to the set
+   for (i=0; i<tops->current; i++)
+   {
+      top = PStackElementInt(tops, i);
+      topnode = NumTreeFind(&(wlcontrol->tops), top);
+      if (!topnode)
+      {
+         topnode = NumTreeCellAlloc();
+         topnode->key = top;
+         topnode->val1.p_val = NULL;
+         NumTreeInsert(&(wlcontrol->tops), topnode);
+      }
+
+      val.i_val = 1; // used as intersection counter
+      NumTreeStore((NumTree_p*)&(topnode->val1.p_val), index, val, val);
    }
 
    // finally insert the clause
    ClauseSetIndexedInsertClause(wl->set, clause);
    GlobalIndicesInsertClause(&(wl->indices), clause);
 
-   return idx;
+   //DStrFree(code);
+   PStackFree(tops);
 }
 
 /*---------------------------------------------------------------------*/
@@ -341,15 +359,21 @@ void WatchlistIndicesInit(WatchlistControl_p wlcontrol, Sig_p sig,
 
 void WatchlistInit(WatchlistControl_p wlcontrol, OCB_p ocb)
 {
+   //ClauseSet_p tmpset;
    Clause_p handle;
-   NumTree_p wls = NULL;
+
+   //tmpset = ClauseSetAlloc();
 
    ClauseSetMarkMaximalTerms(ocb, wlcontrol->watchlist0);
-   while (!ClauseSetEmpty(wlcontrol->watchlist0))
+   while(!ClauseSetEmpty(wlcontrol->watchlist0))
    {
       handle = ClauseSetExtractFirst(wlcontrol->watchlist0);
-      watchlists_insert_clause(wlcontrol, &wls, handle);
+      //ClauseSetInsert(tmpset, handle);
+      watchlists_insert_clause(wlcontrol, handle);
    }
+   //ClauseSetIndexedInsertClauseSet(wlcontrol->watchlist0, tmpset);
+   //ClauseSetFree(tmpset);
+   //GlobalIndicesInsertClauseSet(&(wlcontrol->wlindices),wlcontrol->watchlist0);
 
    wlcontrol->members = 0L;
    for (int i=0; i<wlcontrol->watchlists->current; i++)
@@ -367,6 +391,8 @@ void WatchlistInit(WatchlistControl_p wlcontrol, OCB_p ocb)
    {
       fprintf(GlobalOut, "# Total watchlist clauses: %ld\n", wlcontrol->members);
    }
+         //wlcontrol->watchlist0->members);
+   // ClauseSetPrint(stdout, wlcontrol->watchlist, true);
 }
 
 void WatchlistInitFVI(WatchlistControl_p wlcontrol, FVCollect_p cspec, 
