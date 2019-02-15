@@ -376,7 +376,7 @@ int main(int argc, char* argv[])
       neg_conjectures,
       parsed_ax_no,
       relevancy_pruned = 0;
-   double           preproc_time;
+   double           preproc_time = 0.0;
 
    assert(argv[0]);
 

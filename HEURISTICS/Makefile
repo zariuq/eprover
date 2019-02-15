@@ -66,7 +66,8 @@ HEURISTICS_LIB = che_wfcb.o che_wfcbadmin.o \
 		 che_enigmaweight.o \
 		 che_enigmaweightsvd.o \
 		 che_enigmaweightxgb.o \
-		 che_enigmaweightmulti.o
+		 che_enigmaweightmulti.o \
+		 che_torchweight.o
 
 
 $(LIB): $(HEURISTICS_LIB)
