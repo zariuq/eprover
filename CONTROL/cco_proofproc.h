@@ -78,8 +78,7 @@ long RemoveSubsumed(GlobalIndices_p indices,
                             FVPackedClause_p subsumer,
                             ClauseSet_p set,
                             ClauseSet_p archive,
-                            NumTree_p* watch_progress,
-							Sig_p sig);
+                            WatchlistControl_p wlcontrol);
 
 #endif
 

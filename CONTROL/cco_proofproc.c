@@ -104,34 +104,6 @@ static void check_ac_status(ProofState_p state, ProofControl_p
 
 /*-----------------------------------------------------------------------
 //
-// Function: watch_progress_update()
-//
-*/
-
-static double watch_progress_update(Clause_p watch_clause, 
-                                    NumTree_p* watch_progress)
-{
-   NumTree_p proof;
-
-   assert(watch_clause->watch_proof != -1);
-
-   // find the proof progress statistics ...
-   proof = NumTreeFind(watch_progress, watch_clause->watch_proof);
-   if (!proof) 
-   {
-      Error("Unknown proof number (%ld) of a watchlist clause! Should not happen!", 
-         OTHER_ERROR, watch_clause->watch_proof);
-   }
-   
-   // ... and update it (val1 matched out of val2 total)
-   proof->val1.i_val++;
-   
-   return (double)proof->val1.i_val/proof->val2.i_val;
-}
-
-
-/*-----------------------------------------------------------------------
-//
 // Function: eliminate_backward_rewritten_clauses()
 //
 //   Remove all processed clauses rewritable with clause and put
@@ -238,30 +210,30 @@ static long eliminate_backward_subsumed_clauses(ProofState_p state,
          {
             res += RemoveSubsumed(&(state->gindices), pclause,
                                    state->processed_pos_rules,
-                                   state->archive, NULL, NULL);
+                                   state->archive, NULL);
             res += RemoveSubsumed(&(state->gindices), pclause,
                                    state->processed_pos_eqns,
-                                   state->archive, NULL, NULL);
+                                   state->archive, NULL);
          }
          res += RemoveSubsumed(&(state->gindices), pclause,
                                 state->processed_non_units,
-                                state->archive, NULL, NULL);
+                                state->archive, NULL);
       }
       else
       {
          res += RemoveSubsumed(&(state->gindices), pclause,
                                 state->processed_neg_units,
-                                state->archive, NULL, NULL);
+                                state->archive, NULL);
          res += RemoveSubsumed(&(state->gindices), pclause,
                                 state->processed_non_units,
-                                state->archive, NULL, NULL);
+                                state->archive, NULL);
       }
    }
    else
    {
       res += RemoveSubsumed(&(state->gindices), pclause,
                              state->processed_non_units,
-                             state->archive, NULL, NULL);
+                             state->archive, NULL);
    }
    state->backward_subsumed_count+=res;
    return res;
@@ -1543,39 +1515,33 @@ Clause_p Saturate(ProofState_p state, ProofControl_p control, long
 /----------------------------------------------------------------------*/
 
 long RemoveSubsumed(GlobalIndices_p indices,
-                            FVPackedClause_p subsumer,
-                            ClauseSet_p set,
-                            ClauseSet_p archive,
-                            NumTree_p* watch_progress,
-							Sig_p sig)
+                    FVPackedClause_p subsumer,
+                    ClauseSet_p set,
+                    ClauseSet_p archive,
+                    WatchlistControl_p wlcontrol)
 {
    Clause_p handle;
    long     res;
-   double   progress;
    PStack_p stack = PStackAlloc();
-   //long     best_proof_no = -1;
-   double best_progress = 0.0;
+   Sig_p sig = (wlcontrol && WLNormalizeSkolemSymbols) ? wlcontrol->sig : NULL;
    
-   if(WLNormalizeSkolemSymbols)
-   {
-	   res = ClauseSetFindFVSubsumedClauses(set, subsumer, stack, sig);
-   }
-   else
-   {
-	   res = ClauseSetFindFVSubsumedClauses(set, subsumer, stack, NULL);
-   }
+	res = ClauseSetFindFVSubsumedClauses(set, subsumer, stack, sig);
    
    while(!PStackEmpty(stack))
    {
       handle = PStackPopP(stack);
       //printf("# XXX Removing (remove_subumed()) %p from %p = %p\n", handle, set, handle->set);
       //printf("# XWL "); ClausePrint(GlobalOut, handle, true); printf("\n"); 
-	  if(ClauseQueryProp(handle, CPWatchOnly))
+	   if(ClauseQueryProp(handle, CPWatchOnly))
       {
          assert(watch_progress);
 
          DocClauseQuote(GlobalOut, OutputLevel, 6, handle,
                         "extract_wl_subsumed", subsumer->clause);
+         if (wlcontrol)
+         {
+            WatchlistUpdateProgress(wlcontrol, subsumer->clause, handle);
+         }
          
          //fprintf(GlobalOut, "# Watchlist hit: ");
          //ClausePrint(GlobalOut, handle, true);
@@ -1584,23 +1550,6 @@ long RemoveSubsumed(GlobalIndices_p indices,
          //fprintf(GlobalOut, "# ... by: ");
          //ClausePrint(GlobalOut, subsumer->clause, true);
          //fprintf(GlobalOut, "\n");
-
-         if (watch_progress && *watch_progress) 
-         {
-            progress = watch_progress_update(handle, watch_progress);
-            if (progress > best_progress)
-            {
-               subsumer->clause->watch_proof = handle->watch_proof;
-               best_progress = progress;
-            }
-            //if ((best_proof_no < 0) || (progress > subsumer->clause->watch_relevance))
-            //{
-            //   best_proof_no = handle->watch_proof;
-            //   subsumer->clause->watch_proof = handle->watch_proof;
-            //}
-            //subsumer->clause->watch_relevance = MAX(
-            //   subsumer->clause->watch_relevance, progress);
-         }
       }
       else
       {
@@ -1620,50 +1569,6 @@ long RemoveSubsumed(GlobalIndices_p indices,
       }
    }
    PStackFree(stack);
-
-   /*
-   if (watch_progress && *watch_progress) 
-   {
-      double proof_progress = 0.0;
-      
-      if (subsumer->clause->watch_proof > 0)
-      {
-         proof_progress = watch_progress_get(watch_progress, subsumer->clause->watch_proof);
-      }
-     
-	  if (WLInheritRelevance)
-	  { 
-		  double parents_relevance = watch_parents_relevance(subsumer->clause);
-		  //double decay_factor = 0.1; // transformed into an option
-		  double combined_relevance = proof_progress + (decay_factor*parents_relevance);
-
-		  if (OutputLevel >= 2 || (OutputLevel == 1 && subsumer->clause->watch_proof > 0))
-		  {
-			 fprintf(GlobalOut, "# WATCHLIST RELEVANCE: relevance=%1.3f(=%1.3f+%1.3f*%1.3f); proof=%ld; clause=", 
-				combined_relevance,
-				proof_progress,
-				decay_factor,
-				parents_relevance,
-				subsumer->clause->watch_proof);
-			 ClausePrint(GlobalOut, subsumer->clause, true);
-			 fprintf(GlobalOut, "\n");
-		  }
-		  subsumer->clause->watch_relevance = combined_relevance;
-	  }
-	  else
-	  {
-		  if (OutputLevel >= 2 || (OutputLevel == 1 && subsumer->clause->watch_proof > 0))
-		  {
-			 fprintf(GlobalOut, "# WATCHLIST RELEVANCE: relevance=%1.3f; proof=%ld; clause=", 
-				proof_progress,
-				subsumer->clause->watch_proof);
-			 ClausePrint(GlobalOut, subsumer->clause, true);
-			 fprintf(GlobalOut, "\n");
-		  }
-		  subsumer->clause->watch_relevance = proof_progress;
-	  }
-   }
-   */
 
    return res;
 }

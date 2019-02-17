@@ -254,8 +254,14 @@ double EnigmaWeightCompute(void* data, Clause_p clause)
          { 
             continue; 
          }
+         NumTree_p len = NumTreeFind(&(local->proofstate->wlcontrol->proof_len), proof->key);
+         if (!len)
+         {
+            Error("Watchlist: Unknown proof length of proof #%ld.  Should not happen!", 
+               OTHER_ERROR, proof->key);
+         }
          nodes[k].index = proof->key + offset;
-         nodes[k].value = (double)proof->val1.i_val/proof->val2.i_val;
+         nodes[k].value = (double)proof->val1.i_val/len->val1.i_val;
          //printf("%d:%.3f ", nodes[k].index, nodes[k].value);
          k++;
          if (k >= 2048) { Error("ENIGMA: Too many proof watch features!", OTHER_ERROR); }

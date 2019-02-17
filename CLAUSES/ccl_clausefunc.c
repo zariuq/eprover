@@ -461,7 +461,7 @@ void ClauseSetArchive(ClauseSet_p archive, ClauseSet_p set)
 //
 /----------------------------------------------------------------------*/
 
-void PStackClausePrint(FILE* out, PStack_p stack, char* extra)
+void PStackClausePrint(FILE* out, PStack_p stack, char* extra, WatchlistControl_p wlcontrol)
 {
    PStackPointer i;
    Clause_p clause;
@@ -474,56 +474,15 @@ void PStackClausePrint(FILE* out, PStack_p stack, char* extra)
       {
          fprintf(out, "%s", extra);
       }
-      fputc('\n', out);
-   }
-}
-
-/*-----------------------------------------------------------------------
-//
-// Function: PStackClausePrintWithState()
-//
-//   Print the clauses on the stack. 
-//   Includes watchlist proof state in output.
-//
-// Global Variables: -
-//
-// Side Effects    : -
-//
-/----------------------------------------------------------------------*/
-
-// Helper function to print one line
-void watch_progress_print_single_line(FILE* out, NumTree_p watch_proof_state)
-{
-   NumTree_p proof;
-   PStack_p stack;
-
-   stack = NumTreeTraverseInit(watch_proof_state);
-   while((proof = NumTreeTraverseNext(stack)))
-   {
-      fprintf(out, "%ld:%0.3f(%ld/%ld),",
-         proof->key, (double)proof->val1.i_val/proof->val2.i_val,
-         proof->val1.i_val, proof->val2.i_val);
-   }
-   NumTreeTraverseExit(stack);
-}
-
-void PStackClausePrintWithState(FILE* out, PStack_p stack, char* extra)
-{
-   PStackPointer i;
-   Clause_p clause;
-
-   for(i=0; i<PStackGetSP(stack); i++)
-   {
-      clause = PStackElementP(stack, i);
-      ClausePrint(out, clause, true);
-      if(extra)
-      {
-         fprintf(out, "%s", extra);
+      if(wlcontrol && ProofObjectRecordsProofVector)
+      { 
+         WatchlistPrintProgress(wlcontrol, out, clause);
       }
-	  watch_progress_print_single_line(out, clause->watch_proof_state);
       fputc('\n', out);
    }
 }
+
+
 
 
 /*---------------------------------------------------------------------*/

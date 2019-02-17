@@ -46,8 +46,6 @@ void WatchlistCheck(WatchlistControl_p wlcontrol, Clause_p clause, ClauseSet_p a
 void WatchlistSimplify(WatchlistControl_p wlcontrol, Clause_p clause, ProofControl_p control, 
    TB_p terms, ClauseSet_p archive, ClauseSet_p* demodulators);
 
-void WatchlistUpdateProgress(WatchlistControl_p wlcontsol, Clause_p subsumer, Clause_p subsumed);
-
 #endif
 
 /*---------------------------------------------------------------------*/

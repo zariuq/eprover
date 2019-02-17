@@ -187,7 +187,6 @@ ProofState_p ProofStateAlloc(FunctionProperties free_symb_prop)
    handle->demods[0]            = handle->processed_pos_rules;
    handle->demods[1]            = handle->processed_pos_eqns;
    handle->demods[2]            = NULL;
-   //GlobalIndicesNull(&(handle->wlindices));
    handle->state_is_complete       = true;
    handle->has_interpreted_symbols = false;
    handle->definition_store     = DefStoreAlloc(handle->terms);
@@ -274,20 +273,12 @@ void ProofStateLoadWatchlist(ProofState_p state,
 
    if (watchlist_dirname)
    {
-      if (OutputLevel >= 1)
-      {
-         fprintf(GlobalOut, "# Loading directory watchlist from '%s'\n", 
-            watchlist_dirname);
-      }
+      fprintf(GlobalOut, "# Loading directory watchlist from '%s'\n", watchlist_dirname);
       WatchlistLoadDir(state->wlcontrol, state->terms, watchlist_dirname, parse_format);
    }
    else if (watchlist_filename)
    {
-      if (OutputLevel >= 1)
-      {
-         fprintf(GlobalOut, "# Loading file watchlist from '%s'\n", 
-            watchlist_filename);
-      }
+      fprintf(GlobalOut, "# Loading file watchlist from '%s'\n", watchlist_filename);
       if (watchlist_filename != UseInlinedWatchList) 
       {
          ClauseSet_p tmpset = WatchlistLoadFile(state->terms, watchlist_filename, parse_format);
@@ -367,7 +358,6 @@ void ProofStateResetClauseSets(ProofState_p state, bool term_gc)
    {
       WatchlistReset(state->wlcontrol);
       //ClauseSetFreeClauses(state->watchlist);
-      //GlobalIndicesReset(&(state->wlindices));
    }
    if(term_gc)
    {
@@ -554,27 +544,15 @@ void ProofStateTrain(ProofState_p state, bool print_pos, bool print_neg)
    if(print_pos)
    {
       fprintf(GlobalOut, "# Training: Positive examples begin\n");
-      if(ProofObjectRecordsProofVector && state->wlcontrol)
-      {
-   		PStackClausePrintWithState(GlobalOut, pos_examples, "# trainpos #proofvector ");	  
-      }
-	   else
-      {
-   		PStackClausePrint(GlobalOut, pos_examples, "# trainpos");
-      }
+      PStackClausePrint(GlobalOut, pos_examples, ProofObjectRecordsProofVector ? 
+         "#trainpos" : "#trainpos #proofvector ", state->wlcontrol);
       fprintf(GlobalOut, "# Training: Positive examples end\n");
    }
    if(print_neg)
    {
       fprintf(GlobalOut, "# Training: Negative examples begin\n");
-      if(ProofObjectRecordsProofVector && state->wlcontrol)
-      {
-   		PStackClausePrintWithState(GlobalOut, neg_examples, "#trainneg #proofvector ");	  
-      }
-      else
-      {
-         PStackClausePrint(GlobalOut, neg_examples, "#trainneg");
-      }
+      PStackClausePrint(GlobalOut, neg_examples, ProofObjectRecordsProofVector ?
+         "#trainneg" : "#trainneg #proofvector", state->wlcontrol);
       fprintf(GlobalOut, "# Training: Negative examples end\n");
    }
 
