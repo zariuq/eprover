@@ -112,10 +112,9 @@ void watchlists_insert_clause(WatchlistControl_p wlcontrol, Clause_p clause)
       wl->code = NULL; // TODO: code;
 
       index = wlcontrol->watchlists->current;
-      fprintf(GlobalOut, "%ld\n", index);
       PStackPushP(wlcontrol->watchlists, wl);
       val.i_val = index;
-      StrTreeStore(&(wlcontrol->codes), DStrView(code), val, val);
+      StrTreeStore(&(wlcontrol->codes), DStrView(code), val, (IntOrP)NULL);
       DStrFree(code); // TODO
    }
 
@@ -133,7 +132,7 @@ void watchlists_insert_clause(WatchlistControl_p wlcontrol, Clause_p clause)
       }
 
       val.i_val = 1; // used as intersection counter
-      NumTreeStore((NumTree_p*)&(topnode->val1.p_val), index, val, val);
+      NumTreeStore((NumTree_p*)&(topnode->val1.p_val), index, val, (IntOrP)NULL);
    }
 
    // finally insert the clause

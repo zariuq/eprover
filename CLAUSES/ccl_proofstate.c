@@ -544,15 +544,15 @@ void ProofStateTrain(ProofState_p state, bool print_pos, bool print_neg)
    if(print_pos)
    {
       fprintf(GlobalOut, "# Training: Positive examples begin\n");
-      PStackClausePrint(GlobalOut, pos_examples, ProofObjectRecordsProofVector ? 
+      PStackClausePrint(GlobalOut, pos_examples, !ProofObjectRecordsProofVector ? 
          "#trainpos" : "#trainpos #proofvector ", state->wlcontrol);
       fprintf(GlobalOut, "# Training: Positive examples end\n");
    }
    if(print_neg)
    {
       fprintf(GlobalOut, "# Training: Negative examples begin\n");
-      PStackClausePrint(GlobalOut, neg_examples, ProofObjectRecordsProofVector ?
-         "#trainneg" : "#trainneg #proofvector", state->wlcontrol);
+      PStackClausePrint(GlobalOut, neg_examples, !ProofObjectRecordsProofVector ?
+         "#trainneg" : "#trainneg #proofvector ", state->wlcontrol);
       fprintf(GlobalOut, "# Training: Negative examples end\n");
    }
 
