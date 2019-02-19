@@ -270,6 +270,11 @@ void ProofStateLoadWatchlist(ProofState_p state,
       Error("Options --watchlist and --watchlist-dir can not be used together.",
          USAGE_ERROR);
    }
+   if (ProofObjectRecordsProofVector && !watchlist_dirname)
+   {
+      Error("Option --record-proof-vector must be used together with --watchlist-dir.",
+         USAGE_ERROR);
+   }
 
    if (watchlist_dirname)
    {

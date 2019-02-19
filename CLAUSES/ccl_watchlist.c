@@ -109,13 +109,12 @@ void watchlists_insert_clause(WatchlistControl_p wlcontrol, Clause_p clause)
       wl->set->fvindex = FVIAnchorAlloc(wlcontrol->cspec, wlcontrol->perm);
       //FIXME: do we need to copy perm vector?
       //wl->set->fvindex = FVIAnchorAlloc(wlcontrol->cspec, PermVectorCopy(wlcontrol->perm));
-      wl->code = NULL; // TODO: code;
+      wl->code = code;
 
       index = wlcontrol->watchlists->current;
       PStackPushP(wlcontrol->watchlists, wl);
       val.i_val = index;
       StrTreeStore(&(wlcontrol->codes), DStrView(code), val, (IntOrP)NULL);
-      DStrFree(code); // TODO
    }
 
    // for each top-level symbol, append this watchlist to the set
@@ -156,6 +155,7 @@ WatchlistControl_p WatchlistControlAlloc(void)
    res->watch_progress = NULL;
    res->proof_len = NULL;
    res->members= 0L;
+   res->proofs_count = 0L;
    res->codes = NULL;
    res->tops = NULL;
    res->sig = NULL;
@@ -314,6 +314,7 @@ void WatchlistLoadDir(WatchlistControl_p wlcontrol, TB_p bank,
       WatchlistInsertSet(wlcontrol, tmpset);
       ClauseSetFree(tmpset);
       DStrFree(filename);
+      wlcontrol->proofs_count++;
    }
 
    PStackFree(filenames);
@@ -407,6 +408,7 @@ void WatchlistInit(WatchlistControl_p wlcontrol, OCB_p ocb)
 
    fprintf(GlobalOut, "# Total watchlist clauses: %ld\n", wlcontrol->members);
    fprintf(GlobalOut, "# Total watchlist indices: %ld\n", wlcontrol->watchlists->current);
+   fprintf(GlobalOut, "# Watchlist proof vector length: %ld\n", wlcontrol->proofs_count);
 }
 
 void WatchlistInitFVI(WatchlistControl_p wlcontrol, FVCollect_p cspec, 

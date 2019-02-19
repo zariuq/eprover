@@ -105,13 +105,17 @@ static char* top_symbol_string(Term_p term, Sig_p sig)
    {
       return ENIGMA_VAR;
    }
-   else if ((strncmp(SigFindName(sig, term->f_code), "esk", 3) == 0)) 
-   {
-      return ENIGMA_SKO;
-   }
    else 
    {
-      return SigFindName(sig, term->f_code);
+      char* name = SigFindName(sig, term->f_code);
+      if (name[0] == 'e') // be fast
+      {
+         if ((strncmp(name, "esk", 3) == 0) || (strncmp(name, "epred", 5) == 0))
+         {
+            return ENIGMA_SKO;
+         }
+      }
+      return name;
    }
 }
 
@@ -230,7 +234,7 @@ static void clause_static_features_string(DStr_p str, long* vec, Sig_p sig, long
    for (long f=sig->internal_symbols+1; f<=sig->f_count; f++)
    {
       char* fname = SigFindName(sig, f);
-      if ((strlen(fname)>3) && (strncmp(fname, "esk", 3) == 0))
+      if ((strlen(fname)>3) && ((strncmp(fname, "esk", 3) == 0) || (strncmp(fname, "epred", 5) == 0)))
       {
          continue;
       }

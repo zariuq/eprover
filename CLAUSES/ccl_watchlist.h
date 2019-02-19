@@ -44,6 +44,7 @@ typedef struct watchlistcontrolcell
    NumTree_p       proof_len;
    ClauseSet_p     watchlist0; // global watchlist used when loading (not indexed)
    long            members;
+   long            proofs_count;
 
    char* rw_bw_index_type;
    char* pm_from_index_type;

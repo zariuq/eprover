@@ -40,12 +40,14 @@ Changes
 /*                         Internal Functions                          */
 /*---------------------------------------------------------------------*/
 
+/*
 static int string_compare(const void* p1, const void* p2)
 {
    const char* s1 = ((const IntOrP*)p1)->p_val;
    const char* s2 = ((const IntOrP*)p2)->p_val;
    return -strcmp(s1, s2);
 }
+*/
 
 static char* top_symbol_string(Term_p term, Sig_p sig)
 {
@@ -53,13 +55,17 @@ static char* top_symbol_string(Term_p term, Sig_p sig)
    {
       return ENIGMA_VAR;
    }
-   else if ((strncmp(SigFindName(sig, term->f_code), "esk", 3) == 0)) 
-   {
-      return ENIGMA_SKO;
-   }
    else 
    {
-      return SigFindName(sig, term->f_code);
+      char* name = SigFindName(sig, term->f_code);
+      if (name[0] == 'e') // be fast
+      {
+         if ((strncmp(name, "esk", 3) == 0) || (strncmp(name, "epred", 5) == 0))
+         {
+            return ENIGMA_SKO;
+         }
+      }
+      return name;
    }
 }
 
@@ -455,7 +461,7 @@ void FeaturesAddClauseStatic(NumTree_p* counts, Clause_p clause, Enigmap_p enigm
       for (long f=enigmap->sig->internal_symbols+1; f<=enigmap->sig->f_count; f++)
       {
          char* fname = SigFindName(enigmap->sig, f);
-         if ((strlen(fname)>3) && (strncmp(fname, "esk", 3) == 0))
+         if ((strlen(fname)>3) && ((strncmp(fname, "esk", 3) == 0) || (strncmp(fname, "epred", 5) == 0)))
          {
             continue;
          }
