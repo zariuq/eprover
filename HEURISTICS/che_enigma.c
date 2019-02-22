@@ -69,6 +69,24 @@ static char* top_symbol_string(Term_p term, Sig_p sig)
    }
 }
 
+static unsigned long feature_sdbm(char* str)
+{
+   unsigned long hash = 0;
+   int c;
+
+   while ((c = *str++))
+   {
+      hash = c + (hash << 6) + (hash << 16) - hash;
+   }
+
+   return hash;
+}
+
+static long feature_hash(char* str, long base)
+{
+   return 1 + (feature_sdbm(str) % base);
+}
+
 static void feature_increase(
    char* str,
    int inc,
@@ -80,28 +98,38 @@ static void feature_increase(
    {
       return;
    }
+   long fid = 0;
 
-   StrTree_p snode = StrTreeFind(&enigmap->feature_map, str);
-   if (snode) 
+   if (enigmap->version & EFHashing)
    {
-      long fid = snode->val1.i_val;
-      NumTree_p cnode = NumTreeFind(counts, fid);
-      if (cnode) 
-      {
-         cnode->val1.i_val += inc;
-      }
-      else 
-      {
-         cnode = NumTreeCellAllocEmpty();
-         cnode->key = fid;
-         cnode->val1.i_val = inc;
-         NumTreeInsert(counts, cnode);
-         (*len)++;
-      }
+      fid = feature_hash(str, enigmap->feature_count);
    }
    else
    {
-      //Warning("ENIGMA: Unknown feature \"%s\" skipped.");
+      StrTree_p snode = StrTreeFind(&enigmap->feature_map, str);
+      if (snode) 
+      {
+         fid = snode->val1.i_val;
+      }
+      else
+      {
+         //Warning("ENIGMA: Unknown feature \"%s\" skipped.", str);
+         return;
+      }
+   }
+
+   NumTree_p cnode = NumTreeFind(counts, fid);
+   if (cnode) 
+   {
+      cnode->val1.i_val += inc;
+   }
+   else 
+   {
+      cnode = NumTreeCellAllocEmpty();
+      cnode->key = fid;
+      cnode->val1.i_val = inc;
+      NumTreeInsert(counts, cnode);
+      (*len)++;
    }
 }
 
@@ -240,6 +268,7 @@ Enigmap_p EnigmapAlloc(void)
    res->sig = NULL;
    res->feature_map = NULL;
    res->version = EFNone;
+   res->feature_count = 0L;
 
    return res;
 }
@@ -272,30 +301,45 @@ Enigmap_p EnigmapLoad(char* features_filename, Sig_p sig)
       AcceptInpTok(in, CloseBracket);
       AcceptInpTok(in, Fullstop);
    }
-   while (TestInpId(in, "feature"))
+
+   if (enigmap->version & EFHashing)
    {
-      AcceptInpId(in, "feature");
+      AcceptInpId(in, "hash_base");
       AcceptInpTok(in, OpenBracket);
       ParseNumString(in);
-      long fid = atoi(in->accu->string);
-      AcceptInpTok(in, Comma);
-
-      CheckInpTok(in, String);
-      StrTree_p cell = StrTreeCellAllocEmpty();
-      cell->key = DStrCopyCore(AktToken(in)->literal);
-      cell->val1.i_val = fid;
-      StrTreeInsert(&enigmap->feature_map, cell);
-      count++;
-      //printf("%ld ... %s\n", fid, DStrCopyCore(AktToken(in)->literal));
-      
-      NextToken(in);
+      enigmap->feature_count = atoi(in->accu->string);
       AcceptInpTok(in, CloseBracket);
       AcceptInpTok(in, Fullstop);
+      // skip the rest of the file (buckets collisions info)
+      DestroyScanner(in);
    }
-   CheckInpTok(in, NoToken);
-   DestroyScanner(in);
+   else
+   {
+      while (TestInpId(in, "feature"))
+      {
+         AcceptInpId(in, "feature");
+         AcceptInpTok(in, OpenBracket);
+         ParseNumString(in);
+         long fid = atoi(in->accu->string);
+         AcceptInpTok(in, Comma);
 
-   enigmap->feature_count = count;
+         CheckInpTok(in, String);
+         StrTree_p cell = StrTreeCellAllocEmpty();
+         cell->key = DStrCopyCore(AktToken(in)->literal);
+         cell->val1.i_val = fid;
+         StrTreeInsert(&enigmap->feature_map, cell);
+         count++;
+         //printf("%ld ... %s\n", fid, DStrCopyCore(AktToken(in)->literal));
+         
+         NextToken(in);
+         AcceptInpTok(in, CloseBracket);
+         AcceptInpTok(in, Fullstop);
+      }
+      CheckInpTok(in, NoToken);
+      DestroyScanner(in);
+
+      enigmap->feature_count = count;
+   }
    
    return enigmap;
 }

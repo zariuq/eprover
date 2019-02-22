@@ -95,7 +95,10 @@ static void extweight_init(EnigmaWeightXgbParam_p data)
    data->conj_features_indices = conj_indices;
    data->conj_features_data = conj_data;
 
-   fprintf(GlobalOut, "# ENIGMA: XGBoost model '%s' loaded. (features: %ld; conj_feats: %d; version: %ld)\n", data->model_filename, data->enigmap->feature_count, data->conj_features_count, data->enigmap->version);
+   fprintf(GlobalOut, "# ENIGMA: XGBoost model '%s' loaded. (%s: %ld; conj_feats: %d; version: %ld)\n", 
+      data->model_filename, 
+      (data->enigmap->version & EFHashing) ? "hash_base" : "features", data->enigmap->feature_count, 
+      data->conj_features_count, data->enigmap->version);
 }
 
 /*---------------------------------------------------------------------*/

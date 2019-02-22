@@ -91,9 +91,10 @@ static void extweight_init(EnigmaWeightParam_p data)
    data->conj_features_count = len;
 
    fprintf(GlobalOut, 
-      "# ENIGMA: Model '%s' loaded (features: %ld; vector len: %d; version: %ld)\n", 
-      data->model_filename, data->enigmap->feature_count, data->linear_model->nr_feature,
-      data->enigmap->version);
+      "# ENIGMA: LibLinear model '%s' loaded (%s: %ld; conj_feats: %d; vector len: %d; version: %ld)\n", 
+      data->model_filename, 
+      (data->enigmap->version & EFHashing) ? "hash_base" : "features", data->enigmap->feature_count, 
+      data->conj_features_count, data->linear_model->nr_feature, data->enigmap->version);
 }
 
 /*---------------------------------------------------------------------*/
