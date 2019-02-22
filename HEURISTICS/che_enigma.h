@@ -44,6 +44,7 @@ typedef enum
    EFConjecture = 16,
    EFProofWatch = 32,
    EFVariables = 64,
+   EFHashing = 128,
    EFAll = 0xFFFF
 }EnigmaFeature;
 

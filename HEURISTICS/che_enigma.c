@@ -314,9 +314,10 @@ EnigmaFeatures ParseEnigmaFeaturesSpec(char *spec)
          case 'C': enigma_features |= EFConjecture; break;
          case 'W': enigma_features |= EFProofWatch; break;
          case 'X': enigma_features |= EFVariables; break;
+         case 'h': enigma_features |= EFHashing; break;
          case '"': break;
          default:
-                   Error("Invalid Enigma features specifier '%c'. Valid characters are 'VHSLCW'.",
+                   Error("Invalid Enigma features specifier '%c'. Valid characters are 'VHSLCWXh'.",
                          USAGE_ERROR, *spec);
                    break;
       }
