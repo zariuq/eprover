@@ -22,10 +22,10 @@ lib: linear.o tron.o blas/blas.a
 	ln -fs liblinear.so.$(SHVER) liblinear.so
 
 train: tron.o linear.o train.c blas/blas.a
-	$(CXX) $(CFLAGS) -o train train.c tron.o linear.o $(LIBS)
+	$(CXX) -static $(CFLAGS) -o train train.c tron.o linear.o $(LIBS)
 
 predict: tron.o linear.o predict.c blas/blas.a
-	$(CXX) $(CFLAGS) -o predict predict.c tron.o linear.o $(LIBS)
+	$(CXX) -static $(CFLAGS) -o predict predict.c tron.o linear.o $(LIBS)
 
 tron.o: tron.cpp tron.h
 	$(CXX) $(CFLAGS) -c -o tron.o tron.cpp
