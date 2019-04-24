@@ -1,0 +1,2 @@
+gcc -c -o test.o test.c
+gcc -O3 -fomit-frame-pointer -fno-common -static -o test test.o lib_lightgbm.a -lm -lstdc++ -fopenmp
