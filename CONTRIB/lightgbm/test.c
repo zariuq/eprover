@@ -3,8 +3,12 @@
 
 int main(void)
 {
+   BoosterHandle handle;
+   int iters, ret;
 
-   printf("Hello\n");
+   ret = LGBM_BoosterCreateFromModelfile("model.lgb", &iters, &handle);
+
+   printf("ret = %d\n", ret);
    printf("%s\n", LGBM_GetLastError());
 
 }
