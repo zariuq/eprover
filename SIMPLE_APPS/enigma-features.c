@@ -43,6 +43,7 @@ typedef enum
    OPT_VERBOSE,
    OPT_FREE_NUMBERS,
    OPT_ENIGMA_FEATURES,
+   OPT_FEATURE_HASHING,
    OPT_OUTPUT
 }OptionCodes;
 
@@ -70,7 +71,12 @@ OptCell opts[] =
       "Enigma features to be generate. The value is a string of characters "
       "determining the features to be used. Valid characters are 'V' "
       "(vertical features), 'H' (horizontal), 'S' (symbols), 'L' "
-      "(length stats) 'C' (conjecture)."},
+      "(length stats), 'C' (conjecture), 'h' (hashing)."},
+   {OPT_FEATURE_HASHING,
+      '\0', "feature-hashing",
+      ReqArg, NULL,
+      "Turn on Enigma features hashing.  The argument specifies the numeric "
+      "hash base (for example, 32768, that is, 2^15)."},
    {OPT_FREE_NUMBERS,
     '\0', "free-numbers",
      NoArg, NULL,
@@ -86,6 +92,7 @@ OptCell opts[] =
 char *outname = NULL;
 FunctionProperties free_symb_prop = FPIgnoreProps;
 EnigmaFeatures Enigma = EFAll;
+unsigned long FeatureHashing = 0L;
 
 /*---------------------------------------------------------------------*/
 /*                      Forward Declarations                           */
@@ -302,6 +309,29 @@ static DStr_p get_conjecture_features_string(char* filename, TB_p bank)
    return str;
 }
 
+static NumTree_p get_conjecture_features(char* filename, TB_p bank, Enigmap_p enigmap)
+{
+   int len = 0;
+   NumTree_p features = NULL;
+   Scanner_p in = CreateScanner(StreamTypeFile, filename, true, NULL);
+   ScannerSetFormat(in, TSTPFormat);
+   while (TestInpId(in, "cnf"))
+   {
+      Clause_p clause = ClauseParse(in, bank);
+      if (ClauseQueryTPTPType(clause) == CPTypeNegConjecture) 
+      {
+         len += FeaturesClauseExtend(&features, clause, enigmap);
+         FeaturesAddClauseStatic(&features, clause, enigmap, &len);
+      }
+      //if (len >= 2048) { Error("ENIGMA: Too many conjecture features!", OTHER_ERROR); } 
+      ClauseFree(clause);
+   }
+   CheckInpTok(in, NoToken);
+   DestroyScanner(in);
+
+   return features;
+}
+
 static void dump_features_strings(FILE* out, char* filename, TB_p bank, char* prefix, char* conj)
 {
    long vars[10];
@@ -343,6 +373,42 @@ static void dump_features_strings(FILE* out, char* filename, TB_p bank, char* pr
    DStrFree(str);
 }
 
+static void dump_features_hashes(FILE* out, char* filename, TB_p bank, char* prefix, NumTree_p conj_features, Enigmap_p enigmap)
+{
+   PStack_p stack;
+   Scanner_p in = CreateScanner(StreamTypeFile, filename, true, NULL);
+   ScannerSetFormat(in, TSTPFormat);
+   NumTree_p node;
+
+   while (TestInpId(in, "cnf"))
+   {
+      Clause_p clause = ClauseParse(in, bank);
+      fprintf(out, prefix);
+   
+      int len = 0;
+      NumTree_p features = FeaturesClauseCollect(clause, enigmap, &len);
+      stack = NumTreeTraverseInit(features);
+      while ((node = NumTreeTraverseNext(stack)))
+      {
+         fprintf(out, " %ld:%ld", node->key, node->val1.i_val);
+      }
+      NumTreeTraverseExit(stack);
+      NumTreeFree(features);
+
+      stack = NumTreeTraverseInit(conj_features);
+      while ((node = NumTreeTraverseNext(stack)))
+      {
+         fprintf(out, " %ld:%ld", node->key+enigmap->feature_count, node->val1.i_val);
+      }
+      NumTreeTraverseExit(stack);
+
+      ClauseFree(clause);
+      fprintf(out, "\n");
+   }
+   CheckInpTok(in, NoToken);
+   DestroyScanner(in);
+}
+
 int main(int argc, char* argv[])
 {
    InitIO(argv[0]);
@@ -355,22 +421,55 @@ int main(int argc, char* argv[])
   
    DStr_p dstr = NULL;
    char* conj = "";
+   NumTree_p conj_features = NULL;
+   Enigmap_p enigmap = NULL;
+   if (FeatureHashing) 
+   {
+      enigmap = EnigmapAlloc();
+      enigmap->feature_count = FeatureHashing;
+      enigmap->version = Enigma;
+      enigmap->sig = bank->sig;
+   }
    if ((Enigma & EFConjecture) && (args->argc == 3))
    {
-      dstr = get_conjecture_features_string(args->argv[2], bank);
-      conj = DStrView(dstr); 
+      if (FeatureHashing)
+      {
+         conj_features = get_conjecture_features(args->argv[2], bank, enigmap);
+      }
+      else
+      {
+         dstr = get_conjecture_features_string(args->argv[2], bank);
+         conj = DStrView(dstr); 
+      }
    }
    if (args->argc == 1)
    {
-      dump_features_strings(GlobalOut, args->argv[0], bank, "*", conj);
+      if (FeatureHashing)
+      {
+         dump_features_hashes(GlobalOut, args->argv[0], bank, "+?", conj_features, enigmap);
+      }
+      else
+      {
+         dump_features_strings(GlobalOut, args->argv[0], bank, "*", conj);
+      }
    }
    else
    {
-      dump_features_strings(GlobalOut, args->argv[0], bank, "+", conj);
-      dump_features_strings(GlobalOut, args->argv[1], bank, "-", conj);
+      if (FeatureHashing)
+      {
+         dump_features_hashes(GlobalOut, args->argv[0], bank, "+1", conj_features, enigmap);
+         dump_features_hashes(GlobalOut, args->argv[1], bank, "+0", conj_features, enigmap);
+      }
+      else
+      {
+         dump_features_strings(GlobalOut, args->argv[0], bank, "+", conj);
+         dump_features_strings(GlobalOut, args->argv[1], bank, "-", conj);
+      }
    }
 
    if (dstr) { DStrFree(dstr); }
+   if (enigmap) { EnigmapFree(enigmap); }
+   if (conj_features) { NumTreeFree(conj_features); }
    //TBFree(bank);
    //SigFree(sig);
    ProofStateFree(state);
@@ -420,6 +519,8 @@ CLState_p process_options(int argc, char* argv[])
       case OPT_ENIGMA_FEATURES:
              Enigma = ParseEnigmaFeaturesSpec(arg);
              break;
+      case OPT_FEATURE_HASHING:
+             FeatureHashing = CLStateGetIntArg(handle, arg);
       case OPT_FREE_NUMBERS:
             free_symb_prop = free_symb_prop|FPIsInteger|FPIsRational|FPIsFloat;
             break;
@@ -428,13 +529,22 @@ CLState_p process_options(int argc, char* argv[])
           break;
       }
    }
-
+   
    if (state->argc < 1 || state->argc > 3)
    {
       print_help(stdout);
       exit(NO_ERROR);
    }
    
+   if (FeatureHashing && !(Enigma & EFHashing))
+   {
+      Error("ENIGMA: You specified a hash base but forgot 'h' in features string (--enigma-features).", USAGE_ERROR); 
+   }
+   if (!FeatureHashing && (Enigma & EFHashing))
+   {
+      Error("ENIGMA: You turned on hashing but haven't specified a hash base (--feature-hashing).", USAGE_ERROR); 
+   }
+
    return state;
 }
  
