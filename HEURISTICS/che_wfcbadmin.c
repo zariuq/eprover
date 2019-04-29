@@ -73,6 +73,7 @@ char* WeightFunParseFunNames[]=
    "EnigmaMulti",
    "EnigmaXgb",
    "Torch",
+   "EnigmaLgb",
    NULL
 };
 
@@ -120,6 +121,7 @@ static WeightFunParseFun parse_fun_array[]=
    EnigmaWeightMultiParse,
    EnigmaWeightXgbParse,
    TorchWeightParse,
+   EnigmaWeightLgbParse,
    (WeightFunParseFun)NULL
 };
 

@@ -46,7 +46,8 @@ EPROVER = eprover.o ../lib/CONTROL.a ../lib/PCL2.a ../lib/HEURISTICS.a\
 				../CONTRIB/svdlibc/libsvd.a \
 				../CONTRIB/xgboost/libxgboost.a \
 				../CONTRIB/xgboost/librabit.a \
-				../CONTRIB/xgboost/libdmlc.a 
+				../CONTRIB/xgboost/libdmlc.a \
+				../CONTRIB/lightgbm/liblightgbm.a
 
 eprover: $(EPROVER)
 	$(LD) -o eprover $(EPROVER) $(LIBS) -fopenmp
