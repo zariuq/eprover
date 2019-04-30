@@ -540,10 +540,10 @@ CLState_p process_options(int argc, char* argv[])
    {
       Error("ENIGMA: You specified a hash base but forgot 'h' in features string (--enigma-features).", USAGE_ERROR); 
    }
-   if (!FeatureHashing && (Enigma & EFHashing))
-   {
-      Error("ENIGMA: You turned on hashing but haven't specified a hash base (--feature-hashing).", USAGE_ERROR); 
-   }
+   //if (!FeatureHashing && (Enigma & EFHashing))
+   //{
+   //   Error("ENIGMA: You turned on hashing but haven't specified a hash base (--feature-hashing).", USAGE_ERROR); 
+   //}
 
    return state;
 }
