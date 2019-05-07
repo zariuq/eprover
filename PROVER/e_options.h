@@ -158,6 +158,7 @@ typedef enum
    OPT_WATCHLIST_INHERIT_RELEVANCE,
    OPT_WATCHLIST_NO_SIMPLIFY,
    OPT_WATCHLIST_NORMALIZE_SKOLEM_SYMOBLS,
+   OPT_WATCHLIST_TRAIN_SAMPLES,
    OPT_NO_INDEXED_SUBSUMPTION,
    OPT_FVINDEX_STYLE,
    OPT_FVINDEX_FEATURETYPES,
@@ -1199,6 +1200,11 @@ OptCell opts[] =
 	'\0', "wl-normalize-skolem",
 	NoArg, NULL,
 	"Treat skolem symbols of equal arity as the same in watchlist subsumption."},
+   
+   {OPT_WATCHLIST_TRAIN_SAMPLES,
+	'\0', "wl-training-examples",
+	NoArg, NULL,
+	"Output watchlist matchering and non-matching clauses as training examples."},
 
    {OPT_NO_INDEXED_SUBSUMPTION,
     '\0', "conventional-subsumption",

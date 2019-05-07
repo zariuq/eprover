@@ -32,6 +32,7 @@
 #include <cco_scheduling.h>
 #include <e_version.h>
 #include <pcl_protocol.h>
+#include <cco_watchlist.h>
 
 
 /*---------------------------------------------------------------------*/
@@ -1480,6 +1481,9 @@ CLState_p process_options(int argc, char* argv[])
 	  case OPT_WATCHLIST_NORMALIZE_SKOLEM_SYMOBLS:
 			WLNormalizeSkolemSymbols = true;
 			break;
+     case OPT_WATCHLIST_TRAIN_SAMPLES:
+         WLTrainingSamples = true;
+         break;
 	  case OPT_WATCHLIST_INHERIT_RELEVANCE:
 			WLInheritRelevance = true;
 			decay_factor = CLStateGetFloatArg(handle, arg);

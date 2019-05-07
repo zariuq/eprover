@@ -27,6 +27,7 @@
 /*                        Global Variables                             */
 /*---------------------------------------------------------------------*/
 
+bool WLTrainingSamples = false;
 
 /*---------------------------------------------------------------------*/
 /*                      Forward Declarations                           */
@@ -437,6 +438,14 @@ void WatchlistCheck(WatchlistControl_p wlcontrol, Clause_p clause, ClauseSet_p a
 
       }
    }
+
+   if (WLTrainingSamples)
+   { 
+      bool matcher = ClauseQueryProp(clause, CPSubsumesWatch);
+      ClausePrint(GlobalOut, clause, true);
+      fprintf(GlobalOut, "# watchmatch %s\n", matcher ? "pos" : "neg");
+   }
+
    // printf("# ...check_watchlist()\n");
 }
 
