@@ -295,6 +295,20 @@ StrTree_p StrTreeFind(StrTree_p *root, const char* key)
    return NULL;
 }
 
+StrTree_p StrTreeUpdate(StrTree_p *root, char* key, IntOrP val1, IntOrP val2)
+{
+   StrTree_p node = StrTreeFind(root, key);
+   if (node)
+   {
+      node->val1 = val1;
+      node->val2 = val2;
+   }
+   else
+   {
+      node = StrTreeStore(root, key, val1, val2);
+   }
+   return node;
+}
 
 /*-----------------------------------------------------------------------
 //

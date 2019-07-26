@@ -131,6 +131,20 @@ static void feature_increase(
       NumTreeInsert(counts, cnode);
       (*len)++;
    }
+
+   if (enigmap->collect_stats)
+   {  
+      StrTree_p snode = StrTreeFind(&enigmap->stats, str);
+      if (snode)
+      {
+         snode->val2.i_val += 1;
+      }
+      else
+      {  
+         StrTreeStore(&enigmap->stats, str, (IntOrP)fid, (IntOrP)1L);
+      }
+      //StrTreeUpdate(&enigmap->stats, str, cnode->val1, cnode->val2);
+   }
 }
 
 static void feature_symbol_increase(
@@ -269,6 +283,8 @@ Enigmap_p EnigmapAlloc(void)
    res->feature_map = NULL;
    res->version = EFNone;
    res->feature_count = 0L;
+   res->collect_stats = false;
+   res->stats = NULL;
 
    return res;
 }
@@ -276,6 +292,10 @@ Enigmap_p EnigmapAlloc(void)
 void EnigmapFree(Enigmap_p junk)
 {
    StrTreeFree(junk->feature_map);
+   if (junk->stats)
+   {
+      StrTreeFree(junk->stats);
+   }
    
    EnigmapCellFree(junk);
 }

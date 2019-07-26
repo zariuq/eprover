@@ -58,6 +58,9 @@ typedef struct enigmapcell
    StrTree_p feature_map;
    long feature_count;
 
+   bool collect_stats;
+   StrTree_p stats;
+
 } EnigmapCell, *Enigmap_p;
 
 #define EnigmapCellAlloc() (EnigmapCell*) \

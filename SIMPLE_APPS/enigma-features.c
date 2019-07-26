@@ -44,7 +44,8 @@ typedef enum
    OPT_FREE_NUMBERS,
    OPT_ENIGMA_FEATURES,
    OPT_FEATURE_HASHING,
-   OPT_OUTPUT
+   OPT_OUTPUT,
+   OPT_ENIGMAP_OUTPUT,
 }OptionCodes;
 
 /*---------------------------------------------------------------------*/
@@ -65,6 +66,10 @@ OptCell opts[] =
         'o', "output-file",
         ReqArg, NULL,
         "Redirect output into the named file."},
+    {OPT_ENIGMAP_OUTPUT,
+        '\0', "enigmap-file",
+        ReqArg, NULL,
+        "Save Enigma feature map to the named file."},
    {OPT_ENIGMA_FEATURES,
       '\0', "enigma-features",
       ReqArg, NULL,
@@ -90,6 +95,7 @@ OptCell opts[] =
 };
 
 char *outname = NULL;
+char *enigmapname= NULL;
 FunctionProperties free_symb_prop = FPIgnoreProps;
 EnigmaFeatures Enigma = EFAll;
 unsigned long FeatureHashing = 32768L;
@@ -164,6 +170,23 @@ static void dump_features_hashes(FILE* out, char* filename, TB_p bank, char* pre
    CheckInpTok(in, NoToken);
    DestroyScanner(in);
 }
+      
+static void dump_enigmap_stats(char* fname, Enigmap_p enigmap)
+{
+   PStack_p stack;
+   StrTree_p node;
+
+   FILE* out = fopen(fname, "w");
+   
+   stack = StrTreeTraverseInit(enigmap->stats);
+   while((node = StrTreeTraverseNext(stack)))
+   {
+      fprintf(out, "usage(\"%s\",%ld,%ld).\n", node->key, node->val1.i_val, node->val2.i_val);
+   }
+   StrTreeTraverseExit(stack);
+
+   fclose(out);
+}
 
 int main(int argc, char* argv[])
 {
@@ -183,6 +206,8 @@ int main(int argc, char* argv[])
    enigmap->feature_count = FeatureHashing;
    enigmap->version = Enigma;
    enigmap->sig = bank->sig;
+   enigmap->collect_stats = (enigmapname) ? true : false;
+   enigmap->stats = NULL;
 
    if ((Enigma & EFConjecture) && (args->argc == 3))
    {
@@ -196,6 +221,11 @@ int main(int argc, char* argv[])
    {
       dump_features_hashes(GlobalOut, args->argv[0], bank, "+1", conj_features, enigmap);
       dump_features_hashes(GlobalOut, args->argv[1], bank, "+0", conj_features, enigmap);
+   }
+
+   if (enigmapname) 
+   {
+      dump_enigmap_stats(enigmapname, enigmap);
    }
 
    if (dstr) { DStrFree(dstr); }
@@ -246,6 +276,9 @@ CLState_p process_options(int argc, char* argv[])
              exit(NO_ERROR);
       case OPT_OUTPUT:
              outname = arg;
+             break;
+      case OPT_ENIGMAP_OUTPUT:
+             enigmapname = arg;
              break;
       case OPT_ENIGMA_FEATURES:
              Enigma = ParseEnigmaFeaturesSpec(arg);
