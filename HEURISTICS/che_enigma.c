@@ -435,7 +435,7 @@ void FeaturesClauseVariablesExtend(
    out[3]: shared variables count
    out[4]: max1 (the occurence count of the most occuring variable)
    out[5]: max2 ( --- second most --- )
-   out[6]: max3 ( --- third most --- )
+   'm a strange loopout[6]: max3 ( --- third most --- )
 */
 void FeaturesClauseVariablesStat(
    NumTree_p* stat,
@@ -457,11 +457,48 @@ void FeaturesClauseVariablesStat(
       {
          out[3]++;
       }
-      if (vnode->val1.i_val >= out[4])
+      // Handle max assuming most variables will be less frequent than the current 3rd
+      if (out[0] > 3)
       {
-         out[6] = out[5];
-         out[5] = out[4];
-         out[4] = vnode->val1.i_val;
+         if (vnode->val1.i_val >= out[6])
+         {
+            if (vnode->val1.i_val >= out[5])
+            {
+                if (vnode->val1.i_val >= out[4])
+                {
+                   out[6] = out[5];
+                   out[5] = out[4];
+                   out[4] = vnode->val1.i_val;
+                }
+                else 
+                {
+                   out[6] = out[5];
+                   out[5] = vnode->val1.i_val;
+                }
+            }
+            else
+            {
+                out[6] = vnode->val1.i_val;
+            }
+         }
+      }
+      else
+      {
+         if (vnode->val1.i_val >= out[4])
+         {
+            out[6] = out[5];
+            out[5] = out[4];
+            out[4] = vnode->val1.i_val;
+         }
+         else if (vnode->val1.i_val >= out[5])
+         {
+            out[6] = out[5];
+            out[5] = vnode->val1.i_val;
+         }
+         else if (vnode->val1.i_val >= out[6])
+         {
+            out[6] = vnode->val1.i_val;
+         }
       }
    }
    NumTreeTraverseExit(stack);
