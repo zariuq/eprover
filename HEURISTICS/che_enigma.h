@@ -90,10 +90,11 @@ DStr_p FeaturesGetEqHorizontal(Term_p lterm, Term_p rterm, Sig_p sig);
 
 void FeaturesClauseVariablesExtend(NumTree_p* stat, Clause_p clause, int* distinct, int offset);
 void FeaturesClauseVariablesStat(NumTree_p* stat, long* out);
-void FeaturesClauseVariables(Clause_p clause, long* out);
+void FeaturesAddVariables(NumTree_p* counts, NumTree_p* varstat, Enigmap_p enigmap, int *len);
 
 int FeaturesClauseExtend(NumTree_p* counts, Clause_p clause, Enigmap_p enigmap);
-void FeaturesAddClauseStatic(NumTree_p* counts, Clause_p clause, Enigmap_p enigmap, int *len);
+void FeaturesAddClauseStatic(NumTree_p* counts, Clause_p clause, Enigmap_p enigmap, int *len,
+         NumTree_p* varstat, int* varoffset);
 NumTree_p FeaturesClauseCollect(Clause_p clause, Enigmap_p enigmap, int* len);
 
 void FeaturesSvdTranslate(DMat matUt, double* sing, 

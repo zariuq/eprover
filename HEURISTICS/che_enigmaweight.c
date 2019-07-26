@@ -58,6 +58,8 @@ static void extweight_init(EnigmaWeightParam_p data)
       Clause_p clause;
       Clause_p anchor;
       NumTree_p features = NULL;
+      NumTree_p varstat = NULL;
+      int varoffset = 0;
 
       anchor = data->proofstate->axioms->anchor;
       for (clause=anchor->succ; clause!=anchor; clause=clause->succ)
@@ -65,9 +67,10 @@ static void extweight_init(EnigmaWeightParam_p data)
          if(ClauseQueryTPTPType(clause)==CPTypeNegConjecture) 
          {
             len += FeaturesClauseExtend(&features, clause, data->enigmap);
-            FeaturesAddClauseStatic(&features, clause, data->enigmap, &len);
+            FeaturesAddClauseStatic(&features, clause, data->enigmap, &len, &varstat, &varoffset);
          }
       }
+      FeaturesAddVariables(&features, &varstat, data->enigmap, &len);
 
       if (len >= 2048) { Error("ENIGMA: Too many conjecture features!", OTHER_ERROR); } 
      

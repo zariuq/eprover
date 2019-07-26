@@ -524,21 +524,37 @@ void FeaturesClauseVariablesStat(
    NumTreeTraverseExit(stack);
 }
 
-void FeaturesClauseVariables(Clause_p clause, long* out)
+void FeaturesAddVariables(NumTree_p* counts, NumTree_p* varstat, Enigmap_p enigmap, int *len)
 {
-   for (int i=0; i<=6; i++) { out[i] = 0; }
+   if (!(enigmap->version & EFVariables))
+   {
+      return;
+   }
 
-   NumTree_p stat = NULL;
-   FeaturesClauseVariablesExtend(&stat, clause, NULL, 0);
-   FeaturesClauseVariablesStat(&stat, out);
-   NumTreeFree(stat);
+   long vars[10] = { 0L };
+   
+   FeaturesClauseVariablesStat(varstat, vars);
+
+   feature_increase("!X!COUNT", vars[0], counts, enigmap, len);
+   feature_increase("!X!OCCUR", vars[1], counts, enigmap, len);
+   feature_increase("!X!UNIQ", vars[2], counts, enigmap, len);
+   feature_increase("!X!SHARED", vars[3], counts, enigmap, len);
+   feature_increase("!X!MAX1", vars[4], counts, enigmap, len);
+   feature_increase("!X!MAX2", vars[5], counts, enigmap, len);
+   feature_increase("!X!MAX3", vars[6], counts, enigmap, len);
+
+   NumTreeFree(*varstat);
+   *varstat = NULL;
 }
 
       
-void FeaturesAddClauseStatic(NumTree_p* counts, Clause_p clause, Enigmap_p enigmap, int *len)
+void FeaturesAddClauseStatic(NumTree_p* counts, Clause_p clause, Enigmap_p enigmap, int *len, 
+         NumTree_p* varstat, int* varoffset)
 {
    static long* vec = NULL;
    static size_t size = 0;
+   long vars[10];
+
    if (!vec)
    {
       size = (4*(enigmap->sig->f_count+1))*sizeof(long);
@@ -580,13 +596,24 @@ void FeaturesAddClauseStatic(NumTree_p* counts, Clause_p clause, Enigmap_p enigm
          }
       }
    }
+
+   if (varoffset && (enigmap->version & EFVariables))
+   { 
+      int distinct = 0;
+      FeaturesClauseVariablesExtend(varstat, clause, &distinct, *varoffset);
+      (*varoffset) += (2 * distinct);
+   }
 }
 
 NumTree_p FeaturesClauseCollect(Clause_p clause, Enigmap_p enigmap, int* len)
 {
    NumTree_p counts = NULL;
+   NumTree_p varstat = NULL;
+   int varoffset = 0;
+
    *len = FeaturesClauseExtend(&counts, clause, enigmap);
-   FeaturesAddClauseStatic(&counts, clause, enigmap, len);
+   FeaturesAddClauseStatic(&counts, clause, enigmap, len, &varstat, &varoffset);
+   FeaturesAddVariables(&counts, &varstat, enigmap, len);
    return counts;
 }
 

@@ -69,7 +69,8 @@ OptCell opts[] =
     {OPT_ENIGMAP_OUTPUT,
         '\0', "enigmap-file",
         ReqArg, NULL,
-        "Save Enigma feature map to the named file."},
+        "Output Enigma feature statistics to a file. "
+        "Print hash-code and usage counter for every feature used in the data."},
    {OPT_ENIGMA_FEATURES,
       '\0', "enigma-features",
       ReqArg, NULL,
@@ -116,6 +117,9 @@ static NumTree_p get_conjecture_features(char* filename, TB_p bank, Enigmap_p en
 {
    int len = 0;
    NumTree_p features = NULL;
+   NumTree_p varstat = NULL;
+   int varoffset = 0;
+
    Scanner_p in = CreateScanner(StreamTypeFile, filename, true, NULL);
    ScannerSetFormat(in, TSTPFormat);
    while (TestInpId(in, "cnf"))
@@ -124,11 +128,12 @@ static NumTree_p get_conjecture_features(char* filename, TB_p bank, Enigmap_p en
       if (ClauseQueryTPTPType(clause) == CPTypeNegConjecture) 
       {
          len += FeaturesClauseExtend(&features, clause, enigmap);
-         FeaturesAddClauseStatic(&features, clause, enigmap, &len);
+         FeaturesAddClauseStatic(&features, clause, enigmap, &len, &varstat, &varoffset);
       }
       //if (len >= 2048) { Error("ENIGMA: Too many conjecture features!", OTHER_ERROR); } 
       ClauseFree(clause);
    }
+   FeaturesAddVariables(&features, &varstat, enigmap, &len);
    CheckInpTok(in, NoToken);
    DestroyScanner(in);
 
@@ -181,6 +186,7 @@ static void dump_enigmap_stats(char* fname, Enigmap_p enigmap)
    stack = StrTreeTraverseInit(enigmap->stats);
    while((node = StrTreeTraverseNext(stack)))
    {
+      // prints hash-code and usage counter for every used feature
       fprintf(out, "usage(\"%s\",%ld,%ld).\n", node->key, node->val1.i_val, node->val2.i_val);
    }
    StrTreeTraverseExit(stack);
