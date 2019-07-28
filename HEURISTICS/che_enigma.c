@@ -49,24 +49,45 @@ static int string_compare(const void* p1, const void* p2)
 }
 */
 
-static char* top_symbol_string(Term_p term, Sig_p sig)
+static char* fcode_string(FunCode f_code, Enigmap_p enigmap)
 {
+   static char str[128];
+   
+   assert(fcode > 0);
+   
+   bool is_skolem = false;
+   char* name = SigFindName(enigmap->sig, f_code);
+   if (name[0] == 'e') // be fast
+   {
+      if ((strncmp(name, "esk", 3) == 0) || (strncmp(name, "epred", 5) == 0))
+      {
+         is_skolem = true;
+      }
+   }
+      
+   if (is_skolem || (enigmap->version & EFArity))
+   {
+      int arity = SigFindArity(enigmap->sig, f_code);
+      char prefix = SigIsPredicate(enigmap->sig, f_code) ? 'p' : 'f'; 
+      char* sk = (is_skolem) ? ENIGMA_SKO : "";
+      sprintf(str, "%s%c%d", sk, prefix, arity);
+      StrTree_p node = StrTreeUpdate(&enigmap->name_cache, str, (IntOrP)0L, (IntOrP)0L);
+      return node->key;
+   }
+   else
+   {
+      return name;
+   }
+}
+
+static char* top_symbol_string(Term_p term, Enigmap_p enigmap)
+{
+
    if (TermIsVar(term)) 
    {
       return ENIGMA_VAR;
    }
-   else 
-   {
-      char* name = SigFindName(sig, term->f_code);
-      if (name[0] == 'e') // be fast
-      {
-         if ((strncmp(name, "esk", 3) == 0) || (strncmp(name, "epred", 5) == 0))
-         {
-            return ENIGMA_SKO;
-         }
-      }
-      return name;
-   }
+   return fcode_string(term->f_code, enigmap);
 }
 
 static unsigned long feature_sdbm(char* str)
@@ -172,7 +193,7 @@ static int features_term_collect(
    char* sym1, 
    char* sym2)
 {
-   char* sym3 = top_symbol_string(term, enigmap->sig);
+   char* sym3 = top_symbol_string(term, enigmap);
    static char str[128];
    int len = 0;
 
@@ -196,7 +217,7 @@ static int features_term_collect(
    // horizontals
    if (enigmap->version & EFHorizontal)
    {
-      DStr_p hstr = FeaturesGetTermHorizontal(sym3, term, enigmap->sig);
+      DStr_p hstr = FeaturesGetTermHorizontal(sym3, term, enigmap);
       feature_increase(DStrView(hstr), 1, counts, enigmap, &len);
       DStrFree(hstr);
    }
@@ -205,14 +226,25 @@ static int features_term_collect(
 }
 
 static void features_term_variables(
+   Enigmap_p enigmap,
    NumTree_p* stat,
    Term_p term,
    int* distinct,
    int offset)
 {
+   FunCode f_code = term->f_code;
    if (TermIsVar(term))
    {
-      NumTree_p vnode = NumTreeFind(stat, term->f_code - offset);
+      f_code -= offset;
+   }
+   else if (f_code <= enigmap->sig->internal_symbols)
+   {
+      f_code = 0L; // ignore internal symbols
+   }
+   
+   if (f_code != 0)
+   {
+      NumTree_p vnode = NumTreeFind(stat, f_code);
       if (vnode)
       {
          vnode->val1.i_val += 1;
@@ -220,20 +252,21 @@ static void features_term_variables(
       else
       {
          vnode = NumTreeCellAllocEmpty();
-         vnode->key = term->f_code - offset;
+         vnode->key = f_code;
          vnode->val1.i_val = 1;
          NumTreeInsert(stat, vnode);
-         if (distinct)
+         if (TermIsVar(term) && distinct)
          {
             (*distinct)++;
          }
       }
    }
-   else
+
+   if (!TermIsVar(term))
    {
       for (int i=0; i<term->arity; i++)
       {
-         features_term_variables(stat, term->args[i], distinct, offset);
+         features_term_variables(enigmap, stat, term->args[i], distinct, offset);
       }
    }
 }
@@ -242,13 +275,14 @@ static void features_term_variables(
 /*                         Exported Functions                          */
 /*---------------------------------------------------------------------*/
 
-DStr_p FeaturesGetTermHorizontal(char* top, Term_p term, Sig_p sig)
+/* This is old version which puts arguments in reverse (or sorts them)
+DStr_p FeaturesGetTermHorizontal(char* top, Term_p term, Enigmap_p enigmap)
 {
    DStr_p str = DStrAlloc();
    PStack_p args = PStackAlloc();
    for (int i=0; i<term->arity; i++)
    {
-      PStackPushP(args, top_symbol_string(term->args[i], sig));
+      PStackPushP(args, top_symbol_string(term->args[i], enigmap));
    }
    //PStackSort(args, string_compare);
    DStrAppendStr(str, top);
@@ -260,12 +294,25 @@ DStr_p FeaturesGetTermHorizontal(char* top, Term_p term, Sig_p sig)
    PStackFree(args);
    return str;
 }
+*/
 
-DStr_p FeaturesGetEqHorizontal(Term_p lterm, Term_p rterm, Sig_p sig)
+DStr_p FeaturesGetTermHorizontal(char* top, Term_p term, Enigmap_p enigmap)
 {
    DStr_p str = DStrAlloc();
-   char* lstr = top_symbol_string(lterm, sig);
-   char* rstr = top_symbol_string(rterm, sig);
+   DStrAppendStr(str, top);
+   for (int i=0; i<term->arity; i++)
+   {
+      DStrAppendChar(str, '.');
+      DStrAppendStr(str, top_symbol_string(term->args[i], enigmap));
+   }
+   return str;
+}
+
+DStr_p FeaturesGetEqHorizontal(Term_p lterm, Term_p rterm, Enigmap_p enigmap)
+{
+   DStr_p str = DStrAlloc();
+   char* lstr = top_symbol_string(lterm, enigmap);
+   char* rstr = top_symbol_string(rterm, enigmap);
    bool cond = (strcmp(lstr, rstr) < 0);
    DStrAppendStr(str, ENIGMA_EQ);
    DStrAppendChar(str, '.');
@@ -285,6 +332,7 @@ Enigmap_p EnigmapAlloc(void)
    res->feature_count = 0L;
    res->collect_stats = false;
    res->stats = NULL;
+   res->name_cache = NULL;
 
    return res;
 }
@@ -295,6 +343,10 @@ void EnigmapFree(Enigmap_p junk)
    if (junk->stats)
    {
       StrTreeFree(junk->stats);
+   }
+   if (junk->name_cache)
+   {
+      StrTreeFree(junk->name_cache);
    }
    
    EnigmapCellFree(junk);
@@ -379,9 +431,10 @@ EnigmaFeatures ParseEnigmaFeaturesSpec(char *spec)
          case 'W': enigma_features |= EFProofWatch; break;
          case 'X': enigma_features |= EFVariables; break;
          case 'h': enigma_features |= EFHashing; break;
+         case 'A': enigma_features |= EFArity; break;
          case '"': break;
          default:
-                   Error("Invalid Enigma features specifier '%c'. Valid characters are 'VHSLCWXh'.",
+                   Error("Invalid Enigma features specifier '%c'. Valid characters are 'VHSLCWXA'.",
                          USAGE_ERROR, *spec);
                    break;
       }
@@ -401,7 +454,7 @@ int FeaturesClauseExtend(NumTree_p* counts, Clause_p clause, Enigmap_p enigmap)
       if (lit->rterm->f_code == SIG_TRUE_CODE)
       {
          // verticals & horizontals
-         char* sym2 = SigFindName(enigmap->sig, lit->lterm->f_code);
+         char* sym2 = top_symbol_string(lit->lterm, enigmap); 
          for (int i=0; i<lit->lterm->arity; i++) // here we ignore prop. constants
          {
             len += features_term_collect(counts, lit->lterm->args[i], enigmap, sym1, sym2);
@@ -410,7 +463,7 @@ int FeaturesClauseExtend(NumTree_p* counts, Clause_p clause, Enigmap_p enigmap)
          // top-level horizontal
          if ((enigmap->version & EFHorizontal) && (lit->lterm->arity > 0))
          {
-            hstr = FeaturesGetTermHorizontal(sym2, lit->lterm, enigmap->sig);
+            hstr = FeaturesGetTermHorizontal(sym2, lit->lterm, enigmap);
             feature_increase(DStrView(hstr), 1, counts, enigmap, &len);
             DStrFree(hstr);
          }
@@ -425,7 +478,7 @@ int FeaturesClauseExtend(NumTree_p* counts, Clause_p clause, Enigmap_p enigmap)
          // top-level horizontal
          if (enigmap->version & EFHorizontal)
          {
-            hstr = FeaturesGetEqHorizontal(lit->lterm, lit->rterm, enigmap->sig);
+            hstr = FeaturesGetEqHorizontal(lit->lterm, lit->rterm, enigmap);
             feature_increase(DStrView(hstr), 1, counts, enigmap, &len);
             DStrFree(hstr);
          }
@@ -436,6 +489,7 @@ int FeaturesClauseExtend(NumTree_p* counts, Clause_p clause, Enigmap_p enigmap)
 }
 
 void FeaturesClauseVariablesExtend(
+   Enigmap_p enigmap,
    NumTree_p* stat,
    Clause_p clause,
    int* distinct,
@@ -443,8 +497,8 @@ void FeaturesClauseVariablesExtend(
 {
    for(Eqn_p lit = clause->literals; lit; lit = lit->next)
    {
-      features_term_variables(stat, lit->lterm, distinct, offset);
-      features_term_variables(stat, lit->rterm, distinct, offset);
+      features_term_variables(enigmap, stat, lit->lterm, distinct, offset);
+      features_term_variables(enigmap, stat, lit->rterm, distinct, offset);
    }
 }
 
@@ -455,18 +509,30 @@ void FeaturesClauseVariablesExtend(
    out[3]: shared variables count
    out[4]: max1 (the occurence count of the most occuring variable)
    out[5]: max2 ( --- second most --- )
-   'm a strange loopout[6]: max3 ( --- third most --- )
+   out[6]: max3 ( --- third most --- )
+   out[7]: min1 (the occurence count of the least occuring variable)
+   out[8]: min2 ( --- second --- )
+   out[9]: min3 ( --- third --- )
 */
 void FeaturesClauseVariablesStat(
    NumTree_p* stat,
-   long* out)
+   long* out,
+   bool pos_keys)
 {
    PStack_p stack;
    NumTree_p vnode;
 
+   out[7] = 65536;
+   out[8] = 65536;
+   out[9] = 65536;
+
    stack = NumTreeTraverseInit(*stat);
    while ((vnode = NumTreeTraverseNext(stack)))
    {
+      if ((pos_keys && (vnode->key <= 0)) || ((!pos_keys) && (vnode->key >= 0)))
+      {
+         continue;
+      }
       out[0]++;
       out[1] += vnode->val1.i_val;
       if (vnode->val1.i_val == 1)
@@ -477,71 +543,84 @@ void FeaturesClauseVariablesStat(
       {
          out[3]++;
       }
-      // Handle max assuming most variables will be less frequent than the current 3rd
-      if (out[0] > 3)
+      // update maximums
+      if (vnode->val1.i_val >= out[4])
       {
-         if (vnode->val1.i_val >= out[6])
-         {
-            if (vnode->val1.i_val >= out[5])
-            {
-                if (vnode->val1.i_val >= out[4])
-                {
-                   out[6] = out[5];
-                   out[5] = out[4];
-                   out[4] = vnode->val1.i_val;
-                }
-                else 
-                {
-                   out[6] = out[5];
-                   out[5] = vnode->val1.i_val;
-                }
-            }
-            else
-            {
-                out[6] = vnode->val1.i_val;
-            }
-         }
+         out[6] = out[5];
+         out[5] = out[4];
+         out[4] = vnode->val1.i_val;
       }
-      else
+      else if (vnode->val1.i_val >= out[5])
       {
-         if (vnode->val1.i_val >= out[4])
-         {
-            out[6] = out[5];
-            out[5] = out[4];
-            out[4] = vnode->val1.i_val;
-         }
-         else if (vnode->val1.i_val >= out[5])
-         {
-            out[6] = out[5];
-            out[5] = vnode->val1.i_val;
-         }
-         else if (vnode->val1.i_val >= out[6])
-         {
-            out[6] = vnode->val1.i_val;
-         }
+         out[6] = out[5];
+         out[5] = vnode->val1.i_val;
+      }
+      else if (vnode->val1.i_val >= out[6])
+      {
+         out[6] = vnode->val1.i_val;
+      }
+      // update minimums
+      if (vnode->val1.i_val <= out[7])
+      {
+         out[9] = out[8];
+         out[8] = out[7];
+         out[7] = vnode->val1.i_val;
+      }
+      else if (vnode->val1.i_val <= out[8])
+      {
+         out[9] = out[8];
+         out[8] = vnode->val1.i_val;
+      }
+      else if (vnode->val1.i_val <= out[9])
+      {
+         out[9] = vnode->val1.i_val;
       }
    }
    NumTreeTraverseExit(stack);
+   
+   out[7] = (out[7] == 65536) ? 0 : out[7];
+   out[8] = (out[8] == 65536) ? 0 : out[8];
+   out[9] = (out[9] == 65536) ? 0 : out[9];
 }
 
 void FeaturesAddVariables(NumTree_p* counts, NumTree_p* varstat, Enigmap_p enigmap, int *len)
 {
-   if (!(enigmap->version & EFVariables))
+   long vars[10];
+
+   // variable statistics
+   if (enigmap->version & EFVariables)
    {
-      return;
+      for (int i=0; i<10; i++) { vars[i] = 0L; }
+      FeaturesClauseVariablesStat(varstat, vars, false);
+
+      feature_increase("!x!COUNT", vars[0], counts, enigmap, len);
+      feature_increase("!x!OCCUR", vars[1], counts, enigmap, len);
+      feature_increase("!x!UNIQ", vars[2], counts, enigmap, len);
+      feature_increase("!x!SHARE", vars[3], counts, enigmap, len);
+      feature_increase("!x!MAX1", vars[4], counts, enigmap, len);
+      feature_increase("!x!MAX2", vars[5], counts, enigmap, len);
+      feature_increase("!x!MAX3", vars[6], counts, enigmap, len);
+      feature_increase("!x!MIN1", vars[7], counts, enigmap, len);
+      feature_increase("!x!MIN2", vars[8], counts, enigmap, len);
+      feature_increase("!x!MIN3", vars[9], counts, enigmap, len);
    }
+   // symbol names statistics
+   if (enigmap->version & EFVariables)
+   {
+      for (int i=0; i<10; i++) { vars[i] = 0L; }
+      FeaturesClauseVariablesStat(varstat, vars, true);
 
-   long vars[10] = { 0L };
-   
-   FeaturesClauseVariablesStat(varstat, vars);
-
-   feature_increase("!X!COUNT", vars[0], counts, enigmap, len);
-   feature_increase("!X!OCCUR", vars[1], counts, enigmap, len);
-   feature_increase("!X!UNIQ", vars[2], counts, enigmap, len);
-   feature_increase("!X!SHARED", vars[3], counts, enigmap, len);
-   feature_increase("!X!MAX1", vars[4], counts, enigmap, len);
-   feature_increase("!X!MAX2", vars[5], counts, enigmap, len);
-   feature_increase("!X!MAX3", vars[6], counts, enigmap, len);
+      feature_increase("!n!COUNT", vars[0], counts, enigmap, len);
+      feature_increase("!n!OCCUR", vars[1], counts, enigmap, len);
+      feature_increase("!n!UNIQ", vars[2], counts, enigmap, len);
+      feature_increase("!n!SHARE", vars[3], counts, enigmap, len);
+      feature_increase("!n!MAX1", vars[4], counts, enigmap, len);
+      feature_increase("!n!MAX2", vars[5], counts, enigmap, len);
+      feature_increase("!n!MAX3", vars[6], counts, enigmap, len);
+      feature_increase("!n!MIN1", vars[7], counts, enigmap, len);
+      feature_increase("!n!MIN2", vars[8], counts, enigmap, len);
+      feature_increase("!n!MIN3", vars[9], counts, enigmap, len);
+   }
 
    NumTreeFree(*varstat);
    *varstat = NULL;
@@ -553,7 +632,6 @@ void FeaturesAddClauseStatic(NumTree_p* counts, Clause_p clause, Enigmap_p enigm
 {
    static long* vec = NULL;
    static size_t size = 0;
-   long vars[10];
 
    if (!vec)
    {
@@ -578,7 +656,7 @@ void FeaturesAddClauseStatic(NumTree_p* counts, Clause_p clause, Enigmap_p enigm
      
       for (long f=enigmap->sig->internal_symbols+1; f<=enigmap->sig->f_count; f++)
       {
-         char* fname = SigFindName(enigmap->sig, f);
+         char* fname = fcode_string(f, enigmap);
          if ((strlen(fname)>3) && ((strncmp(fname, "esk", 3) == 0) || (strncmp(fname, "epred", 5) == 0)))
          {
             continue;
@@ -600,7 +678,7 @@ void FeaturesAddClauseStatic(NumTree_p* counts, Clause_p clause, Enigmap_p enigm
    if (varoffset && (enigmap->version & EFVariables))
    { 
       int distinct = 0;
-      FeaturesClauseVariablesExtend(varstat, clause, &distinct, *varoffset);
+      FeaturesClauseVariablesExtend(enigmap, varstat, clause, &distinct, *varoffset);
       (*varoffset) += (2 * distinct);
    }
 }

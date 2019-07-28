@@ -45,6 +45,7 @@ typedef enum
    EFProofWatch = 32,
    EFVariables = 64,
    EFHashing = 128,
+   EFArity = 256,
    EFAll = 0xFFFF
 }EnigmaFeature;
 
@@ -60,6 +61,7 @@ typedef struct enigmapcell
 
    bool collect_stats;
    StrTree_p stats;
+   StrTree_p name_cache;
 
 } EnigmapCell, *Enigmap_p;
 
@@ -85,11 +87,11 @@ Enigmap_p EnigmapLoad(char* features_filename, Sig_p sig);
 
 EnigmaFeatures ParseEnigmaFeaturesSpec(char *spec);
 
-DStr_p FeaturesGetTermHorizontal(char* top, Term_p term, Sig_p sig);
-DStr_p FeaturesGetEqHorizontal(Term_p lterm, Term_p rterm, Sig_p sig);
+DStr_p FeaturesGetTermHorizontal(char* top, Term_p term, Enigmap_p enigmap);
+DStr_p FeaturesGetEqHorizontal(Term_p lterm, Term_p rterm, Enigmap_p enigmap);
 
-void FeaturesClauseVariablesExtend(NumTree_p* stat, Clause_p clause, int* distinct, int offset);
-void FeaturesClauseVariablesStat(NumTree_p* stat, long* out);
+void FeaturesClauseVariablesExtend(Enigmap_p enigmap, NumTree_p* stat, Clause_p clause, int* distinct, int offset);
+void FeaturesClauseVariablesStat(NumTree_p* stat, long* out, bool pos_keys);
 void FeaturesAddVariables(NumTree_p* counts, NumTree_p* varstat, Enigmap_p enigmap, int *len);
 
 int FeaturesClauseExtend(NumTree_p* counts, Clause_p clause, Enigmap_p enigmap);
