@@ -31,6 +31,7 @@ Changes
 #include <ccl_formulafunc.h>
 #include <ccl_proofstate.h>
 #include <che_enigma.h>
+#include <che_clausesetfeatures.h>
 
 /*---------------------------------------------------------------------*/
 /*                  Data types                                         */
@@ -113,12 +114,13 @@ void print_help(FILE* out);
 /*---------------------------------------------------------------------*/
 
 
-static NumTree_p get_conjecture_features(char* filename, TB_p bank, Enigmap_p enigmap)
+static NumTree_p get_conjecture_features(char* filename, TB_p bank, Enigmap_p enigmap, SpecFeature_p spec)
 {
    int len = 0;
    NumTree_p features = NULL;
    NumTree_p varstat = NULL;
    int varoffset = 0;
+   ClauseSet_p problem = ClauseSetAlloc();
 
    Scanner_p in = CreateScanner(StreamTypeFile, filename, true, NULL);
    ScannerSetFormat(in, TSTPFormat);
@@ -131,8 +133,15 @@ static NumTree_p get_conjecture_features(char* filename, TB_p bank, Enigmap_p en
          FeaturesAddClauseStatic(&features, clause, enigmap, &len, &varstat, &varoffset);
       }
       //if (len >= 2048) { Error("ENIGMA: Too many conjecture features!", OTHER_ERROR); } 
-      ClauseFree(clause);
+      ClauseSetInsert(problem, clause);
+      //ClauseFree(clause); // YAN3
    }
+
+   SpecFeaturesCompute(spec, problem, enigmap->sig);
+   //SpecFeaturesPrint(GlobalOut, spec);
+   //SpecFeatureCellFree(spec);
+   // TODO: free problem set
+
    FeaturesAddVariables(&features, &varstat, enigmap, &len);
    CheckInpTok(in, NoToken);
    DestroyScanner(in);
@@ -140,7 +149,8 @@ static NumTree_p get_conjecture_features(char* filename, TB_p bank, Enigmap_p en
    return features;
 }
 
-static void dump_features_hashes(FILE* out, char* filename, TB_p bank, char* prefix, NumTree_p conj_features, Enigmap_p enigmap)
+static void dump_features_hashes(FILE* out, char* filename, TB_p bank, char* prefix, NumTree_p conj_features, 
+      Enigmap_p enigmap, SpecFeature_p spec)
 {
    PStack_p stack;
    Scanner_p in = CreateScanner(StreamTypeFile, filename, true, NULL);
@@ -168,6 +178,29 @@ static void dump_features_hashes(FILE* out, char* filename, TB_p bank, char* pre
          fprintf(out, " %ld:%ld", node->key+enigmap->feature_count, node->val1.i_val);
       }
       NumTreeTraverseExit(stack);
+
+      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+1, spec->goals);
+      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+2, spec->axioms);
+      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+3, spec->clauses);
+      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+4, spec->literals);
+      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+5, spec->term_cells);
+      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+6, spec->unitgoals);
+      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+7, spec->unitaxioms);
+      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+8, spec->horngoals);
+      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+9, spec->hornaxioms);
+      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+10, spec->eq_clauses);
+      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+11, spec->peq_clauses);
+      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+12, spec->groundunitaxioms);
+      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+13, spec->groundgoals);
+      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+14, spec->groundpositiveaxioms);
+      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+15, spec->positiveaxioms);
+      fprintf(out, " %ld:%.6f", (2*enigmap->feature_count)+16, spec->ng_unit_axioms_part);
+      fprintf(out, " %ld:%.6f", (2*enigmap->feature_count)+17, spec->ground_positive_axioms_part);
+      fprintf(out, " %ld:%d", (2*enigmap->feature_count)+18, spec->max_fun_arity);
+      fprintf(out, " %ld:%d", (2*enigmap->feature_count)+19, spec->avg_fun_arity);
+      fprintf(out, " %ld:%d", (2*enigmap->feature_count)+20, spec->sum_fun_arity);
+      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+21, spec->clause_max_depth);
+      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+22, spec->clause_avg_depth);
 
       ClauseFree(clause);
       fprintf(out, "\n");
@@ -215,18 +248,20 @@ int main(int argc, char* argv[])
    enigmap->collect_stats = (enigmapname) ? true : false;
    enigmap->stats = NULL;
 
+   SpecFeature_p spec = NULL;
    if ((Enigma & EFConjecture) && (args->argc == 3))
    {
-      conj_features = get_conjecture_features(args->argv[2], bank, enigmap);
+      spec = SpecFeatureCellAlloc(); // TODO: free
+      conj_features = get_conjecture_features(args->argv[2], bank, enigmap, spec);
    }
    if (args->argc == 1)
    {
-      dump_features_hashes(GlobalOut, args->argv[0], bank, "+?", conj_features, enigmap);
+      dump_features_hashes(GlobalOut, args->argv[0], bank, "+?", conj_features, enigmap, spec);
    }
    else
    {
-      dump_features_hashes(GlobalOut, args->argv[0], bank, "+1", conj_features, enigmap);
-      dump_features_hashes(GlobalOut, args->argv[1], bank, "+0", conj_features, enigmap);
+      dump_features_hashes(GlobalOut, args->argv[0], bank, "+1", conj_features, enigmap, spec);
+      dump_features_hashes(GlobalOut, args->argv[1], bank, "+0", conj_features, enigmap, spec);
    }
 
    if (enigmapname) 

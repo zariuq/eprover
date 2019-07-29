@@ -26,6 +26,7 @@ Changes
 #include <clb_fixdarrays.h>
 #include <clb_numtrees.h>
 #include <ccl_clauses.h>
+#include <che_clausesetfeatures.h>
 
 #include "linear.h"
 #include "svdlib.h"
@@ -63,6 +64,8 @@ typedef struct enigmapcell
    StrTree_p stats;
    StrTree_p name_cache;
 
+   float problem_features[22];
+
 } EnigmapCell, *Enigmap_p;
 
 #define EnigmapCellAlloc() (EnigmapCell*) \
@@ -84,6 +87,7 @@ Enigmap_p EnigmapAlloc(void);
 void EnigmapFree(Enigmap_p junk);
 
 Enigmap_p EnigmapLoad(char* features_filename, Sig_p sig);
+void EnigmapFillProblemFeatures(Enigmap_p enigmap, SpecFeature_p spec);
 
 EnigmaFeatures ParseEnigmaFeaturesSpec(char *spec);
 

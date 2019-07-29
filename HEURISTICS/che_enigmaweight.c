@@ -51,6 +51,12 @@ static void extweight_init(EnigmaWeightParam_p data)
          data->model_filename);
    }
    data->enigmap = EnigmapLoad(data->features_filename, data->ocb->sig);
+   
+   // problem features:
+   SpecFeature_p spec = SpecFeatureCellAlloc();
+   SpecFeaturesCompute(spec, data->proofstate->axioms, data->enigmap->sig);
+   EnigmapFillProblemFeatures(data->enigmap, spec);
+   SpecFeatureCellFree(spec);
 
    int len = 0;
    if (data->enigmap->version & EFConjecture)
@@ -235,9 +241,16 @@ double EnigmaWeightCompute(void* data, Clause_p clause)
       nodes[i+j].value = local->conj_features[j].value;
       //printf("%d:%.0f ", nodes[i+j].index, nodes[i+j].value);
    }
-   nodes[i+local->conj_features_count].index = -1;
-   int total = i+local->conj_features_count;
+   
+   for (int j=0; j<22; j++)
+   {
+      nodes[i+local->conj_features_count+j].index = (2*local->enigmap->feature_count)+1+j;
+      nodes[i+local->conj_features_count+j].value = local->enigmap->problem_features[j];
+   }
+   int total = i+local->conj_features_count+22;
+   nodes[total].index = -1;
 
+   // TODO: fix proof watch & problem features
    // detect proofwatch version
    if (local->enigmap->version & EFProofWatch)
    {

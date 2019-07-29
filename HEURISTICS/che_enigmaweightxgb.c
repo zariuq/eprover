@@ -56,6 +56,12 @@ static void extweight_init(EnigmaWeightXgbParam_p data)
 
    data->enigmap = EnigmapLoad(data->features_filename, data->ocb->sig);
 
+   // problem features:
+   SpecFeature_p spec = SpecFeatureCellAlloc();
+   SpecFeaturesCompute(spec, data->proofstate->axioms, data->enigmap->sig);
+   EnigmapFillProblemFeatures(data->enigmap, spec);
+   SpecFeatureCellFree(spec);
+
    int len = 0;
    if (data->enigmap->version & EFConjecture)
    {
@@ -240,8 +246,15 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
       xgb_data[i+j] = local->conj_features_data[j];
       //printf("%d:%.0f ", xgb_indices[i+j], xgb_data[i+j]);
    }
-   int total = i+local->conj_features_count;
    
+   for (int j=0; j<22; j++)
+   {
+      xgb_indices[i+local->conj_features_count+j] = (2*local->enigmap->feature_count)+1+j;
+      xgb_data   [i+local->conj_features_count+j] = local->enigmap->problem_features[j];
+   }
+   int total = i+local->conj_features_count+22;
+   
+   // TODO: fix proof watch & problem features
    // detect proofwatch version
    if (local->enigmap->version & EFProofWatch)
    {

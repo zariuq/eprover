@@ -53,6 +53,12 @@ static void extweight_init(EnigmaWeightLgbParam_p data)
    }
 
    data->enigmap = EnigmapLoad(data->features_filename, data->ocb->sig);
+   
+   // problem features:
+   SpecFeature_p spec = SpecFeatureCellAlloc();
+   SpecFeaturesCompute(spec, data->proofstate->axioms, data->enigmap->sig);
+   EnigmapFillProblemFeatures(data->enigmap, spec);
+   SpecFeatureCellFree(spec);
 
    int len = 0;
    if (data->enigmap->version & EFConjecture)
@@ -218,7 +224,7 @@ double EnigmaWeightLgbCompute(void* data, Clause_p clause)
    NumTree_p features = FeaturesClauseCollect(clause, local->enigmap, &len);
    //printf("features count: %d\n", len);
       
-   if (len+local->conj_features_count >= 2048) { Error("ENIGMA: Too many clause features!", OTHER_ERROR); }
+   if (len+local->conj_features_count+22 >= 2048) { Error("ENIGMA: Too many clause features!", OTHER_ERROR); }
 
    int i = 0;
    while (features) 
@@ -238,7 +244,17 @@ double EnigmaWeightLgbCompute(void* data, Clause_p clause)
       lgb_data[i+j] = local->conj_features_data[j];
       //printf("%d:%.0f ", lgb_indices[i+j], lgb_data[i+j]);
    }
-   int total = i+local->conj_features_count;
+
+   //printf("|");
+   for (int j=0; j<22; j++)
+   {
+      lgb_indices[i+local->conj_features_count+j] = (2*local->enigmap->feature_count)+1+j;
+      lgb_data   [i+local->conj_features_count+j] = local->enigmap->problem_features[j];
+      //printf("%d:%.3f ", lgb_indices[i+j+local->conj_features_count], lgb_data[i+j+local->conj_features_count]);
+   }
+   int total = i+local->conj_features_count+22;
+
+   // TODO: fix proof watch & problem features
    
    // detect proofwatch version
    if (local->enigmap->version & EFProofWatch)

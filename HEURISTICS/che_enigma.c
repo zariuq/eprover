@@ -416,6 +416,32 @@ Enigmap_p EnigmapLoad(char* features_filename, Sig_p sig)
    return enigmap;
 }
 
+void EnigmapFillProblemFeatures(Enigmap_p enigmap, SpecFeature_p spec)
+{
+   enigmap->problem_features[0] = spec->goals;
+   enigmap->problem_features[1] = spec->axioms;
+   enigmap->problem_features[2] = spec->clauses;
+   enigmap->problem_features[3] = spec->literals;
+   enigmap->problem_features[4] = spec->term_cells;
+   enigmap->problem_features[5] = spec->unitgoals;
+   enigmap->problem_features[6] = spec->unitaxioms;
+   enigmap->problem_features[7] = spec->horngoals;
+   enigmap->problem_features[8] = spec->hornaxioms;
+   enigmap->problem_features[9] = spec->eq_clauses;
+   enigmap->problem_features[10] = spec->peq_clauses;
+   enigmap->problem_features[11] = spec->groundunitaxioms;
+   enigmap->problem_features[12] = spec->groundgoals;
+   enigmap->problem_features[13] = spec->groundpositiveaxioms;
+   enigmap->problem_features[14] = spec->positiveaxioms;
+   enigmap->problem_features[15] = spec->ng_unit_axioms_part;
+   enigmap->problem_features[16] = spec->ground_positive_axioms_part;
+   enigmap->problem_features[17] = spec->max_fun_arity;
+   enigmap->problem_features[18] = spec->avg_fun_arity;
+   enigmap->problem_features[19] = spec->sum_fun_arity;
+   enigmap->problem_features[20] = spec->clause_max_depth;
+   enigmap->problem_features[21] = spec->clause_avg_depth;
+}
+
 EnigmaFeatures ParseEnigmaFeaturesSpec(char *spec)
 {
    EnigmaFeatures enigma_features = EFNone;
