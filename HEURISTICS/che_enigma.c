@@ -70,7 +70,9 @@ static char* fcode_string(FunCode f_code, Enigmap_p enigmap)
       int arity = SigFindArity(enigmap->sig, f_code);
       char prefix = SigIsPredicate(enigmap->sig, f_code) ? 'p' : 'f'; 
       char* sk = (is_skolem) ? ENIGMA_SKO : "";
-      sprintf(str, "%s%c%d", sk, prefix, arity);
+      char* conj = (FuncQueryProp(&(enigmap->sig->f_info[f_code]), FPInConjecture)) ? "c" : "";
+
+      sprintf(str, "%s%c%d%s", sk, prefix, arity, conj);
       StrTree_p node = StrTreeUpdate(&enigmap->name_cache, str, (IntOrP)0L, (IntOrP)0L);
       return node->key;
    }
@@ -416,8 +418,11 @@ Enigmap_p EnigmapLoad(char* features_filename, Sig_p sig)
    return enigmap;
 }
 
-void EnigmapFillProblemFeatures(Enigmap_p enigmap, SpecFeature_p spec)
+void EnigmapFillProblemFeatures(Enigmap_p enigmap, ClauseSet_p axioms)
 {
+   SpecFeature_p spec = SpecFeatureCellAlloc();
+   SpecFeaturesCompute(spec, axioms, enigmap->sig);
+
    enigmap->problem_features[0] = spec->goals;
    enigmap->problem_features[1] = spec->axioms;
    enigmap->problem_features[2] = spec->clauses;
@@ -440,6 +445,32 @@ void EnigmapFillProblemFeatures(Enigmap_p enigmap, SpecFeature_p spec)
    enigmap->problem_features[19] = spec->sum_fun_arity;
    enigmap->problem_features[20] = spec->clause_max_depth;
    enigmap->problem_features[21] = spec->clause_avg_depth;
+   
+   SpecFeatureCellFree(spec);
+}
+      
+void conjecture_symbols_term(Enigmap_p enigmap, Term_p term)
+{
+   if (TermIsVar(term))
+   {
+      return;
+   }
+
+   FuncSetProp(&(enigmap->sig->f_info[term->f_code]), FPInConjecture);
+
+   for (int i=0; i<term->arity; i++)
+   {
+      conjecture_symbols_term(enigmap, term->args[i]);
+   }
+}
+
+void EnigmapMarkConjectureSymbols(Enigmap_p enigmap, Clause_p clause)
+{
+   for (Eqn_p lit = clause->literals; lit; lit = lit->next)
+   {
+      conjecture_symbols_term(enigmap, lit->lterm);
+      conjecture_symbols_term(enigmap, lit->rterm);
+   }
 }
 
 EnigmaFeatures ParseEnigmaFeaturesSpec(char *spec)
@@ -458,9 +489,10 @@ EnigmaFeatures ParseEnigmaFeaturesSpec(char *spec)
          case 'X': enigma_features |= EFVariables; break;
          case 'h': enigma_features |= EFHashing; break;
          case 'A': enigma_features |= EFArity; break;
+         case 'P': enigma_features |= EFProblem; break;
          case '"': break;
          default:
-                   Error("Invalid Enigma features specifier '%c'. Valid characters are 'VHSLCWXA'.",
+                   Error("Invalid Enigma features specifier '%c'. Valid characters are 'VHSLCWXAP'.",
                          USAGE_ERROR, *spec);
                    break;
       }

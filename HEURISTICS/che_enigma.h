@@ -47,6 +47,7 @@ typedef enum
    EFVariables = 64,
    EFHashing = 128,
    EFArity = 256,
+   EFProblem = 512,
    EFAll = 0xFFFF
 }EnigmaFeature;
 
@@ -87,7 +88,8 @@ Enigmap_p EnigmapAlloc(void);
 void EnigmapFree(Enigmap_p junk);
 
 Enigmap_p EnigmapLoad(char* features_filename, Sig_p sig);
-void EnigmapFillProblemFeatures(Enigmap_p enigmap, SpecFeature_p spec);
+void EnigmapFillProblemFeatures(Enigmap_p enigmap, ClauseSet_p axioms);
+void EnigmapMarkConjectureSymbols(Enigmap_p enigmap, Clause_p clause);
 
 EnigmaFeatures ParseEnigmaFeaturesSpec(char *spec);
 

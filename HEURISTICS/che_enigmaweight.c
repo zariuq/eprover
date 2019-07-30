@@ -53,10 +53,10 @@ static void extweight_init(EnigmaWeightParam_p data)
    data->enigmap = EnigmapLoad(data->features_filename, data->ocb->sig);
    
    // problem features:
-   SpecFeature_p spec = SpecFeatureCellAlloc();
-   SpecFeaturesCompute(spec, data->proofstate->axioms, data->enigmap->sig);
-   EnigmapFillProblemFeatures(data->enigmap, spec);
-   SpecFeatureCellFree(spec);
+   if (data->enigmap->version & EFProblem)
+   {
+      EnigmapFillProblemFeatures(data->enigmap, data->proofstate->axioms);
+   }
 
    int len = 0;
    if (data->enigmap->version & EFConjecture)

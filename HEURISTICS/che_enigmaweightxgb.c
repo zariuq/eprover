@@ -59,7 +59,7 @@ static void extweight_init(EnigmaWeightXgbParam_p data)
    // problem features:
    SpecFeature_p spec = SpecFeatureCellAlloc();
    SpecFeaturesCompute(spec, data->proofstate->axioms, data->enigmap->sig);
-   EnigmapFillProblemFeatures(data->enigmap, spec);
+   EnigmapFillProblemFeatures(data->enigmap, data->proofstate->axioms);
    SpecFeatureCellFree(spec);
 
    int len = 0;

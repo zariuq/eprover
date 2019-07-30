@@ -55,10 +55,10 @@ static void extweight_init(EnigmaWeightLgbParam_p data)
    data->enigmap = EnigmapLoad(data->features_filename, data->ocb->sig);
    
    // problem features:
-   SpecFeature_p spec = SpecFeatureCellAlloc();
-   SpecFeaturesCompute(spec, data->proofstate->axioms, data->enigmap->sig);
-   EnigmapFillProblemFeatures(data->enigmap, spec);
-   SpecFeatureCellFree(spec);
+   if (data->enigmap->version & EFProblem)
+   {
+      EnigmapFillProblemFeatures(data->enigmap, data->proofstate->axioms);
+   }
 
    int len = 0;
    if (data->enigmap->version & EFConjecture)
@@ -76,6 +76,7 @@ static void extweight_init(EnigmaWeightLgbParam_p data)
          {
             len += FeaturesClauseExtend(&features, clause, data->enigmap);
             FeaturesAddClauseStatic(&features, clause, data->enigmap, &len, &varstat, &varoffset);
+            EnigmapMarkConjectureSymbols(data->enigmap, clause);
          }
       }
       FeaturesAddVariables(&features, &varstat, data->enigmap, &len);
@@ -246,13 +247,17 @@ double EnigmaWeightLgbCompute(void* data, Clause_p clause)
    }
 
    //printf("|");
-   for (int j=0; j<22; j++)
+   int total = i+local->conj_features_count;
+   if (local->enigmap->version & EFProblem)
    {
-      lgb_indices[i+local->conj_features_count+j] = (2*local->enigmap->feature_count)+1+j;
-      lgb_data   [i+local->conj_features_count+j] = local->enigmap->problem_features[j];
-      //printf("%d:%.3f ", lgb_indices[i+j+local->conj_features_count], lgb_data[i+j+local->conj_features_count]);
+      for (int j=0; j<22; j++)
+      {
+         lgb_indices[total+j] = (2*local->enigmap->feature_count)+1+j; // TODO: fix when no conjecture features
+         lgb_data   [total+j] = local->enigmap->problem_features[j];
+         //printf("%d:%.3f ", lgb_indices[i+j+local->conj_features_count], lgb_data[i+j+local->conj_features_count]);
+      }
+      total += 22;
    }
-   int total = i+local->conj_features_count+22;
 
    // TODO: fix proof watch & problem features
    
@@ -298,6 +303,7 @@ double EnigmaWeightLgbCompute(void* data, Clause_p clause)
    int64_t lgb_nelem = total;
    int64_t lgb_num_col = 1 + local->enigmap->feature_count +
       (local->enigmap->version & EFConjecture ? local->enigmap->feature_count : 0) +
+      (local->enigmap->version & EFProblem ? 22 : 0) +
       (local->enigmap->version & EFProofWatch ? local->proofstate->wlcontrol->proofs_count : 0);
    int64_t lgb_nindptr = 2;
    static int32_t lgb_indptr[2];

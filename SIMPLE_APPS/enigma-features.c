@@ -78,7 +78,7 @@ OptCell opts[] =
       "Enigma features to be generate. The value is a string of characters "
       "determining the features to be used. Valid characters are 'V' "
       "(vertical features), 'H' (horizontal), 'S' (symbols), 'L' "
-      "(length stats), 'C' (conjecture)."},
+      "(length stats), 'C' (conjecture), 'N' (name(-less) stats), 'P' (problem)."},
    {OPT_FEATURE_HASHING,
       '\0', "feature-hashing",
       ReqArg, NULL,
@@ -114,43 +114,51 @@ void print_help(FILE* out);
 /*---------------------------------------------------------------------*/
 
 
-static NumTree_p get_conjecture_features(char* filename, TB_p bank, Enigmap_p enigmap, SpecFeature_p spec)
+static NumTree_p get_conjecture_features(char* filename, TB_p bank, Enigmap_p enigmap)
 {
    int len = 0;
    NumTree_p features = NULL;
    NumTree_p varstat = NULL;
    int varoffset = 0;
-   ClauseSet_p problem = ClauseSetAlloc();
+   ClauseSet_p axioms = ClauseSetAlloc();
 
    Scanner_p in = CreateScanner(StreamTypeFile, filename, true, NULL);
    ScannerSetFormat(in, TSTPFormat);
    while (TestInpId(in, "cnf"))
    {
       Clause_p clause = ClauseParse(in, bank);
-      if (ClauseQueryTPTPType(clause) == CPTypeNegConjecture) 
+      if (ClauseQueryTPTPType(clause) == CPTypeNegConjecture)
       {
-         len += FeaturesClauseExtend(&features, clause, enigmap);
-         FeaturesAddClauseStatic(&features, clause, enigmap, &len, &varstat, &varoffset);
+         EnigmapMarkConjectureSymbols(enigmap, clause);
+         if (enigmap->version & EFConjecture)
+         {
+            len += FeaturesClauseExtend(&features, clause, enigmap);
+            FeaturesAddClauseStatic(&features, clause, enigmap, &len, &varstat, &varoffset);
+         }
       }
       //if (len >= 2048) { Error("ENIGMA: Too many conjecture features!", OTHER_ERROR); } 
-      ClauseSetInsert(problem, clause);
-      //ClauseFree(clause); // YAN3
+      ClauseSetInsert(axioms, clause);
    }
 
-   SpecFeaturesCompute(spec, problem, enigmap->sig);
-   //SpecFeaturesPrint(GlobalOut, spec);
-   //SpecFeatureCellFree(spec);
-   // TODO: free problem set
+   if (enigmap->version & EFConjecture)
+   {
+      FeaturesAddVariables(&features, &varstat, enigmap, &len);
+   }
 
-   FeaturesAddVariables(&features, &varstat, enigmap, &len);
+   if (enigmap->version & EFProblem)
+   {
+      EnigmapFillProblemFeatures(enigmap, axioms);
+   }
+
    CheckInpTok(in, NoToken);
    DestroyScanner(in);
+   ClauseSetFree(axioms);
 
    return features;
 }
 
 static void dump_features_hashes(FILE* out, char* filename, TB_p bank, char* prefix, NumTree_p conj_features, 
-      Enigmap_p enigmap, SpecFeature_p spec)
+      Enigmap_p enigmap)
 {
    PStack_p stack;
    Scanner_p in = CreateScanner(StreamTypeFile, filename, true, NULL);
@@ -179,28 +187,18 @@ static void dump_features_hashes(FILE* out, char* filename, TB_p bank, char* pre
       }
       NumTreeTraverseExit(stack);
 
-      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+1, spec->goals);
-      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+2, spec->axioms);
-      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+3, spec->clauses);
-      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+4, spec->literals);
-      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+5, spec->term_cells);
-      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+6, spec->unitgoals);
-      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+7, spec->unitaxioms);
-      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+8, spec->horngoals);
-      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+9, spec->hornaxioms);
-      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+10, spec->eq_clauses);
-      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+11, spec->peq_clauses);
-      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+12, spec->groundunitaxioms);
-      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+13, spec->groundgoals);
-      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+14, spec->groundpositiveaxioms);
-      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+15, spec->positiveaxioms);
-      fprintf(out, " %ld:%.6f", (2*enigmap->feature_count)+16, spec->ng_unit_axioms_part);
-      fprintf(out, " %ld:%.6f", (2*enigmap->feature_count)+17, spec->ground_positive_axioms_part);
-      fprintf(out, " %ld:%d", (2*enigmap->feature_count)+18, spec->max_fun_arity);
-      fprintf(out, " %ld:%d", (2*enigmap->feature_count)+19, spec->avg_fun_arity);
-      fprintf(out, " %ld:%d", (2*enigmap->feature_count)+20, spec->sum_fun_arity);
-      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+21, spec->clause_max_depth);
-      fprintf(out, " %ld:%ld", (2*enigmap->feature_count)+22, spec->clause_avg_depth);
+      if (enigmap->version & EFProblem)
+      {
+         long start = enigmap->feature_count+1;
+         if (enigmap->version & EFConjecture) 
+         {
+            start += enigmap->feature_count;
+         }
+         for (int i=0; i<22; i++)
+         {
+            fprintf(out, " %ld:%.6f", start+i, enigmap->problem_features[i]);
+         }
+      }
 
       ClauseFree(clause);
       fprintf(out, "\n");
@@ -248,20 +246,18 @@ int main(int argc, char* argv[])
    enigmap->collect_stats = (enigmapname) ? true : false;
    enigmap->stats = NULL;
 
-   SpecFeature_p spec = NULL;
-   if ((Enigma & EFConjecture) && (args->argc == 3))
+   if ((Enigma & (EFConjecture | EFProblem)) && (args->argc == 3))
    {
-      spec = SpecFeatureCellAlloc(); // TODO: free
-      conj_features = get_conjecture_features(args->argv[2], bank, enigmap, spec);
+      conj_features = get_conjecture_features(args->argv[2], bank, enigmap);
    }
    if (args->argc == 1)
    {
-      dump_features_hashes(GlobalOut, args->argv[0], bank, "+?", conj_features, enigmap, spec);
+      dump_features_hashes(GlobalOut, args->argv[0], bank, "+?", conj_features, enigmap);
    }
    else
    {
-      dump_features_hashes(GlobalOut, args->argv[0], bank, "+1", conj_features, enigmap, spec);
-      dump_features_hashes(GlobalOut, args->argv[1], bank, "+0", conj_features, enigmap, spec);
+      dump_features_hashes(GlobalOut, args->argv[0], bank, "+1", conj_features, enigmap);
+      dump_features_hashes(GlobalOut, args->argv[1], bank, "+0", conj_features, enigmap);
    }
 
    if (enigmapname) 
