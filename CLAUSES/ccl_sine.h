@@ -150,6 +150,12 @@ long SelectAxioms(GenDistrib_p      f_distrib,
                   PStack_p          res_clauses,
                   PStack_p          res_formulas);
 
+long* DontSelectAxioms(GenDistrib_p  f_distrib,
+                  PStack_p           clause_sets,
+                  PStack_p           formula_sets,
+                  PStackPointer      hyp_start,
+                  AxFilter_p         ax_filter);
+
 long SelectThreshold(PStack_p          clause_sets,
                      PStack_p          formula_sets,
                      AxFilter_p        ax_filter,

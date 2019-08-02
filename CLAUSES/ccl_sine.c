@@ -615,6 +615,123 @@ long SelectDefiningAxioms(DRelation_p drel,
    return res;
 }
 
+/*-----------------------------------------------------------------------
+//
+// Function: DontSelectDefiningAxioms()
+//
+// Following the general flow of the above function SelectDefiningAxioms,
+// do essentially the same computation but just for the purpose
+// of computing SinESymbolRanking (see there in cco_sine).
+//
+// Global Variables: -
+//
+// Side Effects    : Changes activation bits in drel and the axioms.
+//
+/----------------------------------------------------------------------*/
+
+void DontSelectDefiningAxioms(DRelation_p drel,
+                          Sig_p sig,
+                          PQueue_p axioms,
+                          PStack_p res_clauses,
+                          PStack_p res_formulas,
+                          long* new_res)
+{
+   AxiomType  type;
+   WFormula_p form;
+   Clause_p   clause;
+   long       *dist_array = SizeMalloc((sig->f_count+1)*sizeof(long));
+   DRel_p     frel;
+   FunCode    i;
+   PStackPointer sp, ssp;
+   PStack_p   symbol_stack = PStackAlloc();
+   int        recursion_level = 1; // start from 1, so that zeros are those never touched
+
+   memset(dist_array, 0, (sig->f_count+1)*sizeof(long));
+   PQueueStoreInt(axioms, ATNoType);
+
+   while(!PQueueEmpty(axioms))
+   {
+      /*
+      printf("Selecting %ld from %ld at %d\n",
+         res,
+         PQueueCardinality(axioms),
+         recursion_level);
+      */
+
+      type = PQueueGetNextInt(axioms);
+      switch(type)
+      {
+      case ATNoType:
+            recursion_level++;
+            if(!PQueueEmpty(axioms))
+            {
+               PQueueStoreInt(axioms, ATNoType);
+            }
+            continue;
+      case ATClause:
+            clause = PQueueGetNextP(axioms);
+            if(ClauseQueryProp(clause, CPIsRelevant))
+            {
+               continue;
+            }
+            ClauseSetProp(clause, CPIsRelevant);
+            PStackPushP(res_clauses, clause);
+            ClauseAddSymbolDistExist(clause, dist_array, symbol_stack);
+            break;
+      case ATFormula:
+            form = PQueueGetNextP(axioms);
+            if(FormulaQueryProp(form, CPIsRelevant))
+            {
+               continue;
+            }
+            FormulaSetProp(form, CPIsRelevant);
+            PStackPushP(res_formulas, form);
+            TermAddSymbolDistExist(form->tformula, dist_array, symbol_stack);
+            break;
+      default:
+            assert(false && "Unknown axiom type!");
+            break;
+      }
+
+
+      for(ssp=0; ssp<PStackGetSP(symbol_stack); ssp++)
+
+      {
+         i = PStackElementInt(symbol_stack, ssp);
+         if((i > sig->internal_symbols) &&
+            (frel = PDArrayElementP(drel->relation, i)) &&
+            !frel->activated)
+         {
+            // printf("Activating %s at level %d\n",sig->f_info[i].name, recursion_level);
+            new_res[i] = recursion_level;
+
+            frel->activated = true;
+            for(sp=0; sp<PStackGetSP(frel->d_clauses); sp++)
+            {
+               clause = PStackElementP(frel->d_clauses, sp);
+               PQueueStoreClause(axioms, clause);
+            }
+            for(sp=0; sp<PStackGetSP(frel->d_formulas); sp++)
+            {
+               form = PStackElementP(frel->d_formulas, sp);
+               PQueueStoreFormula(axioms, form);
+            }
+         }
+         dist_array[i] = 0;
+      }
+      PStackReset(symbol_stack);
+   }
+
+   /*
+   for (int i = 0; i < (sig->f_count+1); i++) {
+     printf("%ld for %s\n",dist_array[i], sig->f_info[i].name);
+   }
+   */
+
+   SizeFree(dist_array, (sig->f_count+1)*sizeof(long));
+   PStackFree(symbol_stack);
+}
+
 
 /*-----------------------------------------------------------------------
 //
@@ -720,6 +837,91 @@ long SelectAxioms(GenDistrib_p      f_distrib,
    return res;
 }
 
+/*-----------------------------------------------------------------------
+//
+// Function: DontSelectAxioms()
+//
+// Following the general flow of the above function SelectAxioms,
+// do essentially the same computation but just for the purpose
+// of computing SinESymbolRanking (see there in cco_sine).
+//
+// Global Variables: -
+//
+// Side Effects    : Many, none expected permanent.
+//
+/----------------------------------------------------------------------*/
+
+long* DontSelectAxioms(GenDistrib_p      f_distrib,
+                       PStack_p          clause_sets,
+                       PStack_p          formula_sets,
+                       PStackPointer     seed_start,
+                       AxFilter_p        ax_filter)
+{
+   long *new_res = SizeMalloc((f_distrib->sig->f_count+1)*sizeof(long));
+   memset(new_res, 0, (f_distrib->sig->f_count+1)*sizeof(long));
+
+   long          seeds = 0;
+   DRelation_p   drel  = DRelationAlloc();
+   PQueue_p      selq  = PQueueAlloc();
+   PStackPointer i;
+
+   PStack_p res_clauses = PStackAlloc();
+   PStack_p res_formulas = PStackAlloc();
+
+   assert(PStackGetSP(clause_sets)==PStackGetSP(formula_sets));
+
+   /* fprintf(GlobalOut, "# Axiom selection starts (%lld)\n",
+      GetSecTimeMod()); */
+   DRelationAddClauseSets(drel, f_distrib,
+                          ax_filter->gen_measure,
+                          ax_filter->benevolence,
+                          ax_filter->generosity,
+                          clause_sets);
+   DRelationAddFormulaSets(drel, f_distrib,
+                           ax_filter->gen_measure,
+                           ax_filter->benevolence,
+                           ax_filter->generosity,
+                           formula_sets);
+   /* fprintf(GlobalOut, "# DRelation constructed (%lld)\n",
+    * GetSecTimeMod()); */
+
+   for(i=seed_start; i<PStackGetSP(clause_sets); i++)
+   {
+      seeds += ClauseSetFindAxSelectionSeeds(PStackElementP(clause_sets, i),
+                                             selq,
+                                             ax_filter->use_hypotheses);
+      seeds += FormulaSetFindAxSelectionSeeds(PStackElementP(formula_sets, i),
+                                              selq,
+                                              ax_filter->use_hypotheses);
+   }
+   /* fprintf(GlobalOut, "# Hypotheses found (%lld)\n",
+      GetSecTimeMod()); */
+   VERBOSE(fprintf(stderr, "# Found %ld seed clauses/formulas\n", seeds););
+   if(!seeds)
+   {
+      /* No goals-> we won't be touching new_res, which stays zeroed-out */
+   }
+   else
+   {
+      DontSelectDefiningAxioms(drel,
+                               f_distrib->sig,
+                               selq,
+                               res_clauses,
+                               res_formulas,
+                               new_res);
+   }
+   PStackFormulaDelProp(res_formulas, CPIsRelevant);
+   PStackClauseDelProp(res_clauses, CPIsRelevant);
+   /* fprintf(GlobalOut, "# Axioms selected (%lld)\n",
+      GetSecTimeMod()); */
+   PQueueFree(selq);
+   DRelationFree(drel);
+
+   PStackFree(res_clauses);
+   PStackFree(res_formulas);
+
+   return new_res;
+}
 
 /*-----------------------------------------------------------------------
 //

@@ -406,6 +406,30 @@ void StructFOFSpecFree(StructFOFSpec_p ctrl)
    StructFOFSpecCellFree(ctrl);
 }
 
+/*-----------------------------------------------------------------------
+//
+// Function: StructFOFSpecFreeJustSome()
+//
+//   Free a StructFOFSpec data structure.
+//
+// Global Variables: -
+//
+// Side Effects    : Memory operations
+//
+/----------------------------------------------------------------------*/
+
+void  StructFOFSpecFreeJustSome(StructFOFSpec_p ctrl)
+{
+   PStackFree(ctrl->clause_sets);
+   PStackFree(ctrl->formula_sets);
+
+   StrTreeFree(ctrl->parsed_includes);
+   GenDistribFree(ctrl->f_distrib);
+
+   StructFOFSpecCellFree(ctrl);
+}
+
+
 
 /*-----------------------------------------------------------------------
 //
@@ -599,6 +623,54 @@ long ProofStateSinE(ProofState_p state, char* fname)
       FormulaSetCardinality(state->f_axioms);
 
    return axno_orig-axno;
+}
+
+/*-----------------------------------------------------------------------
+//
+// Function: SinESymbolRanking()
+//
+//  As if doing SinE, but just creates an array
+//    long * ranking = SizeMalloc((sig->f_count+1)*sizeof(long))
+//  and returns in it [indexed by symbols] the iteration number
+//  during which a symbol has been triggered to be added by SinE
+//  (under specific fixed values of generosity, benevolence, blabla, ... )
+//  0 means never triggered (for too general ones, disconnected from conj in the incidence graph...)
+//  followed by increasing numbers as one gets further way from the conjecture symbols.
+//
+// Caller gets responsible for the memory.
+//
+// Global Variables: -
+//
+// Side Effects    : Memory operations aplenty.
+//
+/----------------------------------------------------------------------*/
+
+long *SinESymbolRanking(ClauseSet_p parsed_clauses, TB_p terms) {
+
+  AxFilterCell      filter_cell = {
+      .gen_measure = GMFormulas,
+      .use_hypotheses = true,
+      .benevolence = 2.0,
+      .generosity = 2147483647,
+  };
+  AxFilter_p  filter = &filter_cell;
+
+  StructFOFSpec_p spec;
+  spec = StructFOFSpecCreate(terms);
+  FormulaSet_p  fake_f_axioms = FormulaSetAlloc();
+  StructFOFSpecAddProblem(spec, parsed_clauses, fake_f_axioms);
+  StructFOFSpecInitDistrib(spec);
+
+  long* res = DontSelectAxioms(spec->f_distrib,
+                               spec->clause_sets,
+                               spec->formula_sets,
+                               spec->shared_ax_sp,
+                               filter);
+
+  FormulaSetFree(fake_f_axioms);
+  StructFOFSpecFreeJustSome(spec);
+
+  return res;
 }
 
 
