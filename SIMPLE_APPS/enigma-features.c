@@ -26,6 +26,7 @@ Changes
 #include <stdio.h>
 #include <string.h>
 #include <cio_commandline.h>
+#include <cco_sine.h>
 #include <cio_output.h>
 #include <cte_termbanks.h>
 #include <ccl_formulafunc.h>
@@ -127,17 +128,28 @@ static NumTree_p get_conjecture_features(char* filename, TB_p bank, Enigmap_p en
    while (TestInpId(in, "cnf"))
    {
       Clause_p clause = ClauseParse(in, bank);
+      //if (len >= 2048) { Error("ENIGMA: Too many conjecture features!", OTHER_ERROR); } 
+      ClauseSetInsert(axioms, clause);
+   }
+   
+   if (enigmap->version & EFSine)
+   {
+      enigmap->symb_rank = SinESymbolRanking(axioms, bank);
+      enigmap->symb_count = bank->sig->f_count+1;
+   }
+
+   Clause_p anchor = axioms->anchor;
+   for (Clause_p clause=anchor->succ; clause!=anchor; clause=clause->succ)
+   {
       if (ClauseQueryTPTPType(clause) == CPTypeNegConjecture)
       {
-         EnigmapMarkConjectureSymbols(enigmap, clause);
+         //EnigmapMarkConjectureSymbols(enigmap, clause);
          if (enigmap->version & EFConjecture)
          {
             len += FeaturesClauseExtend(&features, clause, enigmap);
             FeaturesAddClauseStatic(&features, clause, enigmap, &len, &varstat, &varoffset);
          }
       }
-      //if (len >= 2048) { Error("ENIGMA: Too many conjecture features!", OTHER_ERROR); } 
-      ClauseSetInsert(axioms, clause);
    }
 
    if (enigmap->version & EFConjecture)

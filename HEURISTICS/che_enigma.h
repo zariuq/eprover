@@ -48,6 +48,7 @@ typedef enum
    EFHashing = 128,
    EFArity = 256,
    EFProblem = 512,
+   EFSine = 1024,
    EFAll = 0xFFFF
 }EnigmaFeature;
 
@@ -66,6 +67,8 @@ typedef struct enigmapcell
    StrTree_p name_cache;
 
    float problem_features[22];
+   long* symb_rank;
+   long symb_count;
 
 } EnigmapCell, *Enigmap_p;
 

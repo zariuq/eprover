@@ -52,6 +52,7 @@ static int string_compare(const void* p1, const void* p2)
 static char* fcode_string(FunCode f_code, Enigmap_p enigmap)
 {
    static char str[128];
+   static char postfix[16];
    
    assert(fcode > 0);
    
@@ -71,9 +72,21 @@ static char* fcode_string(FunCode f_code, Enigmap_p enigmap)
       char prefix = SigIsPredicate(enigmap->sig, f_code) ? 'p' : 'f'; 
       char* sk = (is_skolem) ? ENIGMA_SKO : "";
       //char* conj = (FuncQueryProp(&(enigmap->sig->f_info[f_code]), FPInConjecture)) ? "c" : "";
-      char* conj = "";
+      postfix[0] = '\0';
+      if (enigmap->version & EFSine)
+      {
+         if (f_code <= enigmap->symb_count) 
+         {
+            snprintf(postfix, 16, "^%ld", enigmap->symb_rank[f_code]);
+         }
+         else
+         {
+            sprintf(postfix, "^?");
+            //printf("Unknown symbol: %s\n", name);
+         }
+      }
 
-      sprintf(str, "%s%c%d%s", sk, prefix, arity, conj);
+      sprintf(str, "%s%c%d%s", sk, prefix, arity, postfix);
       StrTree_p node = StrTreeUpdate(&enigmap->name_cache, str, (IntOrP)0L, (IntOrP)0L);
       return node->key;
    }
@@ -336,6 +349,8 @@ Enigmap_p EnigmapAlloc(void)
    res->collect_stats = false;
    res->stats = NULL;
    res->name_cache = NULL;
+   res->symb_rank = NULL;
+   res->symb_count = 0L;
 
    return res;
 }
@@ -350,6 +365,10 @@ void EnigmapFree(Enigmap_p junk)
    if (junk->name_cache)
    {
       StrTreeFree(junk->name_cache);
+   }
+   if (junk->symb_rank)
+   {
+      SizeFree(junk->symb_rank, junk->symb_count*sizeof(long));
    }
    
    EnigmapCellFree(junk);
@@ -491,6 +510,7 @@ EnigmaFeatures ParseEnigmaFeaturesSpec(char *spec)
          case 'h': enigma_features |= EFHashing; break;
          case 'A': enigma_features |= EFArity; break;
          case 'P': enigma_features |= EFProblem; break;
+         case 'I': enigma_features |= EFSine; break;
          case '"': break;
          default:
                    Error("Invalid Enigma features specifier '%c'. Valid characters are 'VHSLCWXAP'.",
