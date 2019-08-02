@@ -84,6 +84,8 @@ long StructFOFSpecGetProblem(StructFOFSpec_p ctrl,
 
 long ProofStateSinE(ProofState_p state, char* filter);
 
+long *SinESymbolRanking(ClauseSet_p parsed_clauses, TB_p terms);
+
 #endif
 
 /*---------------------------------------------------------------------*/

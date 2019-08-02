@@ -474,6 +474,17 @@ int main(int argc, char* argv[])
       VERBOUT("CNFization done\n");
    }
 
+    /*
+   {
+     long* symb_rank = SinESymbolRanking(proofstate->axioms,proofstate->terms);
+     Sig_p sig = proofstate->terms->sig;
+     for (int i = 0; i < (sig->f_count+1); i++) {
+       printf("%ld for %s\n",symb_rank[i], sig->f_info[i].name);
+     }
+     SizeFree(symb_rank, (sig->f_count+1)*sizeof(long));
+   }
+    */
+
    raw_clause_no = proofstate->axioms->members;
    ProofStateLoadWatchlist(proofstate, 
                            watchlist_filename, 
