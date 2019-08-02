@@ -70,7 +70,8 @@ static char* fcode_string(FunCode f_code, Enigmap_p enigmap)
       int arity = SigFindArity(enigmap->sig, f_code);
       char prefix = SigIsPredicate(enigmap->sig, f_code) ? 'p' : 'f'; 
       char* sk = (is_skolem) ? ENIGMA_SKO : "";
-      char* conj = (FuncQueryProp(&(enigmap->sig->f_info[f_code]), FPInConjecture)) ? "c" : "";
+      //char* conj = (FuncQueryProp(&(enigmap->sig->f_info[f_code]), FPInConjecture)) ? "c" : "";
+      char* conj = "";
 
       sprintf(str, "%s%c%d%s", sk, prefix, arity, conj);
       StrTree_p node = StrTreeUpdate(&enigmap->name_cache, str, (IntOrP)0L, (IntOrP)0L);
