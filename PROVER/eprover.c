@@ -33,6 +33,7 @@
 #include <e_version.h>
 #include <pcl_protocol.h>
 #include <cco_watchlist.h>
+#include <che_enigmaweightemb.h>
 
 
 /*---------------------------------------------------------------------*/
@@ -51,6 +52,7 @@ PERF_CTR_DEFINE(SatTimer);
 /*---------------------------------------------------------------------*/
 
 char              *outname = NULL;
+char              *embname = NULL;
 char              *watchlist_filename = NULL;
 char              *watchlist_dirname = NULL;
 HeuristicParms_p  h_parms;
@@ -398,6 +400,7 @@ int main(int argc, char* argv[])
    state = process_options(argc, argv);
 
    OpenGlobalOut(outname);
+   EmbFileName = embname;
    print_info();
 
 
@@ -880,6 +883,9 @@ CLState_p process_options(int argc, char* argv[])
             exit(NO_ERROR);
       case OPT_OUTPUT:
             outname = arg;
+            break;
+      case OPT_EMB_FILE:
+            embname = arg;
             break;
       case OPT_SILENT:
             OutputLevel = 0;

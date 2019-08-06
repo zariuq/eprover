@@ -246,11 +246,14 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
       xgb_data[i+j] = local->conj_features_data[j];
       //printf("%d:%.0f ", xgb_indices[i+j], xgb_data[i+j]);
    }
-   
-   for (int j=0; j<22; j++)
+  
+   if (local->enigmap->version & EFProblem)
    {
-      xgb_indices[i+local->conj_features_count+j] = (2*local->enigmap->feature_count)+1+j;
-      xgb_data   [i+local->conj_features_count+j] = local->enigmap->problem_features[j];
+      for (int j=0; j<22; j++)
+      {
+         xgb_indices[i+local->conj_features_count+j] = (2*local->enigmap->feature_count)+1+j;
+         xgb_data   [i+local->conj_features_count+j] = local->enigmap->problem_features[j];
+      }
    }
    int total = i+local->conj_features_count+22;
    

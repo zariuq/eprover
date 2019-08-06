@@ -45,6 +45,7 @@ Changes
 #include <che_enigmaweightxgb.h>
 #include <che_torchweight.h>
 #include <che_enigmaweightlgb.h>
+#include <che_enigmaweightemb.h>
 
 
 /*---------------------------------------------------------------------*/

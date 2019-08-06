@@ -30,7 +30,6 @@ Changes
 
 #define E_OPTIONS
 
-
 typedef enum
 {
    OPT_NOOPT=0,
@@ -182,6 +181,7 @@ typedef enum
    OPT_DEF_CNF,
    OPT_MINISCOPE_LIMIT,
    OPT_PRINT_TYPES,
+   OPT_EMB_FILE,
    OPT_DUMMY
 }OptionCodes;
 
@@ -1374,6 +1374,11 @@ OptCell opts[] =
     '\0', "print-types",
     NoArg, NULL,
     "Print the type of every term. Useful for debugging purposes."},
+   
+   {OPT_EMB_FILE,
+    '\0', "emb-file",
+    ReqArg, NULL,
+   "Load embeddings for the current problem for EnigmaEmb weight function."},
 
    {OPT_NOOPT,
     '\0', NULL,
