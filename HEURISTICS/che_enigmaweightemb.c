@@ -138,7 +138,22 @@ static void emb_print(double* vec)
          vec[0], vec[1], vec[2], vec[EMB_LEN-3], vec[EMB_LEN-2], vec[EMB_LEN-1]);
 }
 
-static void emb_clause_add(double* vec, Clause_p clause, EnigmaWeightEmbParam_p data, int* mem, int* vars)
+/*
+ * stats[0] : the count of occurences of function symbols with arity == 0
+ * stats[1] : the count of occurences of function symbols with arity == 1
+ * stats[2] : the count of occurences of function symbols with arity == 2
+ * stats[3] : the count of occurences of function symbols with arity == 3
+ * stats[4] : the count of occurences of function symbols with arity == 4
+ * stats[5] : the count of occurences of function symbols with arity >= 5
+ * stats[6] : the count of occurences of predicate symbols with arity == 0
+ * stats[7] : the count of occurences of predicate symbols with arity == 1
+ * stats[8] : the count of occurences of predicate symbols with arity == 2
+ * stats[9] : the count of occurences of predicate symbols with arity == 3
+ * stats[10] : the count of occurences of predicate symbols with arity == 4
+ * stats[11] : the count of occurences of predicate symbols with arity >= 5
+ * stats[12] : the count of occurences of the equality predicate
+ */
+static void emb_clause_add(double* vec, int* stats, Clause_p clause, EnigmaWeightEmbParam_p data, int* mem, int* vars)
 {
    NumTree_p counts = NULL;
    NumTree_p cnode;
@@ -148,6 +163,17 @@ static void emb_clause_add(double* vec, Clause_p clause, EnigmaWeightEmbParam_p 
    PStack_p stack = NumTreeTraverseInit(counts);
    while ((cnode = NumTreeTraverseNext(stack)))
    {
+      if (cnode->key == 0)
+      {
+         stats[12] += cnode->val1.i_val;
+      }
+      else
+      {
+         int offset = SigIsPredicate(data->ocb->sig, cnode->key) ? 6 : 0;
+         int arity = MIN(SigFindArity(data->ocb->sig, cnode->key), 5);
+         stats[arity+offset] += cnode->val1.i_val;
+      }
+
       NumTree_p enode = NumTreeFind(&data->embeds, cnode->key);
       if (!enode) 
       {
@@ -251,11 +277,12 @@ static void extweight_init(EnigmaWeightEmbParam_p data)
    {
       if (ClauseQueryTPTPType(clause) == CPTypeNegConjecture) 
       {
-         emb_clause_add(data->conj_emb, clause, data, &mem, &data->conj_vars);
+         emb_clause_add(data->conj_emb, data->conj_stats, clause, data, &mem, &data->conj_vars);
          data->conj_len += ClauseWeight(clause,1,1,1,1,1,false);
       }
    }
    emb_div(data->conj_emb, mem+1);
+   data->conj_len += data->conj_stats[12]; // add equality symbols
 
    if (OutputLevel >= 1)
    {
@@ -291,6 +318,10 @@ EnigmaWeightEmbParam_p EnigmaWeightEmbParamAlloc(void)
 
    res->ocb = NULL;
    res->inited = false;
+   for (int i=0; i<13; i++)
+   {
+      res->conj_stats[i] = 0;
+   }
 
    return res;
 }
@@ -371,6 +402,7 @@ double EnigmaWeightEmbCompute(void* data, Clause_p clause)
 {
    static unsigned xgb_indices[2048]; // TODO
    static float xgb_data[2048]; // TODO
+   int stats[13] = { 0 };
    EnigmaWeightEmbParam_p local;
    local = data;
    local->init_fun(data);
@@ -382,8 +414,9 @@ double EnigmaWeightEmbCompute(void* data, Clause_p clause)
    int cvars = 0;
    int mem = 0;
    emb_null(emb);
-   emb_clause_add(emb, clause, local, &mem, &cvars);
+   emb_clause_add(emb, stats, clause, local, &mem, &cvars);
    emb_div(emb, mem+1);
+   clen += stats[12]; // add equality symbols
    
    if (OutputLevel >= 1)
    {
@@ -394,25 +427,31 @@ double EnigmaWeightEmbCompute(void* data, Clause_p clause)
       fprintf(GlobalOut, "\n");
    }
 
+   // compute xgb vector: clause part
    int i;
    int cur = 0;
    for (i=0; i<EMB_LEN; i++)
    {
-      //xgb_indices[i] = i+1;
-      //xgb_data[i] = emb[i];
       xgb_append(emb[i], xgb_indices, xgb_data, &cur);
    }
    xgb_append(clen, xgb_indices, xgb_data, &cur);
    xgb_append(cvars, xgb_indices, xgb_data, &cur);
+   for (i=0; i<13; i++)
+   {
+      xgb_append(stats[i], xgb_indices, xgb_data, &cur);
+   }
+   // ... conjecture part
    for (i=0; i<EMB_LEN; i++)
    {
-      //xgb_indices[EMB_LEN+i] = EMB_LEN+i+1;
-      //xgb_data[EMB_LEN+i] = local->conj_emb[i];
       xgb_append(local->conj_emb[i], xgb_indices, xgb_data, &cur);
    }
    xgb_append(local->conj_len, xgb_indices, xgb_data, &cur);
    xgb_append(local->conj_vars, xgb_indices, xgb_data, &cur);
-   int total = EMB_LEN+2+EMB_LEN+2;
+   for (i=0; i<13; i++)
+   {
+      xgb_append(local->conj_stats[i], xgb_indices, xgb_data, &cur);
+   }
+   int total = EMB_LEN+2+13+EMB_LEN+2+13;
 
    if (OutputLevel >= 2)
    {
