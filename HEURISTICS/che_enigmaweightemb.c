@@ -58,10 +58,11 @@ static void symbols_count_increase(FunCode f_code, NumTree_p* counts)
    }
 }
 
-static void symbols_count_term(Term_p term, NumTree_p* counts)
+static void symbols_count_term(Term_p term, NumTree_p* counts, int* vars)
 {
    if (TermIsVar(term))
    {
+      (*vars)++;
       return;
    }
 
@@ -69,16 +70,20 @@ static void symbols_count_term(Term_p term, NumTree_p* counts)
 
    for (int i=0; i<term->arity; i++)
    {
-      symbols_count_term(term->args[i], counts);
+      symbols_count_term(term->args[i], counts, vars);
    }
 }
 
-static void symbols_count_clause(Clause_p clause, NumTree_p* counts)
+static void symbols_count_clause(Clause_p clause, NumTree_p* counts, int* vars)
 {
    for (Eqn_p lit = clause->literals; lit; lit = lit->next)
    {
-      symbols_count_term(lit->lterm, counts);
-      symbols_count_term(lit->rterm, counts);
+      symbols_count_term(lit->lterm, counts, vars);
+      if (lit->rterm->f_code != SIG_TRUE_CODE)
+      {
+         symbols_count_increase(0, counts); // equality
+         symbols_count_term(lit->rterm, counts, vars);
+      }
    }
 }
 
@@ -115,6 +120,7 @@ static void emb_null(double* vec)
    }
 }
 
+/*
 static void emb_print_full(double* vec)
 {
    fprintf(GlobalOut, "(");
@@ -124,6 +130,7 @@ static void emb_print_full(double* vec)
    }
    fprintf(GlobalOut, ")");
 }
+*/
 
 static void emb_print(double* vec)
 {
@@ -131,14 +138,14 @@ static void emb_print(double* vec)
          vec[0], vec[1], vec[2], vec[EMB_LEN-3], vec[EMB_LEN-2], vec[EMB_LEN-1]);
 }
 
-static void emb_clause_add(double* vec, Clause_p clause, EnigmaWeightEmbParam_p data, int* len)
+static void emb_clause_add(double* vec, Clause_p clause, EnigmaWeightEmbParam_p data, int* mem, int* vars)
 {
    NumTree_p counts = NULL;
+   NumTree_p cnode;
 
-   symbols_count_clause(clause, &counts);
+   symbols_count_clause(clause, &counts, vars);
 
    PStack_p stack = NumTreeTraverseInit(counts);
-   NumTree_p cnode;
    while ((cnode = NumTreeTraverseNext(stack)))
    {
       NumTree_p enode = NumTreeFind(&data->embeds, cnode->key);
@@ -149,7 +156,7 @@ static void emb_clause_add(double* vec, Clause_p clause, EnigmaWeightEmbParam_p 
 
       double* emb = enode->val1.p_val;
       emb_add(vec, emb, cnode->val1.i_val);
-      (*len) += cnode->val1.i_val;
+      (*mem) += cnode->val1.i_val;
    }
    NumTreeTraverseExit(stack);
 
@@ -196,15 +203,18 @@ static void extweight_init(EnigmaWeightEmbParam_p data)
          //printf("%.3f ", val);
       }
       //printf("\n");
+      
+      bool is_eq = ((str[0]=='=') && (str[1]=='\0'));
 
       FunCode f_code = SigFindFCode(data->ocb->sig, str);
-      if (f_code == 0)
+      if ((f_code == 0) && (!is_eq))
       {
          Warning("Unknown embedding symbol '%s'. Skipped.", str);
          SizeFree(vec, sizeof(double)*EMB_LEN);
       }
       else
       {
+         // equality embedding is stored at f_code key 0
          NumTreeStore(&data->embeds, f_code, (IntOrP)(void*)vec, (IntOrP)NULL); 
       }
 
@@ -219,7 +229,8 @@ static void extweight_init(EnigmaWeightEmbParam_p data)
       NumTree_p node;
       while ((node = NumTreeTraverseNext(stack)))
       {
-         fprintf(GlobalOut, "# emb(%s) = ", SigFindName(data->ocb->sig, node->key));
+         char* name = (node->key > 0) ? SigFindName(data->ocb->sig, node->key) : "=";
+         fprintf(GlobalOut, "# emb(%s) = ", name);
          double* vec = node->val1.p_val;
          emb_print(vec);
          fprintf(GlobalOut, "\n");
@@ -228,20 +239,23 @@ static void extweight_init(EnigmaWeightEmbParam_p data)
    }
 
    // compute conjecture embedding
-   int len = 0;
+   int mem = 0;
    Clause_p clause;
    Clause_p anchor;
 
    emb_null(data->conj_emb);
+   data->conj_len = 0;
+   data->conj_vars = 0;
    anchor = data->proofstate->axioms->anchor;
    for (clause=anchor->succ; clause!=anchor; clause=clause->succ)
    {
-      if (ClauseQueryTPTPType(clause)==CPTypeNegConjecture) 
+      if (ClauseQueryTPTPType(clause) == CPTypeNegConjecture) 
       {
-         emb_clause_add(data->conj_emb, clause, data, &len);
+         emb_clause_add(data->conj_emb, clause, data, &mem, &data->conj_vars);
+         data->conj_len += ClauseWeight(clause,1,1,1,1,1,false);
       }
    }
-   emb_div(data->conj_emb, len);
+   emb_div(data->conj_emb, mem+1);
 
    if (OutputLevel >= 1)
    {
@@ -316,22 +330,6 @@ WFCB_p EnigmaWeightEmbParse(
    char* model_filename = SecureStrdup(DStrView(f_model));
    DStrFree(f_model);
 
-   /*
-   DStr_p f_featmap = DStrAlloc();
-   DStrAppendStr(f_featmap, d_enigma);
-   DStrAppendStr(f_featmap, "/");
-   DStrAppendStr(f_featmap, d_prefix);
-   DStrAppendStr(f_featmap, "/");
-   DStrAppendStr(f_featmap, "enigma.map");
-   char* features_filename = SecureStrdup(DStrView(f_featmap));
-   DStrFree(f_featmap);
-  
-   //fprintf(GlobalOut, "ENIGMA: MODEL: %s\n", model_filename);
-   //fprintf(GlobalOut, "ENIGMA: FEATURES: %s\n", features_filename);
-
-   free(d_prefix);
-   */
-
    return EnigmaWeightEmbInit(
       prio_fun, 
       ocb,
@@ -362,6 +360,13 @@ WFCB_p EnigmaWeightEmbInit(
       data);
 }
 
+static void xgb_append(float val, unsigned* indices, float* data, int* cur)
+{
+   indices[*cur] = (*cur)+1;
+   data[*cur] = val;
+   (*cur)++;
+}
+
 double EnigmaWeightEmbCompute(void* data, Clause_p clause)
 {
    static unsigned xgb_indices[2048]; // TODO
@@ -372,11 +377,13 @@ double EnigmaWeightEmbCompute(void* data, Clause_p clause)
 
    static double emb[EMB_LEN];
    long long start = GetUSecClock();
-
-   int len = 0;
+      
+   int clen = (int)ClauseWeight(clause,1,1,1,1,1,false);
+   int cvars = 0;
+   int mem = 0;
    emb_null(emb);
-   emb_clause_add(emb, clause, local, &len);
-   emb_div(emb, len);
+   emb_clause_add(emb, clause, local, &mem, &cvars);
+   emb_div(emb, mem+1);
    
    if (OutputLevel >= 1)
    {
@@ -388,17 +395,24 @@ double EnigmaWeightEmbCompute(void* data, Clause_p clause)
    }
 
    int i;
+   int cur = 0;
    for (i=0; i<EMB_LEN; i++)
    {
-      xgb_indices[i] = i+1;
-      xgb_data[i] = emb[i];
+      //xgb_indices[i] = i+1;
+      //xgb_data[i] = emb[i];
+      xgb_append(emb[i], xgb_indices, xgb_data, &cur);
    }
+   xgb_append(clen, xgb_indices, xgb_data, &cur);
+   xgb_append(cvars, xgb_indices, xgb_data, &cur);
    for (i=0; i<EMB_LEN; i++)
    {
-      xgb_indices[EMB_LEN+i] = EMB_LEN+i+1;
-      xgb_data[EMB_LEN+i] = local->conj_emb[i];
+      //xgb_indices[EMB_LEN+i] = EMB_LEN+i+1;
+      //xgb_data[EMB_LEN+i] = local->conj_emb[i];
+      xgb_append(local->conj_emb[i], xgb_indices, xgb_data, &cur);
    }
-   int total = 2*EMB_LEN;
+   xgb_append(local->conj_len, xgb_indices, xgb_data, &cur);
+   xgb_append(local->conj_vars, xgb_indices, xgb_data, &cur);
+   int total = EMB_LEN+2+EMB_LEN+2;
 
    if (OutputLevel >= 2)
    {
@@ -439,9 +453,9 @@ double EnigmaWeightEmbCompute(void* data, Clause_p clause)
 
    XGDMatrixFree(xgb_matrix);
 
-   if (OutputLevel>=1) {
-      double clen = ClauseWeight(clause,1,1,1,1,1,false);
-      fprintf(GlobalOut, "=%.2f (val=%.3f,t=%.3fms,clen=%.1f,vlen=%ld) : ", res, pred[0], (double)(GetUSecClock() - start)/ 1000.0, clen, xgb_nelem);
+   if (OutputLevel>=1) 
+   {
+      fprintf(GlobalOut, "=%.2f (val=%.3f,t=%.3fms,clen=%d,vlen=%ld) : ", res, pred[0], (double)(GetUSecClock() - start)/ 1000.0, clen, xgb_nelem);
       ClausePrint(GlobalOut, clause, true);
       fprintf(GlobalOut, "\n");
    }

@@ -46,6 +46,8 @@ typedef struct enigmaweightembparamcell
    NumTree_p embeds;
    BoosterHandle xgboost_model;
    double conj_emb[EMB_LEN];
+   int conj_len;
+   int conj_vars;
    /*
    char* features_filename;
 
