@@ -50,7 +50,7 @@ static void symbols_count_increase(FunCode f_code, NumTree_p* counts)
       node->val1.i_val++;
    }
    else
-   {
+{
       node = NumTreeCellAllocEmpty();
       node->key = f_code;
       node->val1.i_val = 1;
@@ -283,6 +283,8 @@ static void extweight_init(EnigmaWeightEmbParam_p data)
    }
    emb_div(data->conj_emb, mem+1);
    data->conj_len += data->conj_stats[12]; // add equality symbols
+   data->prob_spec = SpecFeatureCellAlloc();
+   SpecFeaturesCompute(data->prob_spec, data->proofstate->axioms, data->ocb->sig);
 
    if (OutputLevel >= 1)
    {
@@ -329,6 +331,8 @@ EnigmaWeightEmbParam_p EnigmaWeightEmbParamAlloc(void)
 void EnigmaWeightEmbParamFree(EnigmaWeightEmbParam_p junk)
 {
    EnigmaWeightEmbParamCellFree(junk);
+   SpecFeatureCellFree(junk->prob_spec);
+   // TODO: free embeds, xgboost_model
 }
  
 WFCB_p EnigmaWeightEmbParse(
@@ -451,7 +455,31 @@ double EnigmaWeightEmbCompute(void* data, Clause_p clause)
    {
       xgb_append(local->conj_stats[i], xgb_indices, xgb_data, &cur);
    }
-   int total = EMB_LEN+2+13+EMB_LEN+2+13;
+   // ... problem features
+   xgb_append(local->prob_spec->goals, xgb_indices, xgb_data, &cur);
+   xgb_append(local->prob_spec->axioms, xgb_indices, xgb_data, &cur);
+   xgb_append(local->prob_spec->clauses, xgb_indices, xgb_data, &cur);
+   xgb_append(local->prob_spec->literals, xgb_indices, xgb_data, &cur);
+   xgb_append(local->prob_spec->term_cells, xgb_indices, xgb_data, &cur);
+   xgb_append(local->prob_spec->unitgoals, xgb_indices, xgb_data, &cur);
+   xgb_append(local->prob_spec->unitaxioms, xgb_indices, xgb_data, &cur);
+   xgb_append(local->prob_spec->horngoals, xgb_indices, xgb_data, &cur);
+   xgb_append(local->prob_spec->hornaxioms, xgb_indices, xgb_data, &cur);
+   xgb_append(local->prob_spec->eq_clauses, xgb_indices, xgb_data, &cur);
+   xgb_append(local->prob_spec->peq_clauses, xgb_indices, xgb_data, &cur);
+   xgb_append(local->prob_spec->groundunitaxioms, xgb_indices, xgb_data, &cur);
+   xgb_append(local->prob_spec->groundgoals, xgb_indices, xgb_data, &cur);
+   xgb_append(local->prob_spec->groundpositiveaxioms, xgb_indices, xgb_data, &cur);
+   xgb_append(local->prob_spec->positiveaxioms, xgb_indices, xgb_data, &cur);
+   xgb_append(local->prob_spec->ng_unit_axioms_part, xgb_indices, xgb_data, &cur);
+   xgb_append(local->prob_spec->ground_positive_axioms_part, xgb_indices, xgb_data, &cur);
+   xgb_append(local->prob_spec->max_fun_arity, xgb_indices, xgb_data, &cur);
+   xgb_append(local->prob_spec->avg_fun_arity, xgb_indices, xgb_data, &cur);
+   xgb_append(local->prob_spec->sum_fun_arity, xgb_indices, xgb_data, &cur);
+   xgb_append(local->prob_spec->clause_max_depth, xgb_indices, xgb_data, &cur);
+   xgb_append(local->prob_spec->clause_avg_depth, xgb_indices, xgb_data, &cur);
+
+   int total = EMB_LEN+2+13+EMB_LEN+2+13+22;
 
    if (OutputLevel >= 2)
    {

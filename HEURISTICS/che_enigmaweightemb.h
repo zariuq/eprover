@@ -49,6 +49,7 @@ typedef struct enigmaweightembparamcell
    int conj_len;
    int conj_vars;
    int conj_stats[13];
+   SpecFeature_p prob_spec;
    /*
    char* features_filename;
 
