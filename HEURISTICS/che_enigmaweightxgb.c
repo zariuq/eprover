@@ -300,6 +300,7 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
    size_t xgb_nelem = total; //i + local->conj_features_count;
    size_t xgb_num_col = 1 + local->enigmap->feature_count +
       (local->enigmap->version & EFConjecture ? local->enigmap->feature_count : 0) +
+      (local->enigmap->version & EFProblem ? 22 : 0) +
       (local->enigmap->version & EFProofWatch ? local->proofstate->wlcontrol->proofs_count : 0);
    size_t xgb_nindptr = 2;
    static bst_ulong xgb_indptr[2];
