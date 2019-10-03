@@ -374,6 +374,7 @@ void EnigmapFree(Enigmap_p junk)
    EnigmapCellFree(junk);
 }
 
+/*
 ProcessedState_p ProcessedStateAlloc(void)
 {
   ProcessedState_p res = ProcessedStateCellAlloc();
@@ -391,6 +392,7 @@ void ProcessedStateFree(ProcessedState_p junk)
 
   ProcessedStateCellFree(junk);
 }
+*/
 
 Enigmap_p EnigmapLoad(char* features_filename, Sig_p sig)
 {
@@ -815,6 +817,7 @@ void FeaturesSvdTranslate(DMat matUt, double* sing,
    out[i].index = -1;
 }
 
+/*
 // Record the processed clause proof state at given clause selection (before it's added ot the state)
 void ProcessedClauseStateRecord(ProcessedState_p processed_state, Clause_p clause)
 {
@@ -829,6 +832,20 @@ void ProcessedClauseStateRecord(ProcessedState_p processed_state, Clause_p claus
      }
   }
 }
+
+// Helper function to print one line
+// Destroys the data while
+void ProcessedClauseStatePrintProgress(ProcessedState_p processed_state, FILE* out, Clause_p clause)
+{
+  NumTree_p processed_proof_state = NumTreeCopy(clause->processed_proof_state);
+  while (processed_proof_state)
+  {
+    NumTree_p cell = NumTreeExtractEntry(&processed_proof_state, NumTreeMinNode(processed_proof_state)->key);
+    fprintf(out, "%ld:%0.3f,", cell->key, (float)cell->val1.i_val);
+    NumTreeCellFree(cell);
+  }
+}
+*/
 
 /*---------------------------------------------------------------------*/
 /*                        End of File                                  */

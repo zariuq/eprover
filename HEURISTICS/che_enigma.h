@@ -78,6 +78,7 @@ typedef struct enigmapcell
 #define EnigmapCellFree(junk) \
         SizeFree(junk, sizeof(EnigmapCell))
 
+/*
 typedef struct processedstatecell
 {
   NumTree_p features;
@@ -95,6 +96,7 @@ typedef struct processedstatecell
 
 ProcessedState_p ProcessedStateAlloc(void);
 void             ProcessedStateFree(ProcessedState_p junk);
+*/
 
 /*---------------------------------------------------------------------*/
 /*                Exported Functions and Variables                     */
@@ -130,7 +132,8 @@ NumTree_p FeaturesClauseCollect(Clause_p clause, Enigmap_p enigmap, int* len);
 void FeaturesSvdTranslate(DMat matUt, double* sing,
    struct feature_node* in, struct feature_node* out);
 
-void ProcessedClauseStateRecord(ProcessedState_p processed_state, Clause_p clause);
+//void ProcessedClauseStateRecord(ProcessedState_p processed_state, Clause_p clause);
+//void ProcessedClauseStatePrintProgress(ProcessedState_p processed_state, FILE* out, Clause_p clause);
 
 #endif
 

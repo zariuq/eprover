@@ -30,6 +30,7 @@
 #include <ccl_garbage_coll.h>
 #include <ccl_global_indices.h>
 #include <ccl_watchlist.h>
+#include <ccl_processed_state.h>
 
 /*---------------------------------------------------------------------*/
 /*                    Data type declarations                           */
@@ -38,7 +39,7 @@
 /* Proof state */
 
 // Hack around the fact it's declared in che_enigma (down the dependency chain).
-typedef struct processedstatecell *ProcessedState_p;
+//typedef struct processedstatecell *ProcessedState_p;
 
 typedef struct proofstatecell
 {

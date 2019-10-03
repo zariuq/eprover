@@ -461,7 +461,7 @@ void ClauseSetArchive(ClauseSet_p archive, ClauseSet_p set)
 //
 /----------------------------------------------------------------------*/
 
-void PStackClausePrint(FILE* out, PStack_p stack, char* extra, WatchlistControl_p wlcontrol)
+void PStackClausePrint(FILE* out, PStack_p stack, char* extra, WatchlistControl_p wlcontrol, ProcessedState_p processed_state)
 {
    PStackPointer i;
    Clause_p clause;
@@ -475,8 +475,13 @@ void PStackClausePrint(FILE* out, PStack_p stack, char* extra, WatchlistControl_
          fprintf(out, "%s", extra);
       }
       if(wlcontrol && ProofObjectRecordsProofVector)
-      { 
+      {
          WatchlistPrintProgress(wlcontrol, out, clause);
+      }
+      if(processed_state->features && ProofObjectRecordsProcessedState)
+      {
+         fprintf(out, " #processedvector ");
+         ProcessedClauseStatePrintProgress(processed_state, out, clause);
       }
       fputc('\n', out);
    }
@@ -488,9 +493,3 @@ void PStackClausePrint(FILE* out, PStack_p stack, char* extra, WatchlistControl_
 /*---------------------------------------------------------------------*/
 /*                        End of File                                  */
 /*---------------------------------------------------------------------*/
-
-
-
-
-
-

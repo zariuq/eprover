@@ -26,6 +26,7 @@ Changes
 
 #include <ccl_relevance.h>
 #include <che_refinedweight.h>
+#include <ccl_processed_state.h>
 #include <che_enigma.h>
 #include "xgboost.h"
 
