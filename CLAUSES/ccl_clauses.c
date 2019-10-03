@@ -182,6 +182,7 @@ Clause_p clause_copy_meta(Clause_p clause)
    handle->watch_proof = clause->watch_proof;
    handle->watch_relevance = clause->watch_relevance;
    handle->watch_proof_state = NumTreeCopy(clause->watch_proof_state);
+   handle->processed_proof_state = NumTreeCopy(clause->processed_proof_state);
 
    return handle;
 }
@@ -294,6 +295,7 @@ Clause_p EmptyClauseAlloc(void)
    handle->watch_proof = -1;
    handle->watch_relevance = 0.0;
    handle->watch_proof_state = NULL;
+   handle->processed_proof_state = NULL;
 
    return handle;
 }
@@ -344,6 +346,7 @@ Clause_p ClauseAlloc(Eqn_p literals)
    handle->literals = pos_lits;
 
    handle->watch_proof_state = NULL;
+   handle->processed_proof_state = NULL;
 
    return handle;
 }
@@ -692,6 +695,10 @@ void ClauseFree(Clause_p junk)
    if(junk->watch_proof_state)
    {
       NumTreeFree(junk->watch_proof_state);
+   }
+   if(junk->processed_proof_state)
+   {
+      NumTreeFree(junk->processed_proof_state);
    }
    ClauseCellFree(junk);
 }

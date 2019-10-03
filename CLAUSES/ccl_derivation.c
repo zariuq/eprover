@@ -30,8 +30,9 @@ Changes
 /*---------------------------------------------------------------------*/
 
 ProofObjectType BuildProofObject = 0;
-bool            ProofObjectRecordsGCSelection = false;
-bool			ProofObjectRecordsProofVector = false;
+bool      ProofObjectRecordsGCSelection    = false;
+bool			ProofObjectRecordsProofVector    = false;
+bool      ProofObjectRecordsProcessedState = false;
 
 char *opids[] =
 {

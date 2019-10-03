@@ -5,7 +5,7 @@ File  : che_enigmaweightxgb.h
 Author: could be anyone
 
 Contents
- 
+
   Auto generated. Your comment goes here ;-).
 
   Copyright 2016 by the author.
@@ -46,7 +46,7 @@ typedef struct enigmaweightxgbparamcell
 
    BoosterHandle xgboost_model;
    Enigmap_p enigmap;
-   
+
    unsigned* conj_features_indices;
    float* conj_features_data;
    int conj_features_count;
@@ -68,18 +68,19 @@ void              EnigmaWeightXgbParamFree(EnigmaWeightXgbParam_p junk);
 
 
 WFCB_p EnigmaWeightXgbParse(
-   Scanner_p in, 
-   OCB_p ocb, 
+   Scanner_p in,
+   OCB_p ocb,
    ProofState_p state);
 
 WFCB_p EnigmaWeightXgbInit(
-   ClausePrioFun prio_fun, 
+   ClausePrioFun prio_fun,
    OCB_p ocb,
    ProofState_p proofstate,
    char* model_filename,
    char* features_filename,
    double len_mult);
 
+void ProcessedClauseVectorAddClause(ProcessedState_p processed_state, Clause_p clause);
 double EnigmaWeightXgbCompute(void* data, Clause_p clause);
 
 void EnigmaWeightXgbExit(void* data);
@@ -89,4 +90,3 @@ void EnigmaWeightXgbExit(void* data);
 /*---------------------------------------------------------------------*/
 /*                        End of File                                  */
 /*---------------------------------------------------------------------*/
-

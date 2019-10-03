@@ -37,6 +37,9 @@
 
 /* Proof state */
 
+// Hack around the fact it's declared in che_enigma (down the dependency chain).
+typedef struct processedstatecell *ProcessedState_p;
+
 typedef struct proofstatecell
 {
    SortTable_p   sort_table;
@@ -68,6 +71,8 @@ typedef struct proofstatecell
                                      processed_pos_rules and
                                      processed_pos_eqns */
    WatchlistControl_p wlcontrol;
+   ProcessedState_p processed_state;
+
    //ClauseSet_p   watchlist;
    //GlobalIndices wlindices;
    bool          state_is_complete;
@@ -179,7 +184,7 @@ void ProofStatePropDocQuote(FILE* out, int level,
 extern char* UseInlinedWatchList;
 
 extern bool WLInheritRelevance;
-extern double decay_factor; 
+extern double decay_factor;
 
 #endif
 

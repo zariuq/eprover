@@ -163,6 +163,7 @@ typedef struct clause_cell
    double       watch_relevance;      /* Watchlist relevance (only for
                                          generated clauses) */
    NumTree_p    watch_proof_state;    /* Watchlist proof state on selection */
+   NumTree_p    processed_proof_state; /* Processed clause proof state on selection */
 }ClauseCell, *Clause_p;
 
 

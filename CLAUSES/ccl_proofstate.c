@@ -176,6 +176,7 @@ ProofState_p ProofStateAlloc(FunctionProperties free_symb_prop)
    handle->eval_store           = ClauseSetAlloc();
    handle->archive              = ClauseSetAlloc();
    handle->wlcontrol            = WatchlistControlAlloc();
+   handle->processed_state      = ProcessedStateAlloc();
    handle->f_archive            = FormulaSetAlloc();
    handle->extract_roots        = PStackAlloc();
    GlobalIndicesNull(&(handle->gindices));
@@ -284,7 +285,7 @@ void ProofStateLoadWatchlist(ProofState_p state,
    else if (watchlist_filename)
    {
       fprintf(GlobalOut, "# Loading file watchlist from '%s'\n", watchlist_filename);
-      if (watchlist_filename != UseInlinedWatchList) 
+      if (watchlist_filename != UseInlinedWatchList)
       {
          ClauseSet_p tmpset = WatchlistLoadFile(state->terms, watchlist_filename, parse_format);
          WatchlistInsertSet(state->wlcontrol, tmpset);
@@ -305,7 +306,7 @@ void ProofStateLoadWatchlist(ProofState_p state,
    }
 
    WatchlistLoaded(state->wlcontrol);
-      
+
 }
 
 
@@ -549,7 +550,7 @@ void ProofStateTrain(ProofState_p state, bool print_pos, bool print_neg)
    if(print_pos)
    {
       fprintf(GlobalOut, "# Training: Positive examples begin\n");
-      PStackClausePrint(GlobalOut, pos_examples, !ProofObjectRecordsProofVector ? 
+      PStackClausePrint(GlobalOut, pos_examples, !ProofObjectRecordsProofVector ?
          "#trainpos" : "#trainpos #proofvector ", state->wlcontrol);
       fprintf(GlobalOut, "# Training: Positive examples end\n");
    }

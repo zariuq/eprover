@@ -178,8 +178,9 @@ typedef struct derivation_cell
 
 
 extern ProofObjectType BuildProofObject;
-extern bool            ProofObjectRecordsGCSelection;
+extern bool        ProofObjectRecordsGCSelection;
 extern bool			   ProofObjectRecordsProofVector;
+extern bool        ProofObjectRecordsProcessedState;
 
 #define DCOpHasCnfArg1(op)   ((op)&Arg1Cnf)
 #define DCOpHasFofArg1(op)   ((op)&Arg1Fof)
@@ -279,8 +280,3 @@ void DerivationComputeAndPrint(FILE* out, char* status, PStack_p root_clauses,
 /*---------------------------------------------------------------------*/
 /*                        End of File                                  */
 /*---------------------------------------------------------------------*/
-
-
-
-
-

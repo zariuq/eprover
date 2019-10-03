@@ -5,7 +5,7 @@ File  : che_enigma.c
 Author: Jan Jakubuv
 
 Contents
- 
+
   Copyright 2016 by the author.
   This code is released under the GNU General Public Licence and
   the GNU Lesser General Public License.
@@ -49,6 +49,7 @@ typedef enum
    EFArity = 256,
    EFProblem = 512,
    EFSine = 1024,
+   EFProcessed = 2048,
    EFAll = 0xFFFF
 }EnigmaFeature;
 
@@ -58,7 +59,7 @@ typedef struct enigmapcell
 {
    Sig_p sig;
    EnigmaFeatures version;
-   
+
    StrTree_p feature_map;
    long feature_count;
 
@@ -76,6 +77,24 @@ typedef struct enigmapcell
         SizeMalloc(sizeof(EnigmapCell))
 #define EnigmapCellFree(junk) \
         SizeFree(junk, sizeof(EnigmapCell))
+
+typedef struct processedstatecell
+{
+  NumTree_p features;
+  unsigned indices[2048]; // TODO: dynamic alloc
+  float data[2048]; // TODO: dynamic alloc
+  int features_count;
+  Enigmap_p enigmap;
+} ProcessedStateCell, *ProcessedState_p;
+
+
+#define ProcessedStateCellAlloc() (ProcessedStateCell*) \
+        SizeMalloc(sizeof(ProcessedStateCell))
+#define ProcessedStateCellFree(junk) \
+        SizeFree(junk, sizeof(ProcessedStateCell))
+
+ProcessedState_p ProcessedStateAlloc(void);
+void             ProcessedStateFree(ProcessedState_p junk);
 
 /*---------------------------------------------------------------------*/
 /*                Exported Functions and Variables                     */
@@ -108,12 +127,13 @@ void FeaturesAddClauseStatic(NumTree_p* counts, Clause_p clause, Enigmap_p enigm
          NumTree_p* varstat, int* varoffset);
 NumTree_p FeaturesClauseCollect(Clause_p clause, Enigmap_p enigmap, int* len);
 
-void FeaturesSvdTranslate(DMat matUt, double* sing, 
+void FeaturesSvdTranslate(DMat matUt, double* sing,
    struct feature_node* in, struct feature_node* out);
+
+void ProcessedClauseStateRecord(ProcessedState_p processed_state, Clause_p clause);
 
 #endif
 
 /*---------------------------------------------------------------------*/
 /*                        End of File                                  */
 /*---------------------------------------------------------------------*/
-

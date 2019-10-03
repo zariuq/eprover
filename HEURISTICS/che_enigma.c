@@ -5,7 +5,7 @@ File  : che_feature.c
 Author: Jan Jakubuv
 
 Contents
- 
+
   Common functions for ENIGMA.
 
   Copyright 1998, 1999 by the author.
@@ -53,9 +53,9 @@ static char* fcode_string(FunCode f_code, Enigmap_p enigmap)
 {
    static char str[128];
    static char postfix[16];
-   
+
    assert(fcode > 0);
-   
+
    bool is_skolem = false;
    char* name = SigFindName(enigmap->sig, f_code);
    if (name[0] == 'e') // be fast
@@ -65,17 +65,17 @@ static char* fcode_string(FunCode f_code, Enigmap_p enigmap)
          is_skolem = true;
       }
    }
-      
+
    if (is_skolem || (enigmap->version & EFArity))
    {
       int arity = SigFindArity(enigmap->sig, f_code);
-      char prefix = SigIsPredicate(enigmap->sig, f_code) ? 'p' : 'f'; 
+      char prefix = SigIsPredicate(enigmap->sig, f_code) ? 'p' : 'f';
       char* sk = (is_skolem) ? ENIGMA_SKO : "";
       //char* conj = (FuncQueryProp(&(enigmap->sig->f_info[f_code]), FPInConjecture)) ? "c" : "";
       postfix[0] = '\0';
       if (enigmap->version & EFSine)
       {
-         if (f_code <= enigmap->symb_count) 
+         if (f_code <= enigmap->symb_count)
          {
             snprintf(postfix, 16, "^%ld", enigmap->symb_rank[f_code]);
          }
@@ -99,7 +99,7 @@ static char* fcode_string(FunCode f_code, Enigmap_p enigmap)
 static char* top_symbol_string(Term_p term, Enigmap_p enigmap)
 {
 
-   if (TermIsVar(term)) 
+   if (TermIsVar(term))
    {
       return ENIGMA_VAR;
    }
@@ -127,8 +127,8 @@ static long feature_hash(char* str, long base)
 static void feature_increase(
    char* str,
    int inc,
-   NumTree_p* counts, 
-   Enigmap_p enigmap, 
+   NumTree_p* counts,
+   Enigmap_p enigmap,
    int* len)
 {
    if (inc == 0)
@@ -144,7 +144,7 @@ static void feature_increase(
    else
    {
       StrTree_p snode = StrTreeFind(&enigmap->feature_map, str);
-      if (snode) 
+      if (snode)
       {
          fid = snode->val1.i_val;
       }
@@ -156,11 +156,11 @@ static void feature_increase(
    }
 
    NumTree_p cnode = NumTreeFind(counts, fid);
-   if (cnode) 
+   if (cnode)
    {
       cnode->val1.i_val += inc;
    }
-   else 
+   else
    {
       cnode = NumTreeCellAllocEmpty();
       cnode->key = fid;
@@ -170,14 +170,14 @@ static void feature_increase(
    }
 
    if (enigmap->collect_stats)
-   {  
+   {
       StrTree_p snode = StrTreeFind(&enigmap->stats, str);
       if (snode)
       {
          snode->val2.i_val += 1;
       }
       else
-      {  
+      {
          StrTreeStore(&enigmap->stats, str, (IntOrP)fid, (IntOrP)1L);
       }
       //StrTreeUpdate(&enigmap->stats, str, cnode->val1, cnode->val2);
@@ -188,8 +188,8 @@ static void feature_symbol_increase(
    char* prefix,
    char* fname,
    int inc,
-   NumTree_p* counts, 
-   Enigmap_p enigmap, 
+   NumTree_p* counts,
+   Enigmap_p enigmap,
    int* len)
 {
    static char str[128]; // TODO: make dynamic DStr_p
@@ -203,10 +203,10 @@ static void feature_symbol_increase(
 }
 
 static int features_term_collect(
-   NumTree_p* counts, 
-   Term_p term, 
-   Enigmap_p enigmap, 
-   char* sym1, 
+   NumTree_p* counts,
+   Term_p term,
+   Enigmap_p enigmap,
+   char* sym1,
    char* sym2)
 {
    char* sym3 = top_symbol_string(term, enigmap);
@@ -216,14 +216,14 @@ static int features_term_collect(
    // verticals
    if (enigmap->version & EFVertical)
    {
-      if (snprintf(str, 128, "%s:%s:%s", sym1, sym2, sym3) >= 128) 
+      if (snprintf(str, 128, "%s:%s:%s", sym1, sym2, sym3) >= 128)
       {
-         Error("ENIGMA: Your symbol names are too long (%s:%s:%s)!", OTHER_ERROR, 
+         Error("ENIGMA: Your symbol names are too long (%s:%s:%s)!", OTHER_ERROR,
             sym1, sym2, sym3);
       }
       feature_increase(str, 1, counts, enigmap, &len);
    }
-   
+
    if (TermIsVar(term)||(TermIsConst(term))) { return len; }
    for (int i=0; i<term->arity; i++)
    {
@@ -257,7 +257,7 @@ static void features_term_variables(
    {
       f_code = 0L; // ignore internal symbols
    }
-   
+
    if (f_code != 0)
    {
       NumTree_p vnode = NumTreeFind(stat, f_code);
@@ -303,7 +303,7 @@ DStr_p FeaturesGetTermHorizontal(char* top, Term_p term, Enigmap_p enigmap)
    //PStackSort(args, string_compare);
    DStrAppendStr(str, top);
    while (!PStackEmpty(args))
-   {  
+   {
       DStrAppendChar(str, '.');
       DStrAppendStr(str, PStackPopP(args));
    }
@@ -370,8 +370,26 @@ void EnigmapFree(Enigmap_p junk)
    {
       SizeFree(junk->symb_rank, junk->symb_count*sizeof(long));
    }
-   
+
    EnigmapCellFree(junk);
+}
+
+ProcessedState_p ProcessedStateAlloc(void)
+{
+  ProcessedState_p res = ProcessedStateCellAlloc();
+
+  res->enigmap = NULL;
+  res->features = NULL;
+  res->features_count = 0;
+
+  return res;
+}
+
+void ProcessedStateFree(ProcessedState_p junk)
+{
+  // TODO: free enigmap
+
+  ProcessedStateCellFree(junk);
 }
 
 Enigmap_p EnigmapLoad(char* features_filename, Sig_p sig)
@@ -381,9 +399,9 @@ Enigmap_p EnigmapLoad(char* features_filename, Sig_p sig)
 
    enigmap->sig = sig;
    enigmap->feature_map = NULL;
-   
+
    Scanner_p in = CreateScanner(StreamTypeFile, features_filename, true, NULL);
-   ScannerSetFormat(in, TSTPFormat);                                             
+   ScannerSetFormat(in, TSTPFormat);
    enigmap->version = EFAll;
    if (TestInpId(in, "version"))
    {
@@ -424,7 +442,7 @@ Enigmap_p EnigmapLoad(char* features_filename, Sig_p sig)
          StrTreeInsert(&enigmap->feature_map, cell);
          count++;
          //printf("%ld ... %s\n", fid, DStrCopyCore(AktToken(in)->literal));
-         
+
          NextToken(in);
          AcceptInpTok(in, CloseBracket);
          AcceptInpTok(in, Fullstop);
@@ -434,7 +452,7 @@ Enigmap_p EnigmapLoad(char* features_filename, Sig_p sig)
 
       enigmap->feature_count = count;
    }
-   
+
    return enigmap;
 }
 
@@ -465,10 +483,10 @@ void EnigmapFillProblemFeatures(Enigmap_p enigmap, ClauseSet_p axioms)
    enigmap->problem_features[19] = spec->sum_fun_arity;
    enigmap->problem_features[20] = spec->clause_max_depth;
    enigmap->problem_features[21] = spec->clause_avg_depth;
-   
+
    SpecFeatureCellFree(spec);
 }
-      
+
 void conjecture_symbols_term(Enigmap_p enigmap, Term_p term)
 {
    if (TermIsVar(term))
@@ -496,9 +514,9 @@ void EnigmapMarkConjectureSymbols(Enigmap_p enigmap, Clause_p clause)
 EnigmaFeatures ParseEnigmaFeaturesSpec(char *spec)
 {
    EnigmaFeatures enigma_features = EFNone;
-   while (*spec) 
+   while (*spec)
    {
-      switch (*spec) 
+      switch (*spec)
       {
          case 'V': enigma_features |= EFVertical; break;
          case 'H': enigma_features |= EFHorizontal; break;
@@ -511,6 +529,7 @@ EnigmaFeatures ParseEnigmaFeaturesSpec(char *spec)
          case 'A': enigma_features |= EFArity; break;
          case 'P': enigma_features |= EFProblem; break;
          case 'I': enigma_features |= EFSine; break;
+         case 'p': enigma_features |= EFProcessed; break;
          case '"': break;
          default:
                    Error("Invalid Enigma features specifier '%c'. Valid characters are 'VHSLCWXAP'.",
@@ -533,7 +552,7 @@ int FeaturesClauseExtend(NumTree_p* counts, Clause_p clause, Enigmap_p enigmap)
       if (lit->rterm->f_code == SIG_TRUE_CODE)
       {
          // verticals & horizontals
-         char* sym2 = top_symbol_string(lit->lterm, enigmap); 
+         char* sym2 = top_symbol_string(lit->lterm, enigmap);
          for (int i=0; i<lit->lterm->arity; i++) // here we ignore prop. constants
          {
             len += features_term_collect(counts, lit->lterm->args[i], enigmap, sym1, sym2);
@@ -656,7 +675,7 @@ void FeaturesClauseVariablesStat(
       }
    }
    NumTreeTraverseExit(stack);
-   
+
    out[7] = (out[7] == 65536) ? 0 : out[7];
    out[8] = (out[8] == 65536) ? 0 : out[8];
    out[9] = (out[9] == 65536) ? 0 : out[9];
@@ -705,8 +724,8 @@ void FeaturesAddVariables(NumTree_p* counts, NumTree_p* varstat, Enigmap_p enigm
    *varstat = NULL;
 }
 
-      
-void FeaturesAddClauseStatic(NumTree_p* counts, Clause_p clause, Enigmap_p enigmap, int *len, 
+
+void FeaturesAddClauseStatic(NumTree_p* counts, Clause_p clause, Enigmap_p enigmap, int *len,
          NumTree_p* varstat, int* varoffset)
 {
    static long* vec = NULL;
@@ -732,7 +751,7 @@ void FeaturesAddClauseStatic(NumTree_p* counts, Clause_p clause, Enigmap_p enigm
       PStack_p mod_stack = PStackAlloc();
       ClauseAddSymbolFeatures(clause, mod_stack, vec);
       PStackFree(mod_stack);
-     
+
       for (long f=enigmap->sig->internal_symbols+1; f<=enigmap->sig->f_count; f++)
       {
          char* fname = fcode_string(f, enigmap);
@@ -755,7 +774,7 @@ void FeaturesAddClauseStatic(NumTree_p* counts, Clause_p clause, Enigmap_p enigm
    }
 
    if (varoffset && (enigmap->version & EFVariables))
-   { 
+   {
       int distinct = 0;
       FeaturesClauseVariablesExtend(enigmap, varstat, clause, &distinct, *varoffset);
       (*varoffset) += (2 * distinct);
@@ -774,7 +793,7 @@ NumTree_p FeaturesClauseCollect(Clause_p clause, Enigmap_p enigmap, int* len)
    return counts;
 }
 
-void FeaturesSvdTranslate(DMat matUt, double* sing, 
+void FeaturesSvdTranslate(DMat matUt, double* sing,
    struct feature_node* in, struct feature_node* out)
 {
    int i,j;
@@ -784,7 +803,7 @@ void FeaturesSvdTranslate(DMat matUt, double* sing,
    {
       dot = 0.0;
       j = 0;
-      while (in[j].index != -1) 
+      while (in[j].index != -1)
       {
          dot += matUt->value[i][in[j].index-1] * in[j].value;
          j++;
@@ -796,7 +815,21 @@ void FeaturesSvdTranslate(DMat matUt, double* sing,
    out[i].index = -1;
 }
 
+// Record the processed clause proof state at given clause selection (before it's added ot the state)
+void ProcessedClauseStateRecord(ProcessedState_p processed_state, Clause_p clause)
+{
+  if(ProofObjectRecordsGCSelection)
+  {
+     if (ProofObjectRecordsProcessedState)
+     {
+        if (!clause->processed_proof_state)
+        {  // keep previous copy, if any
+           clause->processed_proof_state = NumTreeCopy(processed_state->features);
+        }
+     }
+  }
+}
+
 /*---------------------------------------------------------------------*/
 /*                        End of File                                  */
 /*---------------------------------------------------------------------*/
-

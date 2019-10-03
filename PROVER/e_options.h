@@ -56,6 +56,7 @@ typedef enum
    OPT_RECORD_GIVEN_CLAUSES,
    OPT_TRAINING,
    OPT_RECORD_PROOF_VECTOR,
+   OPT_RECORD_PROCESSED_VECTOR,
    OPT_PCL_COMPRESSED,
    OPT_PCL_COMPACT,
    OPT_PCL_SHELL_LEVEL,
@@ -291,7 +292,14 @@ OptCell opts[] =
     NoArg, NULL,
     "Record proof-state vector from watchlists for each given clause. "
 	"Use with --watchlist-dir. No watchlist strategies are needed. "
-    "Will be printed with training examples (if the option is set)."},	
+    "Will be printed with training examples (if the option is set)."},
+
+   {OPT_RECORD_PROCESSED_VECTOR,
+  '\0', "record-processed-vector",
+    NoArg, NULL,
+    "Record a proof-state vector created by summing processed clause "
+    "feature vectors. Presently to be used only with ENIGMA's XGB learner "
+    "Will be printed with training examples (if the option is set)."},
 
    {OPT_PCL_COMPRESSED,
     '\0', "pcl-terms-compressed",
@@ -1182,7 +1190,7 @@ OptCell opts[] =
    {OPT_WATCHLIST_INHERIT_RELEVANCE,
     '\0', "watchlist-inherit-relevance",
     OptArg, "0.1",
-    "By default clauses matching a watchlist do not inherit relevance " 
+    "By default clauses matching a watchlist do not inherit relevance "
 	"from their parents. This option sets clause relevance to "
 	"\"relevance + decday_factor * parents_relevance\" when using "
 	"PreferWatchlistRelevant. This option is set with "
@@ -1200,7 +1208,7 @@ OptCell opts[] =
 	'\0', "wl-normalize-skolem",
 	NoArg, NULL,
 	"Treat skolem symbols of equal arity as the same in watchlist subsumption."},
-   
+
    {OPT_WATCHLIST_TRAIN_SAMPLES,
 	'\0', "wl-training-examples",
 	NoArg, NULL,
@@ -1374,7 +1382,7 @@ OptCell opts[] =
     '\0', "print-types",
     NoArg, NULL,
     "Print the type of every term. Useful for debugging purposes."},
-   
+
    {OPT_EMB_FILE,
     '\0', "emb-file",
     ReqArg, NULL,

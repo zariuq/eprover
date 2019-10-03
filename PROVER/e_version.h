@@ -44,7 +44,7 @@ Contents
 #define VERSION PVERSION "-DEBUG"
 #endif
 
-#define E_NICKNAME     "Maharani Hills"
+#define E_NICKNAME     "Maharani Hills v Zar"
 
 #define E_URL "http://www.eprover.org"
 

@@ -76,7 +76,7 @@ DStr_p clause_code(PStack_p codes, Sig_p sig)
    }
    DStrDeleteLastChar(code);
 
-   return code;   
+   return code;
 }
 
 void watchlists_insert_clause(WatchlistControl_p wlcontrol, Clause_p clause)
@@ -104,7 +104,7 @@ void watchlists_insert_clause(WatchlistControl_p wlcontrol, Clause_p clause)
       //fprintf(GlobalOut, "# Creating new watchlist index: %s\n", DStrView(code));
 
       wl = WatchlistAlloc();
-      GlobalIndicesInit(&(wl->indices), wlcontrol->sig, wlcontrol->rw_bw_index_type, 
+      GlobalIndicesInit(&(wl->indices), wlcontrol->sig, wlcontrol->rw_bw_index_type,
          wlcontrol->pm_from_index_type, wlcontrol->pm_into_index_type);
       wl->set->fvindex = FVIAnchorAlloc(wlcontrol->cspec, wlcontrol->perm);
       //FIXME: do we need to copy perm vector?
@@ -182,7 +182,7 @@ void WatchlistControlFree(WatchlistControl_p junk, GCAdmin_p gc, bool indfree)
 {
    if (junk->watchlist0)
    {
-      if (gc) 
+      if (gc)
       {
          GCDeregisterClauseSet(gc, junk->watchlist0);
       }
@@ -212,7 +212,7 @@ PStack_p WatchlistClauseTops(Clause_p clause)
 
    PStack_p out = PStackAlloc();
    PStack_p empty = PStackAlloc();
-   PStackMerge(codes, empty, out, (ComparisonFunctionType)tops_compare); // remove dups 
+   PStackMerge(codes, empty, out, (ComparisonFunctionType)tops_compare); // remove dups
    PStackFree(codes);
    PStackFree(empty);
 
@@ -261,7 +261,7 @@ void WatchlistLoadDir(WatchlistControl_p wlcontrol, TB_p bank,
 
    dp = opendir(watchlist_dir);
    if (!dp)
-   {  
+   {
       Error("Can't access watchlist dir '%s'", OTHER_ERROR, watchlist_dir);
       return;
    }
@@ -291,8 +291,8 @@ void WatchlistLoadDir(WatchlistControl_p wlcontrol, TB_p bank,
       tmpset = WatchlistLoadFile(bank, DStrView(filename), parse_format);
 
       // set origin proof number
-      for(handle = tmpset->anchor->succ; 
-          handle != tmpset->anchor; 
+      for(handle = tmpset->anchor->succ;
+          handle != tmpset->anchor;
           handle = handle->succ)
       {
          handle->watch_proof = proof_no+1;
@@ -303,10 +303,10 @@ void WatchlistLoadDir(WatchlistControl_p wlcontrol, TB_p bank,
       //NumTreeStore(&wlcontrol->watch_progress, proof_no+1, val1, (IntOrP)NULL);
       val1.i_val = tmpset->members; // ... out of total
       NumTreeStore(&wlcontrol->proof_len, proof_no+1, val1, (IntOrP)NULL);
-      
+
       if (OutputLevel >= 1)
       {
-         fprintf(GlobalOut, "#   watchlist %4ld: %8ld clauses from '%s'\n", 
+         fprintf(GlobalOut, "#   watchlist %4ld: %8ld clauses from '%s'\n",
             proof_no+1, tmpset->members, DStrView(filename));
       }
 
@@ -362,7 +362,7 @@ void WatchlistPrintProgress(WatchlistControl_p wlcontrol, FILE* out, Clause_p cl
       len = NumTreeFind(&(wlcontrol->proof_len), proof->key);
       if (!len)
       {
-         Error("Watchlist: Unknown proof length of proof #%ld.  Should not happen!", 
+         Error("Watchlist: Unknown proof length of proof #%ld.  Should not happen!",
             OTHER_ERROR, proof->key);
       }
       fprintf(out, "%ld:%0.3f(%ld/%ld),",
@@ -411,11 +411,11 @@ void WatchlistInit(WatchlistControl_p wlcontrol, OCB_p ocb)
    fprintf(GlobalOut, "# Watchlist proof vector length: %ld\n", wlcontrol->proofs_count);
 }
 
-void WatchlistInitFVI(WatchlistControl_p wlcontrol, FVCollect_p cspec, 
+void WatchlistInitFVI(WatchlistControl_p wlcontrol, FVCollect_p cspec,
    PermVector_p perm)
 {
    //wlcontrol->watchlist0->fvindex = FVIAnchorAlloc(cspec, perm);
-   
+
    wlcontrol->cspec = cspec;
    wlcontrol->perm = perm;
 
@@ -429,8 +429,8 @@ void WatchlistClauseProcessed(WatchlistControl_p wlcontrol, Clause_p clause)
       // Copy proof state at given clause selection into the clause.
       // Notably this is different from the proof-state immediately after clause selection.
       if (ProofObjectRecordsProofVector)
-      { 
-         if (!clause->watch_proof_state) 
+      {
+         if (!clause->watch_proof_state)
          {  // keep previous copy, if any
             clause->watch_proof_state = NumTreeCopy(wlcontrol->watch_progress);
          }

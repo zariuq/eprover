@@ -510,7 +510,7 @@ static Clause_p insert_new_clauses(ProofState_p state, ProofControl_p control)
                          control->heuristic_parms.watchlist_is_static,
                          &(state->watch_progress), state->signature);
          */
-         WatchlistCheck(state->wlcontrol, handle, state->archive, 
+         WatchlistCheck(state->wlcontrol, handle, state->archive,
             control->heuristic_parms.watchlist_is_static, state->signature);
       }
       if(ClauseIsEmpty(handle))
@@ -1213,6 +1213,7 @@ void ProofStateInit(ProofState_p state, ProofControl_p control)
       }
       ClauseSetInsert(state->unprocessed, new);
    }
+
    ClauseSetMarkSOS(state->unprocessed, control->heuristic_parms.use_tptp_sos);
    // printf("Before EvalTreeTraverseExit\n");
    EvalTreeTraverseExit(traverse);
@@ -1240,7 +1241,7 @@ void ProofStateInit(ProofState_p state, ProofControl_p control)
                      control->heuristic_parms.rw_bw_index_type,
                      control->heuristic_parms.pm_from_index_type,
                      control->heuristic_parms.pm_into_index_type);
-   
+
    //OCBDebugPrint(GlobalOut, control->ocb);
 
 }
@@ -1277,7 +1278,7 @@ Clause_p ProcessClause(ProofState_p state, ProofControl_p control,
    assert(clause);
 
    state->processed_count++;
-   
+
    // Have to copy the state twice.
    //watch_progress_copy(&(clause->watch_proof_state), state->watch_progress);
 
@@ -1289,6 +1290,7 @@ Clause_p ProcessClause(ProofState_p state, ProofControl_p control,
    assert(!ClauseQueryProp(clause, CPIsIRVictim));
 
    WatchlistClauseProcessed(state->wlcontrol, clause);
+   ProcessedClauseStateRecord(state->processed_state, clause);
    if(ProofObjectRecordsGCSelection)
    {
 	  arch_copy = ClauseArchive(state->archive, clause);
@@ -1307,8 +1309,8 @@ Clause_p ProcessClause(ProofState_p state, ProofControl_p control,
       return NULL;
    }
 
-   
-   
+
+
    if(ClauseIsSemFalse(pclause->clause))
    {
       state->answer_count ++;
@@ -1344,6 +1346,7 @@ Clause_p ProcessClause(ProofState_p state, ProofControl_p control,
                       control->heuristic_parms.watchlist_is_static,
                       state->signature);
    }
+   ProcessedClauseVectorAddClause(state->processed_state, pclause->clause);
 
    /* Now on to backward simplification. */
    clausedate = ClauseSetListGetMaxDate(state->demods, FullRewrite);
@@ -1524,14 +1527,14 @@ long RemoveSubsumed(GlobalIndices_p indices,
    long     res;
    PStack_p stack = PStackAlloc();
    Sig_p sig = (wlcontrol && WLNormalizeSkolemSymbols) ? wlcontrol->sig : NULL;
-   
+
 	res = ClauseSetFindFVSubsumedClauses(set, subsumer, stack, sig);
-   
+
    while(!PStackEmpty(stack))
    {
       handle = PStackPopP(stack);
       //printf("# XXX Removing (remove_subumed()) %p from %p = %p\n", handle, set, handle->set);
-      //printf("# XWL "); ClausePrint(GlobalOut, handle, true); printf("\n"); 
+      //printf("# XWL "); ClausePrint(GlobalOut, handle, true); printf("\n");
 	   if(ClauseQueryProp(handle, CPWatchOnly))
       {
          assert(watch_progress);
@@ -1542,7 +1545,7 @@ long RemoveSubsumed(GlobalIndices_p indices,
          {
             WatchlistUpdateProgress(wlcontrol, subsumer->clause, handle);
          }
-         
+
          //fprintf(GlobalOut, "# Watchlist hit: ");
          //ClausePrint(GlobalOut, handle, true);
          //fprintf(GlobalOut, "\n");

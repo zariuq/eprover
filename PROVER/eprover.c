@@ -489,8 +489,8 @@ int main(int argc, char* argv[])
     */
 
    raw_clause_no = proofstate->axioms->members;
-   ProofStateLoadWatchlist(proofstate, 
-                           watchlist_filename, 
+   ProofStateLoadWatchlist(proofstate,
+                           watchlist_filename,
                            watchlist_dirname,
                            parse_format);
 
@@ -526,10 +526,18 @@ int main(int argc, char* argv[])
                      "NoIndex",
                      "NoIndex");
    }
+
    //printf("Alive (1)!\n");
 
    ProofStateInit(proofstate, proofcontrol);
    //printf("Alive (2)!\n");
+
+   if (proofstate->processed_state->enigmap)
+   {
+     fprintf(GlobalOut, "THIS IS A TEST 4: %d\n", proofstate->processed_state->features_count);
+     fprintf(GlobalOut, "THIS IS A TEST 4: %ld\n", proofstate->processed_state->enigmap->feature_count);
+     fprintf(GlobalOut, "THIS IS A TEST 4: %ld\n", proofstate->processed_count); // Meaning no clauses are processed yet, so we're safe
+   }
 
    //ProofStateInitWatchlist(proofstate, proofcontrol->ocb);
 
@@ -918,10 +926,14 @@ CLState_p process_options(int argc, char* argv[])
             ProofObjectRecordsGCSelection = true;
             proc_training_data = CLStateGetIntArg(handle, arg);
             break;
-	  case OPT_RECORD_PROOF_VECTOR:
+	    case OPT_RECORD_PROOF_VECTOR:
             BuildProofObject = MAX(1, BuildProofObject);
             ProofObjectRecordsGCSelection = true;
-			ProofObjectRecordsProofVector = true;
+			      ProofObjectRecordsProofVector = true;
+	    case OPT_RECORD_PROCESSED_VECTOR:
+            BuildProofObject = MAX(1, BuildProofObject);
+            ProofObjectRecordsGCSelection = true;
+			      ProofObjectRecordsProcessedState = true;
       case OPT_PCL_COMPRESSED:
             pcl_full_terms = false;
             break;

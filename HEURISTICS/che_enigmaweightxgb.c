@@ -5,7 +5,7 @@ File  : che_enigmaweightxgb.c
 Author: could be anyone
 
 Contents
- 
+
   Auto generated. Your comment goes here ;-).
 
   Copyright 2016 by the author.
@@ -40,11 +40,11 @@ static float conj_data[2048]; // TODO: dynamic alloc
 
 static void extweight_init(EnigmaWeightXgbParam_p data)
 {
-   if (data->xgboost_model) 
+   if (data->xgboost_model)
    {
       return;
    }
-  
+
    XGBoosterCreate(NULL, 0, &data->xgboost_model);
 
    if (XGBoosterLoadModel(data->xgboost_model, data->model_filename) != 0)
@@ -55,6 +55,12 @@ static void extweight_init(EnigmaWeightXgbParam_p data)
    //XGBoosterSetAttr(data->xgboost_model, "objective", "binary:logistic");
 
    data->enigmap = EnigmapLoad(data->features_filename, data->ocb->sig);
+
+   // Pass the ENIGMA map to the Processed State data structure
+   if (data->enigmap->version & EFProcessed)
+   {
+     data->proofstate->processed_state->enigmap = data->enigmap;
+   }
 
    // problem features:
    SpecFeature_p spec = SpecFeatureCellAlloc();
@@ -74,7 +80,7 @@ static void extweight_init(EnigmaWeightXgbParam_p data)
       anchor = data->proofstate->axioms->anchor;
       for (clause=anchor->succ; clause!=anchor; clause=clause->succ)
       {
-         if(ClauseQueryTPTPType(clause)==CPTypeNegConjecture) 
+         if(ClauseQueryTPTPType(clause)==CPTypeNegConjecture)
          {
             len += FeaturesClauseExtend(&features, clause, data->enigmap);
             FeaturesAddClauseStatic(&features, clause, data->enigmap, &len, &varstat, &varoffset);
@@ -82,11 +88,11 @@ static void extweight_init(EnigmaWeightXgbParam_p data)
       }
       FeaturesAddVariables(&features, &varstat, data->enigmap, &len);
 
-      if (len >= 2048) { Error("ENIGMA: Too many conjecture features!", OTHER_ERROR); } 
-  
+      if (len >= 2048) { Error("ENIGMA: Too many conjecture features!", OTHER_ERROR); }
+
       //printf("CONJ FEATURES: ");
       int i = 0;
-      while (features) 
+      while (features)
       {
          NumTree_p cell = NumTreeExtractEntry(&features,NumTreeMinNode(features)->key);
          conj_indices[i] = cell->key + data->enigmap->feature_count;
@@ -104,9 +110,9 @@ static void extweight_init(EnigmaWeightXgbParam_p data)
    data->conj_features_indices = conj_indices;
    data->conj_features_data = conj_data;
 
-   fprintf(GlobalOut, "# ENIGMA: XGBoost model '%s' loaded. (%s: %ld; conj_feats: %d; version: %ld)\n", 
-      data->model_filename, 
-      (data->enigmap->version & EFHashing) ? "hash_base" : "features", data->enigmap->feature_count, 
+   fprintf(GlobalOut, "# ENIGMA: XGBoost model '%s' loaded. (%s: %ld; conj_feats: %d; version: %ld)\n",
+      data->model_filename,
+      (data->enigmap->version & EFHashing) ? "hash_base" : "features", data->enigmap->feature_count,
       data->conj_features_count, data->enigmap->version);
 }
 
@@ -132,12 +138,12 @@ void EnigmaWeightXgbParamFree(EnigmaWeightXgbParam_p junk)
 
    EnigmaWeightXgbParamCellFree(junk);
 }
- 
+
 WFCB_p EnigmaWeightXgbParse(
-   Scanner_p in,  
-   OCB_p ocb, 
+   Scanner_p in,
+   OCB_p ocb,
    ProofState_p state)
-{   
+{
    ClausePrioFun prio_fun;
    double len_mult;
 
@@ -171,14 +177,14 @@ WFCB_p EnigmaWeightXgbParse(
    DStrAppendStr(f_featmap, "enigma.map");
    char* features_filename = SecureStrdup(DStrView(f_featmap));
    DStrFree(f_featmap);
-  
+
    //fprintf(GlobalOut, "ENIGMA: MODEL: %s\n", model_filename);
    //fprintf(GlobalOut, "ENIGMA: FEATURES: %s\n", features_filename);
 
    free(d_prefix);
 
    return EnigmaWeightXgbInit(
-      prio_fun, 
+      prio_fun,
       ocb,
       state,
       model_filename,
@@ -187,7 +193,7 @@ WFCB_p EnigmaWeightXgbParse(
 }
 
 WFCB_p EnigmaWeightXgbInit(
-   ClausePrioFun prio_fun, 
+   ClausePrioFun prio_fun,
    OCB_p ocb,
    ProofState_p proofstate,
    char* model_filename,
@@ -199,16 +205,48 @@ WFCB_p EnigmaWeightXgbInit(
    data->init_fun   = extweight_init;
    data->ocb        = ocb;
    data->proofstate = proofstate;
-   
+
    data->model_filename = model_filename;
    data->features_filename = features_filename;
    data->len_mult = len_mult;
-   
+
    return WFCBAlloc(
-      EnigmaWeightXgbCompute, 
+      EnigmaWeightXgbCompute,
       prio_fun,
-      EnigmaWeightXgbExit, 
+      EnigmaWeightXgbExit,
       data);
+}
+
+// unsigned *processed_state_indices, float *processed_state_data,
+// Collect basic ENIGMA features in a NumTree.
+// Vectorize as well? Yeah, I suppose.
+// Better do it 1/processed clause than 1/weighed clause
+void ProcessedClauseVectorAddClause(ProcessedState_p processed_state, Clause_p clause)
+{
+  // Is it better to just allocate the null enigmap?
+  if (processed_state->enigmap)
+  {
+    if (processed_state->enigmap->version & EFProcessed)
+    {
+      processed_state->features_count += FeaturesClauseExtend(&(processed_state->features), clause, processed_state->enigmap);
+      if (processed_state->features_count >= 32678) { Error("ENIGMA: Too many Processed clause features!", OTHER_ERROR); }
+
+      // Is there a better way to do this? The way done in the prior code exhausts the NumTree
+      NumTree_p features_copy = NumTreeCopy(processed_state->features);
+      int i = 0;
+      int counts = 0;
+      while (features_copy)
+      {
+        NumTree_p cell = NumTreeExtractEntry(&features_copy, NumTreeMinNode(features_copy)->key);
+        processed_state->indices[i] = cell->key;
+        processed_state->data[i] = (float)cell->val1.i_val;
+        counts += cell->val1.i_val;
+        i++;
+        NumTreeCellFree(cell);
+      }
+      fprintf(GlobalOut, "ENIGMA: FEATURE COUNT: %d and total counts: %d\n", processed_state->features_count, counts);
+    }
+  }
 }
 
 double EnigmaWeightXgbCompute(void* data, Clause_p clause)
@@ -217,19 +255,19 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
    static float xgb_data[2048]; // TODO: dynamic alloc
    EnigmaWeightXgbParam_p local;
    double res = 1.0;
-   
+
    local = data;
    local->init_fun(data);
-   
+
    long long start = GetUSecClock();
    int len = 0;
    NumTree_p features = FeaturesClauseCollect(clause, local->enigmap, &len);
    //printf("features count: %d\n", len);
-      
+
    if (len+local->conj_features_count >= 2048) { Error("ENIGMA: Too many clause features!", OTHER_ERROR); }
 
    int i = 0;
-   while (features) 
+   while (features)
    {
       NumTree_p cell = NumTreeExtractEntry(&features,NumTreeMinNode(features)->key);
       xgb_indices[i] = cell->key;
@@ -240,13 +278,13 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
    }
    //printf("|");
 
-   for (int j=0; j<local->conj_features_count; j++) 
+   for (int j=0; j<local->conj_features_count; j++)
    {
       xgb_indices[i+j] = local->conj_features_indices[j];
       xgb_data[i+j] = local->conj_features_data[j];
       //printf("%d:%.0f ", xgb_indices[i+j], xgb_data[i+j]);
    }
-  
+
    if (local->enigmap->version & EFProblem)
    {
       for (int j=0; j<22; j++)
@@ -256,7 +294,7 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
       }
    }
    int total = i+local->conj_features_count+22;
-   
+
    // TODO: fix proof watch & problem features
    // detect proofwatch version
    if (local->enigmap->version & EFProofWatch)
@@ -266,7 +304,7 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
       PStack_p stack;
       int k = i + local->conj_features_count;
       int offset = local->enigmap->feature_count;
-      if (local->enigmap->version & EFConjecture) 
+      if (local->enigmap->version & EFConjecture)
       {
          offset += local->enigmap->feature_count;
       }
@@ -274,14 +312,14 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
       stack = NumTreeTraverseInit(local->proofstate->wlcontrol->watch_progress);
       while((proof = NumTreeTraverseNext(stack)))
       {
-         if (proof->val1.i_val == 0) 
-         { 
-            continue; 
+         if (proof->val1.i_val == 0)
+         {
+            continue;
          }
          NumTree_p len = NumTreeFind(&(local->proofstate->wlcontrol->proof_len), proof->key);
          if (!len)
          {
-            Error("Watchlist: Unknown proof length of proof #%ld.  Should not happen!", 
+            Error("Watchlist: Unknown proof length of proof #%ld.  Should not happen!",
                OTHER_ERROR, proof->key);
          }
          xgb_indices[k] = proof->key + offset;
@@ -295,7 +333,7 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
    }
    //printf("\n");
    //printf("[duration] feature extract: %f.2 ms\n", (double)(GetUSecClock() - start)/1000.0);
-   
+
    //start = clock();
    size_t xgb_nelem = total; //i + local->conj_features_count;
    size_t xgb_num_col = 1 + local->enigmap->feature_count +
@@ -307,10 +345,10 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
    xgb_indptr[0] = 0L;
    xgb_indptr[1] = xgb_nelem;
    DMatrixHandle xgb_matrix = NULL;
-   if (XGDMatrixCreateFromCSREx(xgb_indptr, xgb_indices, xgb_data, 
+   if (XGDMatrixCreateFromCSREx(xgb_indptr, xgb_indices, xgb_data,
           xgb_nindptr, xgb_nelem, xgb_num_col, &xgb_matrix) != 0)
    {
-      Error("ENIGMA: Failed creating XGBoost prediction matrix:\n%s", 
+      Error("ENIGMA: Failed creating XGBoost prediction matrix:\n%s",
          OTHER_ERROR, XGBGetLastError());
    }
    //printf("[duration] xgb matrix: %f.2 ms\n", (double)(clock() - start)/ (CLOCKS_PER_SEC / 1000));
@@ -318,14 +356,14 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
    //start = clock();
    bst_ulong out_len = 0L;
    const float* pred;
-   if (XGBoosterPredict(local->xgboost_model, xgb_matrix, 
+   if (XGBoosterPredict(local->xgboost_model, xgb_matrix,
           0, 0, &out_len, &pred) != 0)
    {
-      Error("ENIGMA: Failed computing XGBoost prediction:\n%s", 
+      Error("ENIGMA: Failed computing XGBoost prediction:\n%s",
          OTHER_ERROR, XGBGetLastError());
    }
    //printf("prediction: len=%ld first=%f\n", out_len, pred[0]);
-   
+
    //res = 1 + ((1.0 - pred[0]) * 10.0);
    if (pred[0] <= 0.5) { res = 10.0; } else { res = 1.0; }
 
@@ -334,7 +372,7 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
    res = predict(local->linear_model, nodes);
    //fprintf(GlobalOut, "+%0.2f ", res);
    */
-   
+
    double clen = ClauseWeight(clause,1,1,1,1,1,false);
    res = (clen * local->len_mult) + res;
 
@@ -343,7 +381,7 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
       ClausePrint(GlobalOut, clause, true);
       fprintf(GlobalOut, "\n");
    }
-   
+
    //printf("[duration] xgb predict: %.3f ms   (clen=%.1f, vlen=%ld)\n", (double)(GetUSecClock() - start)/ 1000.0, clen, xgb_nelem);
 
    return res;
@@ -352,11 +390,10 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
 void EnigmaWeightXgbExit(void* data)
 {
    EnigmaWeightXgbParam_p junk = data;
-   
+
    EnigmaWeightXgbParamFree(junk);
 }
 
 /*---------------------------------------------------------------------*/
 /*                        End of File                                  */
 /*---------------------------------------------------------------------*/
-
