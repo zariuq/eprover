@@ -297,17 +297,19 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
 
    // TODO: fix proof watch & problem features
    // detect proofwatch version
+   // Because XGBoost handles sparse vectors, this can probably just be a fixed offset
+   int wl_offset = 3 * local->enigmap->feature_count;
    if (local->enigmap->version & EFProofWatch)
    {
       //printf("|");
       NumTree_p proof;
       PStack_p stack;
       int k = i + local->conj_features_count;
-      int offset = local->enigmap->feature_count;
-      if (local->enigmap->version & EFConjecture)
-      {
-         offset += local->enigmap->feature_count;
-      }
+      //int wl_offset = 3 * local->enigmap->feature_count;
+      //if (local->enigmap->version & EFConjecture)
+      //{
+      //   offset += local->enigmap->feature_count;
+      //}
 
       stack = NumTreeTraverseInit(local->proofstate->wlcontrol->watch_progress);
       while((proof = NumTreeTraverseNext(stack)))
@@ -322,7 +324,7 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
             Error("Watchlist: Unknown proof length of proof #%ld.  Should not happen!",
                OTHER_ERROR, proof->key);
          }
-         xgb_indices[k] = proof->key + offset;
+         xgb_indices[k] = proof->key + wl_offset;
          xgb_data[k] = ((double)proof->val1.i_val)/len->val1.i_val;
          //printf("%d:%.3f ", xgb_indices[k], xgb_data[k]);
          k++;
@@ -336,10 +338,13 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
 
    //start = clock();
    size_t xgb_nelem = total; //i + local->conj_features_count;
-   size_t xgb_num_col = 1 + local->enigmap->feature_count +
-      (local->enigmap->version & EFConjecture ? local->enigmap->feature_count : 0) +
-      (local->enigmap->version & EFProblem ? 22 : 0) +
-      (local->enigmap->version & EFProofWatch ? local->proofstate->wlcontrol->proofs_count : 0);
+
+   size_t xgb_num_col = local->enigmap->version & EFProofWatch ? 1 + wl_offset + local->proofstate->wlcontrol->proofs_count
+        : 1 + local->enigmap->feature_count +
+        (local->enigmap->version & EFConjecture ? local->enigmap->feature_count : 0) +
+        (local->enigmap->version & EFProblem ? 22 : 0);// +
+        //(local->enigmap->version & EFProofWatch ? local->proofstate->wlcontrol->proofs_count : 0);
+  
    size_t xgb_nindptr = 2;
    static bst_ulong xgb_indptr[2];
    xgb_indptr[0] = 0L;
