@@ -229,16 +229,18 @@ void ProcessedClauseVectorAddClause(ProcessedState_p processed_state, Clause_p c
     if (processed_state->enigmap->version & EFProcessed)
     {
       processed_state->features_count += FeaturesClauseExtend(&(processed_state->features), clause, processed_state->enigmap);
-      if (processed_state->features_count >= 32678) { Error("ENIGMA: Too many Processed clause features!", OTHER_ERROR); }
+      if (processed_state->features_count >= 2048) { Error("ENIGMA: Too many Processed clause features!", OTHER_ERROR); }
 
       // Is there a better way to do this? The way done in the prior code exhausts the NumTree
+      // Basically, convert the NumTree to a vector once here instead of doing it for each generated clause to be weighed
       NumTree_p features_copy = NumTreeCopy(processed_state->features);
       int i = 0;
       int counts = 0;
+      int pv_offset = 2 * processed_state->enigmap->feature_count;
       while (features_copy)
       {
         NumTree_p cell = NumTreeExtractEntry(&features_copy, NumTreeMinNode(features_copy)->key);
-        processed_state->indices[i] = cell->key;
+        processed_state->indices[i] = cell->key + pv_offset;
         processed_state->data[i] = (float)cell->val1.i_val;
         counts += cell->val1.i_val;
         i++;
@@ -284,6 +286,7 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
       xgb_data[i+j] = local->conj_features_data[j];
       //printf("%d:%.0f ", xgb_indices[i+j], xgb_data[i+j]);
    }
+   i += local->conj_features_count;
 
    if (local->enigmap->version & EFProblem)
    {
@@ -292,8 +295,22 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
          xgb_indices[i+local->conj_features_count+j] = (2*local->enigmap->feature_count)+1+j;
          xgb_data   [i+local->conj_features_count+j] = local->enigmap->problem_features[j];
       }
+      i += 22;
    }
-   int total = i+local->conj_features_count+22;
+   // Can't we just let i denote the total count of elements?
+   //int total = i+local->conj_features_count+22;
+
+   // Same as for conjecture fetaures, just copy them over
+   //int pv_offset = 2 * local->enigmap->feature_count;
+   if (local->enigmap->version & EFProcessed)
+   {
+     for (int j=0; j<local->proofstate->processed_state->features_count; j++)
+     {
+       xgb_indices[i+j] = local->proofstate->processed_state->indices[j];
+       xgb_data[i+j] = local->proofstate->processed_state->data[j];
+     }
+     i+= local->proofstate->processed_state->features_count;
+   }
 
    // TODO: fix proof watch & problem features
    // detect proofwatch version
@@ -304,8 +321,9 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
       //printf("|");
       NumTree_p proof;
       PStack_p stack;
-      int k = i + local->conj_features_count;
+      int k = i;// + local->conj_features_count;
       //int wl_offset = 3 * local->enigmap->feature_count;
+      //int offset = local->enigmap->feature_count;
       //if (local->enigmap->version & EFConjecture)
       //{
       //   offset += local->enigmap->feature_count;
@@ -331,20 +349,21 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
          if (k >= 2048) { Error("ENIGMA: Too many proof watch features!", OTHER_ERROR); }
       }
       NumTreeTraverseExit(stack);
-      total = k;
+      i = k;
    }
    //printf("\n");
    //printf("[duration] feature extract: %f.2 ms\n", (double)(GetUSecClock() - start)/1000.0);
 
    //start = clock();
-   size_t xgb_nelem = total; //i + local->conj_features_count;
+   size_t xgb_nelem = i; //total; //i + local->conj_features_count;
 
    size_t xgb_num_col = local->enigmap->version & EFProofWatch ? 1 + wl_offset + local->proofstate->wlcontrol->proofs_count
         : 1 + local->enigmap->feature_count +
         (local->enigmap->version & EFConjecture ? local->enigmap->feature_count : 0) +
-        (local->enigmap->version & EFProblem ? 22 : 0);// +
+        (local->enigmap->version & EFProblem ? 22 : 0) +
+        (local->enigmap->version & EFProcessed ? local->enigmap->feature_count : 0);// +
         //(local->enigmap->version & EFProofWatch ? local->proofstate->wlcontrol->proofs_count : 0);
-  
+
    size_t xgb_nindptr = 2;
    static bst_ulong xgb_indptr[2];
    xgb_indptr[0] = 0L;
