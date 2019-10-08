@@ -1290,7 +1290,7 @@ Clause_p ProcessClause(ProofState_p state, ProofControl_p control,
    assert(!ClauseQueryProp(clause, CPIsIRVictim));
 
    WatchlistClauseProcessed(state->wlcontrol, clause);
-   ProcessedClauseStateRecord(state->processed_state, clause);
+   ProcessedClauseStateRecord(state->processed_state, clause, state->processed_count);
    if(ProofObjectRecordsGCSelection)
    {
 	  arch_copy = ClauseArchive(state->archive, clause);
@@ -1346,7 +1346,7 @@ Clause_p ProcessClause(ProofState_p state, ProofControl_p control,
                       control->heuristic_parms.watchlist_is_static,
                       state->signature);
    }
-   ProcessedClauseVectorAddClause(state->processed_state, pclause->clause);
+   ProcessedClauseVectorAddClause(state->processed_state, pclause->clause, state->processed_count);
 
    /* Now on to backward simplification. */
    clausedate = ClauseSetListGetMaxDate(state->demods, FullRewrite);

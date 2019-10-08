@@ -38,6 +38,8 @@ typedef struct enigmapcell *Enigmap_p;
 typedef struct processedstatecell
 {
   NumTree_p features;
+  NumTree_p varstat;
+  int varoffset;
   unsigned indices[2048]; // TODO: dynamic alloc
   float data[2048]; // TODO: dynamic alloc
   int features_count;
@@ -56,7 +58,7 @@ typedef struct processedstatecell
 ProcessedState_p ProcessedStateAlloc(void);
 void             ProcessedStateFree(ProcessedState_p junk);
 
-void ProcessedClauseStateRecord(ProcessedState_p processed_state, Clause_p clause);
+void ProcessedClauseStateRecord(ProcessedState_p processed_state, Clause_p clause, unsigned long processed_count);
 void ProcessedClauseStatePrintProgress(ProcessedState_p processed_state, FILE* out, Clause_p clause);
 
 #endif

@@ -51,7 +51,9 @@ ProcessedState_p ProcessedStateAlloc(void)
 
   res->enigmap = NULL;
   res->features = NULL;
+  res->varstat = NULL;
   res->features_count = 0;
+  res->varoffset = 0;
 
   return res;
 }
@@ -64,7 +66,7 @@ void ProcessedStateFree(ProcessedState_p junk)
 }
 
 // Record the processed clause proof state at given clause selection (before it's added ot the state)
-void ProcessedClauseStateRecord(ProcessedState_p processed_state, Clause_p clause)
+void ProcessedClauseStateRecord(ProcessedState_p processed_state, Clause_p clause, unsigned long processed_count)
 {
   if(ProofObjectRecordsGCSelection)
   {
@@ -73,6 +75,7 @@ void ProcessedClauseStateRecord(ProcessedState_p processed_state, Clause_p claus
         if (!clause->processed_proof_state)
         {  // keep previous copy, if any
            clause->processed_proof_state = NumTreeCopy(processed_state->features);
+           clause->processed_count = processed_count;
         }
      }
   }
@@ -83,10 +86,11 @@ void ProcessedClauseStateRecord(ProcessedState_p processed_state, Clause_p claus
 void ProcessedClauseStatePrintProgress(ProcessedState_p processed_state, FILE* out, Clause_p clause)
 {
   NumTree_p processed_proof_state = NumTreeCopy(clause->processed_proof_state);
+  unsigned long processed_count = clause->processed_count;
   while (processed_proof_state)
   {
     NumTree_p cell = NumTreeExtractEntry(&processed_proof_state, NumTreeMinNode(processed_proof_state)->key);
-    fprintf(out, "%ld:%0.1f,", cell->key, (float)cell->val1.i_val);
+    fprintf(out, "%ld:%0.3f,", cell->key, (float)cell->val1.i_val / processed_count);
     NumTreeCellFree(cell);
   }
 }

@@ -229,7 +229,7 @@ WFCB_p EnigmaWeightXgbInit(
 // Collect basic ENIGMA features in a NumTree.
 // Vectorize as well? Yeah, I suppose.
 // Better do it 1/processed clause than 1/weighed clause
-void ProcessedClauseVectorAddClause(ProcessedState_p processed_state, Clause_p clause)
+void ProcessedClauseVectorAddClause(ProcessedState_p processed_state, Clause_p clause, unsigned long processed_count)
 {
   // Is it better to just allocate the null enigmap?
   if (processed_state->enigmap)
@@ -237,24 +237,28 @@ void ProcessedClauseVectorAddClause(ProcessedState_p processed_state, Clause_p c
     if (processed_state->enigmap->version & EFProcessed)
     {
       processed_state->features_count += FeaturesClauseExtend(&(processed_state->features), clause, processed_state->enigmap);
+      FeaturesAddClauseStatic(&(processed_state->features), clause, processed_state->enigmap, &(processed_state->features_count)
+                             , &(processed_state->varstat), &(processed_state->varoffset));
       if (processed_state->features_count >= 2048) { Error("ENIGMA: Too many Processed clause features!", OTHER_ERROR); }
 
       // Is there a better way to do this? The way done in the prior code exhausts the NumTree
       // Basically, convert the NumTree to a vector once here instead of doing it for each generated clause to be weighed
       NumTree_p features_copy = NumTreeCopy(processed_state->features);
+      FeaturesAddVariables(&(processed_state->features), &(processed_state->varstat), processed_state->enigmap, &(processed_state->features_count));
       int i = 0;
-      int counts = 0;
+      //int counts = 0;
       int pv_offset = 2 * processed_state->enigmap->feature_count;
       while (features_copy)
       {
         NumTree_p cell = NumTreeExtractEntry(&features_copy, NumTreeMinNode(features_copy)->key);
         processed_state->indices[i] = cell->key + pv_offset;
-        processed_state->data[i] = (float)cell->val1.i_val;
-        counts += cell->val1.i_val;
+        processed_state->data[i] = (float)cell->val1.i_val / processed_count;
+        //counts += cell->val1.i_val;
         i++;
         NumTreeCellFree(cell);
       }
       //fprintf(GlobalOut, "ENIGMA: FEATURE COUNT: %d and total counts: %d\n", processed_state->features_count, counts);
+      //fprintf(GlobalOut, "ENIGMA: FEATURE Value: %f\n", processed_state->data[i-1]);
     }
   }
 }

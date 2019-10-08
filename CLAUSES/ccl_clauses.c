@@ -183,6 +183,7 @@ Clause_p clause_copy_meta(Clause_p clause)
    handle->watch_relevance = clause->watch_relevance;
    handle->watch_proof_state = NumTreeCopy(clause->watch_proof_state);
    handle->processed_proof_state = NumTreeCopy(clause->processed_proof_state);
+   handle->processed_count = clause->processed_count;
 
    return handle;
 }
@@ -296,6 +297,7 @@ Clause_p EmptyClauseAlloc(void)
    handle->watch_relevance = 0.0;
    handle->watch_proof_state = NULL;
    handle->processed_proof_state = NULL;
+   handle->processed_count = 0;
 
    return handle;
 }

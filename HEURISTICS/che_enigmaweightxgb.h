@@ -81,7 +81,7 @@ WFCB_p EnigmaWeightXgbInit(
    char* features_filename,
    double len_mult);
 
-void ProcessedClauseVectorAddClause(ProcessedState_p processed_state, Clause_p clause);
+void ProcessedClauseVectorAddClause(ProcessedState_p processed_state, Clause_p clause, unsigned long processed_count);
 double EnigmaWeightXgbCompute(void* data, Clause_p clause);
 
 void EnigmaWeightXgbExit(void* data);
