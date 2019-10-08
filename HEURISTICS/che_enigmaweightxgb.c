@@ -59,8 +59,16 @@ static void extweight_init(EnigmaWeightXgbParam_p data)
    // Pass the ENIGMA map to the Processed State data structure
    if (data->enigmap->version & EFProcessed)
    {
-     data->proofstate->processed_state->enigmap = data->enigmap;
+     if (!data->proofstate->processed_state->enigmap)
+     {
+       data->proofstate->processed_state->enigmap = data->enigmap;
+     }
+     //else
+     //{
+    //   fprintf(GlobalOut, "THIS IS A TEST 5: %ld\n", data->enigmap->version);
+     //}
    }
+
 
    // problem features:
    SpecFeature_p spec = SpecFeatureCellAlloc();
@@ -179,7 +187,7 @@ WFCB_p EnigmaWeightXgbParse(
    DStrFree(f_featmap);
 
    //fprintf(GlobalOut, "ENIGMA: MODEL: %s\n", model_filename);
-   //fprintf(GlobalOut, "ENIGMA: FEATURES: %s\n", features_filename);
+   fprintf(GlobalOut, "ENIGMA: FEATURES: %s\n", features_filename);
 
    free(d_prefix);
 
@@ -246,7 +254,7 @@ void ProcessedClauseVectorAddClause(ProcessedState_p processed_state, Clause_p c
         i++;
         NumTreeCellFree(cell);
       }
-      fprintf(GlobalOut, "ENIGMA: FEATURE COUNT: %d and total counts: %d\n", processed_state->features_count, counts);
+      //fprintf(GlobalOut, "ENIGMA: FEATURE COUNT: %d and total counts: %d\n", processed_state->features_count, counts);
     }
   }
 }
@@ -357,7 +365,9 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
    //start = clock();
    size_t xgb_nelem = i; //total; //i + local->conj_features_count;
 
-   size_t xgb_num_col = local->enigmap->version & EFProofWatch ? 1 + wl_offset + local->proofstate->wlcontrol->proofs_count
+   size_t xgb_num_col = local->enigmap->version & EFProofWatch ? 1 +
+        wl_offset +
+        local->proofstate->wlcontrol->proofs_count
         : 1 + local->enigmap->feature_count +
         (local->enigmap->version & EFConjecture ? local->enigmap->feature_count : 0) +
         (local->enigmap->version & EFProblem ? 22 : 0) +

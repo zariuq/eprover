@@ -55,6 +55,7 @@ char              *outname = NULL;
 char              *embname = NULL;
 char              *watchlist_filename = NULL;
 char              *watchlist_dirname = NULL;
+char              *enigmap_filename = NULL;
 HeuristicParms_p  h_parms;
 FVIndexParms_p    fvi_parms;
 bool              print_sat = false,
@@ -526,18 +527,26 @@ int main(int argc, char* argv[])
                      "NoIndex",
                      "NoIndex");
    }
+   if(enigmap_filename)
+   {
+      proofstate->processed_state->enigmap =  EnigmapLoad(enigmap_filename, proofcontrol->ocb->sig);
+      //fprintf(GlobalOut, "THIS IS A TEST 3: %ld\n", proofstate->processed_state->enigmap->version);
+   }
 
    //printf("Alive (1)!\n");
 
    ProofStateInit(proofstate, proofcontrol);
    //printf("Alive (2)!\n");
 
-   if (proofstate->processed_state->enigmap)
+   /*
+if (proofstate->processed_state->enigmap)
    {
      fprintf(GlobalOut, "THIS IS A TEST 4: %d\n", proofstate->processed_state->features_count);
      fprintf(GlobalOut, "THIS IS A TEST 4: %ld\n", proofstate->processed_state->enigmap->feature_count);
      fprintf(GlobalOut, "THIS IS A TEST 4: %ld\n", proofstate->processed_count); // Meaning no clauses are processed yet, so we're safe
-   }
+   }*/
+
+
 
    //ProofStateInitWatchlist(proofstate, proofcontrol->ocb);
 
@@ -934,6 +943,9 @@ CLState_p process_options(int argc, char* argv[])
             BuildProofObject = MAX(1, BuildProofObject);
             ProofObjectRecordsGCSelection = true;
 			      ProofObjectRecordsProcessedState = true;
+      case OPT_ENIGMA_MAP_FILE:
+            enigmap_filename = arg;
+            break;
       case OPT_PCL_COMPRESSED:
             pcl_full_terms = false;
             break;

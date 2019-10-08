@@ -57,6 +57,7 @@ typedef enum
    OPT_TRAINING,
    OPT_RECORD_PROOF_VECTOR,
    OPT_RECORD_PROCESSED_VECTOR,
+   OPT_ENIGMA_MAP_FILE,
    OPT_PCL_COMPRESSED,
    OPT_PCL_COMPACT,
    OPT_PCL_SHELL_LEVEL,
@@ -300,6 +301,12 @@ OptCell opts[] =
     "Record a proof-state vector created by summing processed clause "
     "feature vectors. Presently to be used only with ENIGMA's XGB learner "
     "Will be printed with training examples (if the option is set)."},
+
+   {OPT_ENIGMA_MAP_FILE,
+     '\0', "enigma-map",
+     ReqArg, NULL,
+    "Load ENIGMA feature map from a file. Presently only used with the "
+    "processed state proof vector feature."},
 
    {OPT_PCL_COMPRESSED,
     '\0', "pcl-terms-compressed",
