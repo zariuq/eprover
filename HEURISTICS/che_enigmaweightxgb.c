@@ -252,7 +252,7 @@ void ProcessedClauseVectorAddClause(ProcessedState_p processed_state, Clause_p c
       {
         NumTree_p cell = NumTreeExtractEntry(&features_copy, NumTreeMinNode(features_copy)->key);
         processed_state->indices[i] = cell->key + pv_offset;
-        processed_state->data[i] = (float)cell->val1.i_val / processed_count;
+        processed_state->data[i] = (float)cell->val1.i_val;// / processed_count;
         //counts += cell->val1.i_val;
         i++;
         NumTreeCellFree(cell);

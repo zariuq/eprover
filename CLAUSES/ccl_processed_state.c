@@ -90,7 +90,7 @@ void ProcessedClauseStatePrintProgress(ProcessedState_p processed_state, FILE* o
   while (processed_proof_state)
   {
     NumTree_p cell = NumTreeExtractEntry(&processed_proof_state, NumTreeMinNode(processed_proof_state)->key);
-    fprintf(out, "%ld:%0.3f,", cell->key, (float)cell->val1.i_val / processed_count);
+    fprintf(out, "%ld:%0.3f,", cell->key, (float)cell->val1.i_val);// / processed_count);
     NumTreeCellFree(cell);
   }
 }
