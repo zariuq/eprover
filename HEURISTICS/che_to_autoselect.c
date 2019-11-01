@@ -967,6 +967,9 @@ OCB_p  TOCreateOrdering(ProofState_p state, OrderParms_p params,
          assert(false && "RPO not yet implemented!");
          handle = NULL;
          break;
+   case IDEN:
+         handle = OCBAlloc(IDEN, prec_by_weight, state->signature);
+         break;
    default:
          printf("What? %d\n",params->ordertype);
          assert(false&&"Incompletely specified OrderParamsCell");

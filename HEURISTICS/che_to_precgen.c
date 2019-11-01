@@ -149,7 +149,7 @@ static void compute_precedence_from_array(OCB_p ocb, FCodeFeatureArray_p
 //
 // Function: generate_unary_first_precedence()
 //
-//   Generate a precence in which symbols with higher arity are
+//   Generate a precedence in which symbols with higher arity are
 //   larger, but unary symbols are larger still. Order of occurence in
 //   the signature is used as a tie-breaker.
 //

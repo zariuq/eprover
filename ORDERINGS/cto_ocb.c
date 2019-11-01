@@ -51,6 +51,7 @@ char* TONames[]=
    "LPO4",
    "LPO4Copy",
    "RPO",
+   "IDEN",
    "Empty"
 };
 
@@ -205,6 +206,7 @@ OCB_p OCBAlloc(TermOrdering type, bool prec_by_weight, Sig_p sig)
    case RPO:
     alloc_precedence(handle, prec_by_weight);
     break;
+   case IDEN:
    case EMPTY:
          break;
    default:
@@ -268,7 +270,8 @@ void OCBFree(OCB_p junk)
              junk->type == LPOCopy ||
              junk->type == LPO4 ||
              junk->type == LPO4Copy ||
-             junk->type == RPO);
+             junk->type == RPO ||
+             junk->type == IDEN);
       SizeFree(junk->precedence, sizeof(CompareResult)
           * junk->sig_size * junk->sig_size);
       junk->precedence = NULL;
@@ -282,7 +285,8 @@ void OCBFree(OCB_p junk)
              junk->type == LPOCopy ||
              junk->type == LPO4 ||
              junk->type == LPO4Copy ||
-             junk->type == RPO);
+             junk->type == RPO ||
+             junk->type == IDEN);
       SizeFree(junk->prec_weights, sizeof(long)*(junk->sig_size+1));
       junk->prec_weights = NULL;
    }
@@ -604,5 +608,3 @@ CompareResult OCBFunCompareMatrix(OCB_p ocb, FunCode f1, FunCode f2)
 /*---------------------------------------------------------------------*/
 /*                        End of File                                  */
 /*---------------------------------------------------------------------*/
-
-

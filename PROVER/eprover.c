@@ -1368,6 +1368,10 @@ CLState_p process_options(int argc, char* argv[])
             {
                h_parms->ordertype = KBO6;
             }
+            else if(strcmp(arg, "IDEN")==0)
+            {
+               h_parms->ordertype = IDEN;
+            }
             else
             {
                Error("Option -t (--term-ordering) requires Auto, "
