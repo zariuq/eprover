@@ -170,7 +170,6 @@ OCB_p OCBAlloc(TermOrdering type, bool prec_by_weight, Sig_p sig)
    int   i,j;
 
    handle = OCBCellAlloc();
-
    handle->type  = type;
    handle->sig   = sig;
    handle->min_constant  = 0;
@@ -207,6 +206,7 @@ OCB_p OCBAlloc(TermOrdering type, bool prec_by_weight, Sig_p sig)
     alloc_precedence(handle, prec_by_weight);
     break;
    case IDEN:
+    alloc_precedence(handle, prec_by_weight);
    case EMPTY:
          break;
    default:
