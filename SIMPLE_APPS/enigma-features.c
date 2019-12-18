@@ -5,12 +5,12 @@ File  : fofshared.c
 Author: Josef Urban
 
 Contents
- 
+
   Read an initial set of fof terms and print the (shared) codes of all subterms
   present in them. If file names given (or file and stdin), read both
   in, but only print the codes for the second one (this is intended to
   allow consistent codes over several runs).
- 
+
 
   Copyright 1998, 1999 by the author.
   This code is released under the GNU General Public Licence.
@@ -56,12 +56,12 @@ typedef enum
 
 OptCell opts[] =
 {
-    {OPT_HELP, 
-        'h', "help", 
+    {OPT_HELP,
+        'h', "help",
         NoArg, NULL,
         "Print a short description of program usage and options."},
-    {OPT_VERBOSE, 
-        'v', "verbose", 
+    {OPT_VERBOSE,
+        'v', "verbose",
         OptArg, "1",
         "Verbose comments on the progress of the program."},
     {OPT_OUTPUT,
@@ -128,10 +128,10 @@ static NumTree_p get_conjecture_features(char* filename, TB_p bank, Enigmap_p en
    while (TestInpId(in, "cnf"))
    {
       Clause_p clause = ClauseParse(in, bank);
-      //if (len >= 2048) { Error("ENIGMA: Too many conjecture features!", OTHER_ERROR); } 
+      //if (len >= 2048) { Error("ENIGMA: Too many conjecture features!", OTHER_ERROR); }
       ClauseSetInsert(axioms, clause);
    }
-   
+
    if (enigmap->version & EFSine)
    {
       enigmap->symb_rank = SinESymbolRanking(axioms, bank);
@@ -169,7 +169,7 @@ static NumTree_p get_conjecture_features(char* filename, TB_p bank, Enigmap_p en
    return features;
 }
 
-static void dump_features_hashes(FILE* out, char* filename, TB_p bank, char* prefix, NumTree_p conj_features, 
+static void dump_features_hashes(FILE* out, char* filename, TB_p bank, char* prefix, NumTree_p conj_features,
       Enigmap_p enigmap)
 {
    PStack_p stack;
@@ -181,8 +181,9 @@ static void dump_features_hashes(FILE* out, char* filename, TB_p bank, char* pre
    {
       Clause_p clause = ClauseParse(in, bank);
       fprintf(out, prefix);
-   
+
       int len = 0;
+      long offset = 0;
       NumTree_p features = FeaturesClauseCollect(clause, enigmap, &len);
       stack = NumTreeTraverseInit(features);
       while ((node = NumTreeTraverseNext(stack)))
@@ -192,6 +193,7 @@ static void dump_features_hashes(FILE* out, char* filename, TB_p bank, char* pre
       NumTreeTraverseExit(stack);
       NumTreeFree(features);
 
+
       stack = NumTreeTraverseInit(conj_features);
       while ((node = NumTreeTraverseNext(stack)))
       {
@@ -199,12 +201,37 @@ static void dump_features_hashes(FILE* out, char* filename, TB_p bank, char* pre
       }
       NumTreeTraverseExit(stack);
 
+      if (enigmap->version & EFResponsibleParents) // Read in the parents
+      { // Parent 1
+        clause = ClauseParse(in, bank);
+        len = 0;
+        features = FeaturesClauseCollect(clause, enigmap, &len);
+        stack = NumTreeTraverseInit(features);
+        while ((node = NumTreeTraverseNext(stack)))
+        {
+           fprintf(out, " %ld:%ld", node->key+2*enigmap->feature_count, node->val1.i_val);
+        }
+        NumTreeTraverseExit(stack);
+        NumTreeFree(features);
+        // Parent 2
+        clause = ClauseParse(in, bank);
+        len = 0;
+        features = FeaturesClauseCollect(clause, enigmap, &len);
+        stack = NumTreeTraverseInit(features);
+        while ((node = NumTreeTraverseNext(stack)))
+        {
+           fprintf(out, " %ld:%ld", node->key+3*enigmap->feature_count, node->val1.i_val);
+        }
+        NumTreeTraverseExit(stack);
+        NumTreeFree(features);
+        offset = 2 * enigmap->feature_count;
+      }
       if (enigmap->version & EFProblem)
       {
          long start = enigmap->feature_count+1;
-         if (enigmap->version & EFConjecture) 
+         if (enigmap->version & EFConjecture)
          {
-            start += enigmap->feature_count;
+            start += enigmap->feature_count + offset;
          }
          for (int i=0; i<22; i++)
          {
@@ -218,14 +245,14 @@ static void dump_features_hashes(FILE* out, char* filename, TB_p bank, char* pre
    CheckInpTok(in, NoToken);
    DestroyScanner(in);
 }
-      
+
 static void dump_enigmap_stats(char* fname, Enigmap_p enigmap)
 {
    PStack_p stack;
    StrTree_p node;
 
    FILE* out = fopen(fname, "w");
-   
+
    stack = StrTreeTraverseInit(enigmap->stats);
    while((node = StrTreeTraverseNext(stack)))
    {
@@ -246,7 +273,7 @@ int main(int argc, char* argv[])
    if (outname) { OpenGlobalOut(outname); }
    ProofState_p state = ProofStateAlloc(free_symb_prop);
    TB_p bank = state->terms;
-  
+
    DStr_p dstr = NULL;
    NumTree_p conj_features = NULL;
 
@@ -272,7 +299,7 @@ int main(int argc, char* argv[])
       dump_features_hashes(GlobalOut, args->argv[1], bank, "+0", conj_features, enigmap);
    }
 
-   if (enigmapname) 
+   if (enigmapname)
    {
       dump_enigmap_stats(enigmapname, enigmap);
    }
@@ -298,7 +325,7 @@ int main(int argc, char* argv[])
 //   a CLState object containing the remaining arguments.
 //
 // Global Variables: opts, Verbose, TermPrologArgs,
-//                   TBPrintInternalInfo 
+//                   TBPrintInternalInfo
 //
 // Side Effects    : Sets variables, may terminate with program
 //                   description if option -h or --help was present
@@ -310,9 +337,9 @@ CLState_p process_options(int argc, char* argv[])
    Opt_p handle;
    CLState_p state;
    char*  arg;
-   
+
    state = CLStateAlloc(argc,argv);
-   
+
    while((handle = CLStateGetOpt(state, &arg, opts)))
    {
       switch(handle->option_code)
@@ -320,7 +347,7 @@ CLState_p process_options(int argc, char* argv[])
       case OPT_VERBOSE:
              Verbose = CLStateGetIntArg(handle, arg);
              break;
-      case OPT_HELP: 
+      case OPT_HELP:
              print_help(stdout);
              exit(NO_ERROR);
       case OPT_OUTPUT:
@@ -342,25 +369,25 @@ CLState_p process_options(int argc, char* argv[])
           break;
       }
    }
-   
+
    if (state->argc < 1 || state->argc > 3)
    {
       print_help(stdout);
       exit(NO_ERROR);
    }
-   
+
    if (FeatureHashing && !(Enigma & EFHashing))
    {
-      Error("ENIGMA: You specified a hash base but forgot 'h' in features string (--enigma-features).", USAGE_ERROR); 
+      Error("ENIGMA: You specified a hash base but forgot 'h' in features string (--enigma-features).", USAGE_ERROR);
    }
    //if (!FeatureHashing && (Enigma & EFHashing))
    //{
-   //   Error("ENIGMA: You turned on hashing but haven't specified a hash base (--feature-hashing).", USAGE_ERROR); 
+   //   Error("ENIGMA: You turned on hashing but haven't specified a hash base (--feature-hashing).", USAGE_ERROR);
    //}
 
    return state;
 }
- 
+
 void print_help(FILE* out)
 {
    fprintf(out, "\n\
@@ -379,5 +406,3 @@ Output line format is 'sign|clause|conjecture'.\n\
 /*---------------------------------------------------------------------*/
 /*                        End of File                                  */
 /*---------------------------------------------------------------------*/
-
-

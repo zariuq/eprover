@@ -50,6 +50,7 @@ typedef enum
    EFProblem = 512,
    EFSine = 1024,
    EFProcessed = 2048,
+   EFResponsibleParents = 4096,
    EFAll = 0xFFFF
 }EnigmaFeature;
 

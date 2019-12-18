@@ -247,7 +247,7 @@ void ProcessedClauseVectorAddClause(ProcessedState_p processed_state, Clause_p c
       FeaturesAddVariables(&(processed_state->features), &(processed_state->varstat), processed_state->enigmap, &(processed_state->features_count));
       int i = 0;
       //int counts = 0;
-      int pv_offset = 2 * processed_state->enigmap->feature_count;
+      int pv_offset = 4 * processed_state->enigmap->feature_count;
       while (features_copy)
       {
         NumTree_p cell = NumTreeExtractEntry(&features_copy, NumTreeMinNode(features_copy)->key);
@@ -327,7 +327,7 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
    // TODO: fix proof watch & problem features
    // detect proofwatch version
    // Because XGBoost handles sparse vectors, this can probably just be a fixed offset
-   int wl_offset = 3 * local->enigmap->feature_count;
+   int wl_offset = 5 * local->enigmap->feature_count;
    if (local->enigmap->version & EFProofWatch)
    {
       //printf("|");

@@ -532,9 +532,10 @@ EnigmaFeatures ParseEnigmaFeaturesSpec(char *spec)
          case 'P': enigma_features |= EFProblem; break;
          case 'I': enigma_features |= EFSine; break;
          case 'p': enigma_features |= EFProcessed; break;
+         case 'R': enigma_features |= EFResponsibleParents; break;
          case '"': break;
          default:
-                   Error("Invalid Enigma features specifier '%c'. Valid characters are 'VHSLCWXAP'.",
+                   Error("Invalid Enigma features specifier '%c'. Valid characters are 'VHSLCWXAPIpR'.",
                          USAGE_ERROR, *spec);
                    break;
       }
