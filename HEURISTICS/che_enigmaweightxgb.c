@@ -278,6 +278,10 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
    NumTree_p features = FeaturesClauseCollect(clause, local->enigmap, &len);
    //printf("features count: %d\n", len);
 
+   // Should I put these behind the if-statement?
+   DerivationCodes op;
+   Clause_p parent;
+
    if (len+local->conj_features_count >= 2048) { Error("ENIGMA: Too many clause features!", OTHER_ERROR); }
 
    int i = 0;
@@ -300,12 +304,79 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
    }
    i += local->conj_features_count;
 
+   // Get the parents from derivation and add features to xgb feature vector
+   if (local->enigmap->version & EFResponsibleParents)
+   {
+      NumTree_p features2;
+      int len2 = 0;
+      if (!clause->derivation)
+      {
+         if (ClauseQueryProp(clause, CPInitial))
+         {
+            features = FeaturesClauseCollect(clause, local->enigmap, &len);
+            len2 = len;
+            features2 = NumTreeCopy(features);
+         }
+         else {Error("Clause has no derivation.  Are you running with -p option?", USAGE_ERROR);}
+      }
+      else
+      {
+      //sp = PStackGetSP(clause->derivation);
+      //if (sp > 0)
+      //{
+        op = PStackElementInt(clause->derivation, 0);
+        if(DCOpHasCnfArg1(op))
+        {
+           parent = PStackElementP(clause->derivation, 1);
+           features = FeaturesClauseCollect(parent, local->enigmap, &len);
+        }
+        else
+        {
+          features = FeaturesClauseCollect(clause, local->enigmap, &len);
+        }
+        if(DCOpHasCnfArg2(op))
+        {
+           parent = PStackElementP(clause->derivation, 2);
+           features2 = FeaturesClauseCollect(parent, local->enigmap, &len2);
+        }
+        else
+        {
+          features2 = FeaturesClauseCollect(clause, local->enigmap, &len2);
+        }
+      }
+      //else
+      //{
+      //  fprintf(GlobalOut, " #sp == 0 ");
+      //}
+      if (i + len + len2 >= 2048) { Error("ENIGMA: Too many clause features!", OTHER_ERROR); }
+      int offset = 2 * local->enigmap->feature_count;
+      while (features)
+      {
+         NumTree_p cell = NumTreeExtractEntry(&features,NumTreeMinNode(features)->key);
+         xgb_indices[i] = cell->key + offset;
+         xgb_data[i] = (float)cell->val1.i_val;
+         i++;
+         NumTreeCellFree(cell);
+      }
+      offset = 3 * local->enigmap->feature_count;
+      while (features2)
+      {
+         NumTree_p cell = NumTreeExtractEntry(&features2,NumTreeMinNode(features2)->key);
+         xgb_indices[i] = cell->key + offset;
+         xgb_data[i] = (float)cell->val1.i_val;
+         i++;
+         NumTreeCellFree(cell);
+      }
+   }
+   printf("inds %d", i);
+
+
    if (local->enigmap->version & EFProblem)
    {
       for (int j=0; j<22; j++)
       {
-         xgb_indices[i+local->conj_features_count+j] = (2*local->enigmap->feature_count)+1+j;
-         xgb_data   [i+local->conj_features_count+j] = local->enigmap->problem_features[j];
+         xgb_indices[i+j] = (4*local->enigmap->feature_count)+1+j;
+         xgb_data   [i+j] = local->enigmap->problem_features[j];
       }
       i += 22;
    }
@@ -375,7 +446,8 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
         : 1 + local->enigmap->feature_count +
         (local->enigmap->version & EFConjecture ? local->enigmap->feature_count : 0) +
         (local->enigmap->version & EFProblem ? 22 : 0) +
-        (local->enigmap->version & EFProcessed ? local->enigmap->feature_count : 0);// +
+        (local->enigmap->version & EFProcessed ? local->enigmap->feature_count : 0) +
+        (local->enigmap->version & EFResponsibleParents ? 2* local->enigmap->feature_count : 0);
         //(local->enigmap->version & EFProofWatch ? local->proofstate->wlcontrol->proofs_count : 0);
 
    size_t xgb_nindptr = 2;
