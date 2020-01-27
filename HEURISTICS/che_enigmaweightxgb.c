@@ -368,7 +368,7 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
          NumTreeCellFree(cell);
       }
    }
-   printf("inds %d", i);
+   //printf("inds %d", i);
 
 
    if (local->enigmap->version & EFProblem)
@@ -447,7 +447,7 @@ double EnigmaWeightXgbCompute(void* data, Clause_p clause)
         (local->enigmap->version & EFConjecture ? local->enigmap->feature_count : 0) +
         (local->enigmap->version & EFProblem ? 22 : 0) +
         (local->enigmap->version & EFProcessed ? local->enigmap->feature_count : 0) +
-        (local->enigmap->version & EFResponsibleParents ? 2* local->enigmap->feature_count : 0);
+        (local->enigmap->version & EFResponsibleParents ? 2 * local->enigmap->feature_count : 0);
         //(local->enigmap->version & EFProofWatch ? local->proofstate->wlcontrol->proofs_count : 0);
 
    size_t xgb_nindptr = 2;
