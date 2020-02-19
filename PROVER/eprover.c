@@ -943,6 +943,10 @@ CLState_p process_options(int argc, char* argv[])
             BuildProofObject = MAX(1, BuildProofObject);
             ProofObjectRecordsGCSelection = true;
 			      ProofObjectRecordsProcessedState = true;
+      case OPT_RECORD_PARENT_CLAUSES:
+            BuildProofObject = MAX(1, BuildProofObject);
+            ProofObjectRecordsGCSelection = true;
+            ProofObjectRecordsParentClauses = true;
       case OPT_ENIGMA_MAP_FILE:
             enigmap_filename = arg;
             break;

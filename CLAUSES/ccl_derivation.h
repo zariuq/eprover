@@ -181,6 +181,7 @@ extern ProofObjectType BuildProofObject;
 extern bool        ProofObjectRecordsGCSelection;
 extern bool			   ProofObjectRecordsProofVector;
 extern bool        ProofObjectRecordsProcessedState;
+extern bool        ProofObjectRecordsParentClauses;
 
 #define DCOpHasCnfArg1(op)   ((op)&Arg1Cnf)
 #define DCOpHasFofArg1(op)   ((op)&Arg1Fof)

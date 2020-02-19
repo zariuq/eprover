@@ -475,7 +475,7 @@ void PStackClausePrint(FILE* out, PStack_p stack, char* extra, WatchlistControl_
       clause = PStackElementP(stack, i);
       ClausePrint(out, clause, true);
 
-      if(true) // TODO: insert a proper option
+      if(ProofObjectRecordsParentClauses)
       {
         sp = PStackGetSP(clause->derivation);
         j = 0;

@@ -57,6 +57,7 @@ typedef enum
    OPT_TRAINING,
    OPT_RECORD_PROOF_VECTOR,
    OPT_RECORD_PROCESSED_VECTOR,
+   OPT_RECORD_PARENT_CLAUSES,
    OPT_ENIGMA_MAP_FILE,
    OPT_PCL_COMPRESSED,
    OPT_PCL_COMPACT,
@@ -300,6 +301,13 @@ OptCell opts[] =
     NoArg, NULL,
     "Record a proof-state vector created by summing processed clause "
     "feature vectors. Presently to be used only with ENIGMA's XGB learner "
+    "Will be printed with training examples (if the option is set)."},
+
+    {OPT_RECORD_PARENT_CLAUSES,
+  '\0', "record-parent-clauses",
+    NoArg, NULL,
+    "Record and print two parent clauses (if they exist) for each selected "
+    "given clause, i.e. training example. "
     "Will be printed with training examples (if the option is set)."},
 
    {OPT_ENIGMA_MAP_FILE,

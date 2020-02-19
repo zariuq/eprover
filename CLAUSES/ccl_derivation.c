@@ -33,6 +33,7 @@ ProofObjectType BuildProofObject = 0;
 bool      ProofObjectRecordsGCSelection    = false;
 bool			ProofObjectRecordsProofVector    = false;
 bool      ProofObjectRecordsProcessedState = false;
+bool      ProofObjectRecordsParentClauses  = false;
 
 char *opids[] =
 {
