@@ -939,10 +939,12 @@ CLState_p process_options(int argc, char* argv[])
             BuildProofObject = MAX(1, BuildProofObject);
             ProofObjectRecordsGCSelection = true;
 			      ProofObjectRecordsProofVector = true;
+            break;
 	    case OPT_RECORD_PROCESSED_VECTOR:
             BuildProofObject = MAX(1, BuildProofObject);
             ProofObjectRecordsGCSelection = true;
 			      ProofObjectRecordsProcessedState = true;
+            break;
       case OPT_RECORD_PARENT_CLAUSES:
             BuildProofObject = MAX(1, BuildProofObject);
             ProofObjectRecordsGCSelection = true;
