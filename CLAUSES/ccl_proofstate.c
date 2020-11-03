@@ -166,6 +166,11 @@ ProofState_p ProofStateAlloc(FunctionProperties free_symb_prop)
    handle->archive              = ClauseSetAlloc();
    handle->watchlist            = ClauseSetAlloc();
    handle->f_archive            = FormulaSetAlloc();
+   handle->delayed_store        = ClauseSetAlloc();
+   handle->delayed_callbacks    = PStackAlloc();
+   handle->delayed_data         = PStackAlloc();
+   handle->processed_callbacks  = PStackAlloc();
+   handle->processed_data       = PStackAlloc();
    handle->extract_roots        = PStackAlloc();
    GlobalIndicesNull(&(handle->gindices));
    handle->fvi_initialized      = false;
@@ -195,6 +200,7 @@ ProofState_p ProofStateAlloc(FunctionProperties free_symb_prop)
    GCRegisterClauseSet(handle->gc_terms, handle->tmp_store);
    GCRegisterClauseSet(handle->gc_terms, handle->eval_store);
    GCRegisterClauseSet(handle->gc_terms, handle->archive);
+   GCRegisterClauseSet(handle->gc_terms, handle->delayed_store);
    GCRegisterClauseSet(handle->gc_terms, handle->watchlist);
    GCRegisterClauseSet(handle->gc_terms, handle->definition_store->def_clauses);
    GCRegisterFormulaSet(handle->gc_terms, handle->definition_store->def_archive);
@@ -375,6 +381,7 @@ void ProofStateResetClauseSets(ProofState_p state, bool term_gc)
    ClauseSetFreeClauses(state->tmp_store);
    ClauseSetFreeClauses(state->eval_store);
    ClauseSetFreeClauses(state->archive);
+   ClauseSetFreeClauses(state->delayed_store);
    ClauseSetFreeClauses(state->ax_archive);
    FormulaSetFreeFormulas(state->f_ax_archive);
    GlobalIndicesReset(&(state->gindices));
@@ -417,8 +424,13 @@ void ProofStateFree(ProofState_p junk)
    ClauseSetFree(junk->tmp_store);
    ClauseSetFree(junk->eval_store);
    ClauseSetFree(junk->archive);
+   ClauseSetFree(junk->delayed_store);
    ClauseSetFree(junk->ax_archive);
    FormulaSetFree(junk->f_archive);
+   PStackFree(junk->delayed_callbacks);
+   PStackFree(junk->delayed_data);
+   PStackFree(junk->processed_callbacks);
+   PStackFree(junk->processed_data);
    PStackFree(junk->extract_roots);
    GlobalIndicesFreeIndices(&(junk->gindices));
    GCAdminFree(junk->gc_terms);
@@ -700,6 +712,7 @@ void ProofStateStatisticsPrint(FILE* out, ProofState_p state)
               TBTermNodes(state->terms),
               ClauseSetGetTermNodes(state->tmp_store)+
               ClauseSetGetTermNodes(state->eval_store)+
+              ClauseSetGetTermNodes(state->delayed_store)+
               ClauseSetGetTermNodes(state->processed_pos_rules)+
               ClauseSetGetTermNodes(state->processed_pos_eqns)+
               ClauseSetGetTermNodes(state->processed_neg_units)+
@@ -780,6 +793,46 @@ void ProofStatePropDocQuote(FILE* out, int level,
           state->processed_non_units, comment);
    ClauseSetPropDocQuote(GlobalOut, level, prop,
           state->unprocessed, comment);
+}
+
+void ProofStateDelayedEvalRegister(ProofState_p state,
+   DelayedEvalCallback callback, void* data)
+{
+   PStackPushP(state->delayed_callbacks, callback);
+   PStackPushP(state->delayed_data, data);
+}
+
+void ProofStateDelayedEvalCall(ProofState_p state, ClauseSet_p clauses)
+{
+   DelayedEvalCallback callback;
+   void* data;
+
+   for (int i=0; i<state->delayed_callbacks->current; i++)
+   {
+      callback = PStackElementP(state->delayed_callbacks, i);
+      data = PStackElementP(state->delayed_data, i); 
+      callback(clauses, data);
+   }
+}
+
+void ProofStateClauseProcessedRegister(ProofState_p state,
+   ClauseProcessedCallback callback, void* data)
+{
+   PStackPushP(state->processed_callbacks, callback);
+   PStackPushP(state->processed_data, data);
+}
+
+void ProofStateClauseProcessedCall(ProofState_p state, Clause_p clause)
+{
+   ClauseProcessedCallback callback;
+   void* data;
+
+   for (int i=0; i<state->processed_callbacks->current; i++)
+   {
+      callback = PStackElementP(state->processed_callbacks, i);
+      data = PStackElementP(state->processed_data, i); 
+      callback(clause, data);
+   }
 }
 
 /*---------------------------------------------------------------------*/

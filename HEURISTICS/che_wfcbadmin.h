@@ -43,6 +43,7 @@ Changes
 #include <che_diversityweight.h>
 #include <che_enigmaticweightxgb.h>
 #include <che_enigmaticweightlgb.h>
+#include <che_enigmaticweighttfs.h>
 
 
 

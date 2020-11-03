@@ -58,6 +58,15 @@ typedef struct proofstatecell
    ClauseSet_p   tmp_store;
    ClauseSet_p   eval_store;
    ClauseSet_p   archive;
+   ClauseSet_p   delayed_store;   /* Clauses for delayed 'batch'
+                                     evaluation (before evaluation, 
+                                     not yet in unprocessed) */
+   PStack_p      delayed_callbacks; /* Handlers to be called 
+                                       before evaluation */
+   PStack_p      delayed_data;        /* Callback's data */
+   PStack_p      processed_callbacks; /* Handlers to be called 
+                                       after clause processing  */
+   PStack_p      processed_data;    /* Callback's data */
    FormulaSet_p  f_archive;
    PStack_p      extract_roots;
    GlobalIndices gindices;
@@ -127,7 +136,9 @@ typedef enum
    TSAverageData = 4
 }TrainingSelector;
 
+typedef void (*DelayedEvalCallback)(ClauseSet_p, void*);
 
+typedef void (*ClauseProcessedCallback)(Clause_p, void*);
 
 /*---------------------------------------------------------------------*/
 /*                Exported Functions and Variables                     */
@@ -192,6 +203,16 @@ void ProofStatePropDocQuote(FILE* out, int level,
 extern char* UseInlinedWatchList;
 
 void ProofStateResetSATSolver(ProofState_p state);
+
+void ProofStateDelayedEvalRegister(ProofState_p state,
+   DelayedEvalCallback callback, void* data);
+
+void ProofStateDelayedEvalCall(ProofState_p state, ClauseSet_p clauses);
+
+void ProofStateClauseProcessedRegister(ProofState_p state,
+   ClauseProcessedCallback callback, void* data);
+
+void ProofStateClauseProcessedCall(ProofState_p state, Clause_p clause);
 
 #endif
 

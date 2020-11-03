@@ -1671,6 +1671,9 @@ CLState_p process_options(int argc, char* argv[])
       case OPT_APP_ENCODE:
             app_encode = true;
             break;
+      case OPT_DELAYED_EVAL:
+            DelayedEvalSize = CLStateGetIntArg(handle, arg);
+            break;
       default:
             assert(false && "Unknown option");
             break;
