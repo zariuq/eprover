@@ -807,7 +807,7 @@ void ProofStateDelayedEvalCall(ProofState_p state, ClauseSet_p clauses)
    DelayedEvalCallback callback;
    void* data;
 
-   for (int i=0; i<state->delayed_callbacks->current; i++)
+   for (int i=0; i<PStackGetSP(state->delayed_callbacks); i++)
    {
       callback = PStackElementP(state->delayed_callbacks, i);
       data = PStackElementP(state->delayed_data, i); 
@@ -827,7 +827,7 @@ void ProofStateClauseProcessedCall(ProofState_p state, Clause_p clause)
    ClauseProcessedCallback callback;
    void* data;
 
-   for (int i=0; i<state->processed_callbacks->current; i++)
+   for (int i=0; i<PStackGetSP(state->processed_callbacks); i++)
    {
       callback = PStackElementP(state->processed_callbacks, i);
       data = PStackElementP(state->processed_data, i); 
