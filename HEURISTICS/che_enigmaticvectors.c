@@ -30,7 +30,7 @@ Changes
 
 #define DEPTH(info) ((info)->path->current - ((info)->pos ? 1 : 0))
 #define ARITY_IDX(f_code)  (MIN(SigFindArity(info->sig,(f_code)), enigma->params->count_arity-1))
-
+#define HASHMAP(enigma,count) (((enigma)->params->unified_hashing) ? (&((enigma)->unified)) : (&((enigma)->count)))
 
 /*---------------------------------------------------------------------*/
 /*                      Forward Declarations                           */
@@ -229,7 +229,7 @@ static void update_verts(EnigmaticClause_p enigma, EnigmaticInfo_p info, Term_p 
       hash_update(&fid, ":", fstr);
    }
    hash_base(&fid, enigma->params->base_vert);
-   update_feature_inc(&enigma->vert, fid);
+   update_feature_inc(HASHMAP(enigma,vert), fid);
    update_stats(fid, info, fstr);
    if (fstr) { DStrFree(fstr); }
 }
@@ -248,7 +248,7 @@ static void update_horiz(EnigmaticClause_p enigma, EnigmaticInfo_p info, Term_p 
       hash_update(&fid, ".", fstr);
    }
    hash_base(&fid, enigma->params->base_horiz);
-   update_feature_inc(&enigma->horiz, fid);
+   update_feature_inc(HASHMAP(enigma,horiz), fid);
    update_stats(fid, info, fstr);
    if (fstr) { DStrFree(fstr); }
 }
@@ -264,7 +264,7 @@ static void update_counts(EnigmaticClause_p enigma, EnigmaticInfo_p info, Term_p
    hash_update(&fid, sign , fstr);
    hash_update(&fid, symbol_string(enigma, info, term->f_code), fstr);
    hash_base(&fid, enigma->params->base_count);
-   update_feature_inc(&enigma->counts, fid);
+   update_feature_inc(HASHMAP(enigma,counts), fid);
    update_stats(fid, info, fstr);
    if (fstr) { DStrFree(fstr); }
 }
@@ -280,7 +280,7 @@ static void update_depths(EnigmaticClause_p enigma, EnigmaticInfo_p info, Term_p
    hash_update(&fid, sign , fstr);
    hash_update(&fid, symbol_string(enigma, info, term->f_code), fstr);
    hash_base(&fid, enigma->params->base_depth);
-   update_feature_max(&enigma->depths, fid, DEPTH(info));
+   update_feature_max(HASHMAP(enigma,depths), fid, DEPTH(info));
    update_stats(fid, info, fstr);
    if (fstr) { DStrFree(fstr); }
 }
