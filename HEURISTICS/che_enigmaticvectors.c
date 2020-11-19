@@ -593,6 +593,10 @@ void EnigmaticInitProblem(EnigmaticVector_p vector, EnigmaticInfo_p info,
       WFormula_p handle;
       for (handle=f_axioms->anchor->succ; handle!=f_axioms->anchor; handle=handle->succ)
       {
+         if ((!FormulaQueryProp(handle, CPInputFormula)) || (!handle->info))
+         {
+            continue;
+         }
          if (handle->is_clause) 
          {
             clause = WFormClauseToClause(handle);
@@ -603,6 +607,11 @@ void EnigmaticInitProblem(EnigmaticVector_p vector, EnigmaticInfo_p info,
          }
          FormulaProperties props = FormulaQueryType(handle);
          ClauseSetInsert(is_goal(props) ? goal : theory, clause);
+         // BEGIN
+         //fprintf(GlobalOut, "#%s(%d,%d,%p): ", (is_goal(props)?"GOAL":"THEORY"), props, handle->properties, handle->info);
+         //ClausePrint(GlobalOut, clause, true);
+         //fprintf(GlobalOut, "\n");
+         // END
       }
    }
    // else use CNF axioms
@@ -611,9 +620,18 @@ void EnigmaticInitProblem(EnigmaticVector_p vector, EnigmaticInfo_p info,
       Clause_p anchor = axioms->anchor;
       for (clause=anchor->succ; clause!=anchor; clause=clause->succ)
       {
+         if ((!ClauseQueryProp(clause, CPInputFormula)) || (!clause->info))
+         {
+            continue;
+         }
          FormulaProperties props = ClauseQueryTPTPType(clause);
          Clause_p copy = ClauseCopy(clause, info->bank);
          ClauseSetInsert(is_goal(props) ? goal : theory, copy);
+         // BEGIN
+         //fprintf(GlobalOut, "#%s(%d,%d,%p): ", (is_goal(props)?"GOAL":"THEORY"), props, copy->properties, copy->info);
+         //ClausePrint(GlobalOut, clause, true);
+         //fprintf(GlobalOut, "\n");
+         // END
       }
    }
    
@@ -653,7 +671,7 @@ void EnigmaticInit(EnigmaticModel_p model, ProofState_p proofstate)
    EnigmaticInitProblem(
       model->vector, 
       model->info, 
-      proofstate->f_axioms, 
+      proofstate->f_ax_archive, //proofstate->f_axioms, 
       proofstate->axioms
    );
 }
