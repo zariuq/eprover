@@ -166,6 +166,7 @@ ProofState_p ProofStateAlloc(FunctionProperties free_symb_prop)
    handle->archive              = ClauseSetAlloc();
    handle->watchlist            = ClauseSetAlloc();
    handle->f_archive            = FormulaSetAlloc();
+   handle->aborted_store        = ClauseSetAlloc();
    handle->delayed_store        = ClauseSetAlloc();
    handle->delayed_callbacks    = PStackAlloc();
    handle->delayed_data         = PStackAlloc();
@@ -200,6 +201,7 @@ ProofState_p ProofStateAlloc(FunctionProperties free_symb_prop)
    GCRegisterClauseSet(handle->gc_terms, handle->tmp_store);
    GCRegisterClauseSet(handle->gc_terms, handle->eval_store);
    GCRegisterClauseSet(handle->gc_terms, handle->archive);
+   GCRegisterClauseSet(handle->gc_terms, handle->aborted_store);
    GCRegisterClauseSet(handle->gc_terms, handle->delayed_store);
    GCRegisterClauseSet(handle->gc_terms, handle->watchlist);
    GCRegisterClauseSet(handle->gc_terms, handle->definition_store->def_clauses);
@@ -381,6 +383,7 @@ void ProofStateResetClauseSets(ProofState_p state, bool term_gc)
    ClauseSetFreeClauses(state->tmp_store);
    ClauseSetFreeClauses(state->eval_store);
    ClauseSetFreeClauses(state->archive);
+   ClauseSetFreeClauses(state->aborted_store);
    ClauseSetFreeClauses(state->delayed_store);
    ClauseSetFreeClauses(state->ax_archive);
    FormulaSetFreeFormulas(state->f_ax_archive);
@@ -424,6 +427,7 @@ void ProofStateFree(ProofState_p junk)
    ClauseSetFree(junk->tmp_store);
    ClauseSetFree(junk->eval_store);
    ClauseSetFree(junk->archive);
+   ClauseSetFree(junk->aborted_store);
    ClauseSetFree(junk->delayed_store);
    ClauseSetFree(junk->ax_archive);
    FormulaSetFree(junk->f_archive);
@@ -712,6 +716,7 @@ void ProofStateStatisticsPrint(FILE* out, ProofState_p state)
               TBTermNodes(state->terms),
               ClauseSetGetTermNodes(state->tmp_store)+
               ClauseSetGetTermNodes(state->eval_store)+
+			  ClauseSetGetTermNodes(state->aborted_store)+
               ClauseSetGetTermNodes(state->delayed_store)+
               ClauseSetGetTermNodes(state->processed_pos_rules)+
               ClauseSetGetTermNodes(state->processed_pos_eqns)+
