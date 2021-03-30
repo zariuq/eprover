@@ -31,8 +31,6 @@ Changes
 /*                    Data type declarations                           */
 /*---------------------------------------------------------------------*/
 
-//typedef struct proofcontrolcell *ProofControl_p;
-
 typedef struct enigmaticgenerationlgbparamcell
 {
    OCB_p        ocb;
@@ -65,7 +63,6 @@ typedef struct enigmaticgenerationlgbparamcell
 EnigmaticGenerationLgbParam_p EnigmaticGenerationLgbParamAlloc(void);
 void EnigmaticGenerationLgbParamFree(EnigmaticGenerationLgbParam_p junk);
 
-//EnigmaticGenerationLgbParam_p
 void EnigmaticGenerationLgbModelInit(
 	char* d_prefix,
 	char* model_name,
@@ -73,18 +70,6 @@ void EnigmaticGenerationLgbModelInit(
 	OCB_p ocb,
 	ProofState_p state,
 	EnigmaticGenerationLgbParam_p data);
-
-//WFCB_p EnigmaticGenerationLgbParse(
-//   Scanner_p in,
-//   OCB_p ocb,
-//   ProofState_p state);
-
-//WFCB_p EnigmaticGenerationLgbInit(
-//   ClausePrioFun prio_fun,
-//   OCB_p ocb,
-//   ProofState_p proofstate,
-//   EnigmaticModel_p model1);//,
-//   //EnigmaticModel_p model2);
 
 double EnigmaticGenerationPredictLgb(Clause_p clause, EnigmaticGenerationLgbParam_p local, EnigmaticModel_p model);
 double EnigmaticGenerationPredictSetLgb(ClauseSet_p parents, EnigmaticGenerationLgbParam_p local, EnigmaticModel_p model);

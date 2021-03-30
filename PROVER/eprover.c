@@ -518,18 +518,12 @@ int main(int argc, char* argv[])
 
    if (filter_generated)
    {
-	   //EnigmaticModel_p model = EnigmaticModelCreate(enigmaceo_filename, "model.lgb");
-	   //EnigmaticGenerationLgbParam_p gen_model =
 	   EnigmaticGenerationLgbModelInit(enigmaceo_filename,
 										 "model.lgb",
 										 filter_generated_threshold,
 										 proofcontrol->ocb,
 										 proofstate,
 										 proofcontrol->enigma_gen_model);
-	   //fprintf(GlobalOut, "THIS IS A TEST: %s\n", enigmaceo_filename);
-	   //fprintf(GlobalOut, "THIS IS A TEST: %s\n", model->features_filename);
-	   //fprintf(GlobalOut, "Filter threshold: %.3f\n", filter_generated_threshold);
-	   //fprintf(GlobalOut, "THIS IS A TEST: %s\n", proofcontrol->enigma_gen_model->model1->model_filename);
 	}
 
    VERBOUT2("Prover state initialized\n");

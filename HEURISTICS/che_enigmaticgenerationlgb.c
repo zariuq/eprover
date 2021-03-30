@@ -177,11 +177,7 @@ void EnigmaticGenerationLgbParamFree(EnigmaticGenerationLgbParam_p junk)
    EnigmaticGenerationLgbParamCellFree(junk);
 }
  
-//WFCB_p EnigmaticGenerationLgbParse(
-// We much want to skip the return and just add the model to the ProofControl cell, actually...
-//EnigmaticGenerationLgbParam_p EnigmaticGenerationLgbModelInit(
 void EnigmaticGenerationLgbModelInit(
-   //Scanner_p in,  // As the d_prefix is now given as a string input, we no longer need the stream!
    char* d_prefix,
    char* model_name,
    double threshold,
@@ -193,12 +189,7 @@ void EnigmaticGenerationLgbModelInit(
 
    model1 = EnigmaticModelCreate(d_prefix, model_name);// "model.lgb");
    model1->weight_type = 1; // res = (pred <= threshold) ? EW_NEG : EW_POS;
-   model1->threshold = threshold; //0.25; is the default
-
-   //Now done in the ProofControl Allocation
-   //EnigmaticGenerationLgbParam_p data = EnigmaticGenerationLgbParamAlloc();
-   // Can't do this because it's not defined yet.  But returning seems crude and ugly.
-   //EnigmaticGenerationLgbParam_p data = control->enigma_gen_model;
+   model1->threshold = threshold;
 
    // Fairly straightforward
    data->ocb = ocb;
@@ -249,85 +240,49 @@ double EnigmaticGenerationPredictParentsConcatLgb(Clause_p parent1, Clause_p par
       model = local->model1;
    }
    local->lgb_count = 0;
-   //if (parent2)
-   //{
+
    return EnigmaticPredictParentsConcat(parent1, parent2, model, local, local->fill_fun, local->predict_fun);
-   //}
-   //return EnigmaticPredict(parent1, model, local, local->fill_fun, local->predict_fun);
 }
 
 bool EnigmaticLgbFilterGenerationCompute(EnigmaticGenerationLgbParam_p local, Clause_p clause)
 {
-	//EnigmaticGenerationLgbParam_p local = control->enigma_gen_model;
 	double pred;
 	bool res = false;
 
-	//Clause_p clause;
-	PStackPointer j = 0; //, sp;
+	PStackPointer j = 0;
 	DerivationCode op;
 	Clause_p parent1, parent2;
-	//ClauseSet_p parents = ClauseSetAlloc();
-	//long resp = 0;
 
-	local->init_fun(local); // If the model is initialized, this is just a quick if-statement
+	local->init_fun(local);
 
-	// We want to get the parents.  So I'll try printing them first.
-
-	//sp = PStackGetSP(clause->derivation);
-	//j = 0;
-	//resp = 0;
-
-	//if (parent1)
-	//{
-	//	fprintf(GlobalOut, " #parent%ld ", resp);
-	//}
-	// I think we can rely on clauses having at most 2 parents by this point, before forward contraction steps that would add unit clauses and the like!
-	// Equality factoring and resolution would have one 'parent', i.e., the more complicated expression for the same clause before unification.
-	// Paramodulation adds two parents:
-	// ClausePushDerivation(clause,  pm_type==ParamodPlain?DCParamod:DCSimParamod, pminfo->into, pminfo->new_orig);
-	// The ClauseSet doesn't work as clauses are already in sets.  Copy them or add to a PStack but if they're always too, just passing them as parameters is most efficient!
-	// The generic framework can be made later if E'd like to have the addons.
-	//while (j < sp)
-	//{
 	op = PStackElementInt(clause->derivation, j);
 	j++;
 
 	if(DCOpHasCnfArg1(op))
 	{
 	   parent1 = PStackElementP(clause->derivation, j);
-	   j++; //resp++;
+	   j++;
 	   if (OutputLevel>=1)
 	   	{
-		   fprintf(GlobalOut, " #parent1");//%ld ", resp);
+		   fprintf(GlobalOut, " #parent1");
 		   ClausePrint(GlobalOut, parent1, true);
 		   fprintf(GlobalOut, " ");
 	   	}
-	   //ClauseSetInsert(parents, parent);
 
 	}
 	if(DCOpHasCnfArg2(op))
 	{
 	   parent2 = PStackElementP(clause->derivation, j);
-	   j++; //resp++;
+	   j++;
 	   if (OutputLevel>=1)
 	   	{
-		   fprintf(GlobalOut, " #parent2");//%ld ", resp);
+		   fprintf(GlobalOut, " #parent2");
 		   ClausePrint(GlobalOut, parent2, true);
 		   fprintf(GlobalOut, " ");
 		   fprintf(GlobalOut, "\n");
 	   	}
-	   //ClauseSetInsert(parents, parent);
 	}
-	//}
-	//if (sp == 0)
-	//{
-	//	fprintf(GlobalOut, " #sp == 0 ");
-	//}
 
-	//ClauseSetInsert(parents, clause);
-	//pred = EnigmaticGenerationPredictLgb(clause, local, local->model1);
-	//res = EnigmaticWeight(pred, local->model1->weight_type, local->model1->threshold);
-	// At the moment, the models are trained only based on pairs of parents.
 	if (parent1 && parent2)
 	{
 		if (local->concat)
@@ -339,7 +294,6 @@ bool EnigmaticLgbFilterGenerationCompute(EnigmaticGenerationLgbParam_p local, Cl
 			pred = EnigmaticGenerationPredictParentsLgb(parent1, parent2, local, local->model1);
 		}
 		res = (pred <= local->model1->threshold);
-		//res = (pred <= 0.5);
 	}
 	if (OutputLevel>=1)
 	{
@@ -349,13 +303,11 @@ bool EnigmaticLgbFilterGenerationCompute(EnigmaticGenerationLgbParam_p local, Cl
 		 PrintEnigmaticVector(GlobalOut, local->model1->vector);
 		 fprintf(GlobalOut, "\n");
 	  }
-	  //fprintf(GlobalOut, "=%.2f (val=%.3f,vlen=%d) : ", res, pred, local->lgb_count);
 	  fprintf(GlobalOut, "=%s (val=%.3f,vlen=%d) : ", res ? "true" : "false", pred, local->lgb_count);
 	  ClausePrint(GlobalOut, clause, true);
 	  fprintf(GlobalOut, "\n");
 	}
 
-	//ClauseSetFree(parents);
 	return res;
 }
 
